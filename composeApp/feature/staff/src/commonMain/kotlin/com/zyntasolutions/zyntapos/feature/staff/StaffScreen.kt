@@ -13,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -48,13 +50,15 @@ fun StaffScreen(
     // Compute current week bounds (Mon–Sun) once
     val (weekStart, weekEnd) = remember(todayDate) { currentWeekBounds(todayDate) }
 
+    val s = LocalStrings.current
+
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = state.activeTab.ordinal) {
             StaffTabItem.entries.forEach { item ->
                 Tab(
                     selected = state.activeTab == item.tab,
                     onClick = { onIntent(StaffIntent.SwitchTab(item.tab)) },
-                    text = { Text(item.label) },
+                    text = { Text(s[item.stringRes]) },
                     icon = { Icon(item.icon, contentDescription = null) },
                 )
             }
@@ -134,14 +138,14 @@ fun StaffScreen(
 
 private enum class StaffTabItem(
     val tab: StaffTab,
-    val label: String,
+    val stringRes: StringResource,
     val icon: ImageVector,
 ) {
-    EMPLOYEES(StaffTab.EMPLOYEES, "Staff", Icons.Default.Groups),
-    ATTENDANCE(StaffTab.ATTENDANCE, "Attendance", Icons.Default.Today),
-    LEAVE(StaffTab.LEAVE, "Leave", Icons.Default.CalendarMonth),
-    SHIFTS(StaffTab.SHIFTS, "Shifts", Icons.Default.Schedule),
-    PAYROLL(StaffTab.PAYROLL, "Payroll", Icons.Default.Payments),
+    EMPLOYEES(StaffTab.EMPLOYEES, StringResource.STAFF_EMPLOYEES, Icons.Default.Groups),
+    ATTENDANCE(StaffTab.ATTENDANCE, StringResource.STAFF_ATTENDANCE, Icons.Default.Today),
+    LEAVE(StaffTab.LEAVE, StringResource.STAFF_LEAVE, Icons.Default.CalendarMonth),
+    SHIFTS(StaffTab.SHIFTS, StringResource.STAFF_SHIFTS, Icons.Default.Schedule),
+    PAYROLL(StaffTab.PAYROLL, StringResource.STAFF_PAYROLL, Icons.Default.Payments),
 }
 
 /**

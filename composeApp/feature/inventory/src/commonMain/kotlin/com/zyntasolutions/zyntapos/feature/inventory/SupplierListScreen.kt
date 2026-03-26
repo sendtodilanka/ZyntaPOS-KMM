@@ -21,6 +21,8 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.Supplier
 
 /**
@@ -50,6 +52,7 @@ fun SupplierListScreen(
     onNavigateToDetail: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val windowSize = currentWindowSize()
 
     // ── Local search state ────────────────────────────────────────────────
@@ -82,13 +85,13 @@ fun SupplierListScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Suppliers",
+        title = s[StringResource.INVENTORY_SUPPLIERS],
         modifier = modifier,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onNavigateToDetail(null) },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("New Supplier") },
+                text = { Text(s[StringResource.INVENTORY_NEW_SUPPLIER]) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
@@ -107,7 +110,7 @@ fun SupplierListScreen(
                 onQueryChange = { searchQuery = it },
                 onClear = { searchQuery = "" },
                 onScanToggle = {},
-                placeholder = "Search suppliers by name, contact, phone…",
+                placeholder = s[StringResource.INVENTORY_SEARCH_SUPPLIERS],
             )
             Spacer(Modifier.height(ZyntaSpacing.sm))
 
@@ -155,12 +158,13 @@ private fun SupplierTableView(
     onSort: (String) -> Unit,
     onSupplierClick: (Supplier) -> Unit,
 ) {
+    val s = LocalStrings.current
     val columns = buildList {
-        add(ZyntaTableColumn("name", "Supplier Name", weight = 2f))
+        add(ZyntaTableColumn("name", s[StringResource.INVENTORY_SUPPLIER_NAME], weight = 2f))
         if (windowSize == WindowSize.EXPANDED)
-            add(ZyntaTableColumn("contactPerson", "Contact", weight = 1.5f))
-        add(ZyntaTableColumn("phone", "Phone", weight = 1.4f))
-        add(ZyntaTableColumn("email", "Email", weight = 1.8f))
+            add(ZyntaTableColumn("contactPerson", s[StringResource.INVENTORY_CONTACT], weight = 1.5f))
+        add(ZyntaTableColumn("phone", s[StringResource.INVENTORY_PHONE], weight = 1.4f))
+        add(ZyntaTableColumn("email", s[StringResource.INVENTORY_EMAIL], weight = 1.8f))
     }
 
     val tableSortDir = if (sortDir == SortDir.ASC) SortDirection.Ascending else SortDirection.Descending
@@ -175,9 +179,9 @@ private fun SupplierTableView(
         modifier = Modifier.fillMaxSize(),
         rowKey = { it.id },
         emptyContent = { ZyntaEmptyState(
-                    title = "No suppliers found",
+                    title = s[StringResource.INVENTORY_NO_SUPPLIERS],
                     icon = Icons.Default.Business,
-                    subtitle = "Add your first supplier using the + button",
+                    subtitle = s[StringResource.INVENTORY_NO_SUPPLIERS_SUBTITLE],
                 ) },
         rowContent = { supplier: Supplier ->
         Text(
@@ -222,6 +226,7 @@ private fun SupplierCardList(
     isLoading: Boolean,
     onSupplierClick: (Supplier) -> Unit,
 ) {
+    val s = LocalStrings.current
     if (isLoading) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -229,9 +234,9 @@ private fun SupplierCardList(
         return
     }
     if (suppliers.isEmpty()) { ZyntaEmptyState(
-                    title = "No suppliers found",
+                    title = s[StringResource.INVENTORY_NO_SUPPLIERS],
                     icon = Icons.Default.Business,
-                    subtitle = "Add your first supplier using the + button",
+                    subtitle = s[StringResource.INVENTORY_NO_SUPPLIERS_SUBTITLE],
                 ); return }
 
     LazyColumn(

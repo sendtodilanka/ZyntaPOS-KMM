@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 
 /**
  * License expired / revoked blocker screen.
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun LicenseExpiredScreen() {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         contentAlignment = Alignment.Center,
@@ -34,19 +37,18 @@ fun LicenseExpiredScreen() {
                 modifier = Modifier.size(64.dp),
             )
             Text(
-                text = "License Expired",
+                text = s[StringResource.AUTH_LICENSE_EXPIRED_TITLE],
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.error,
             )
             Text(
-                text = "Your ZyntaPOS license has expired or been revoked. " +
-                    "Please contact your administrator or Zynta Solutions support to renew your subscription.",
+                text = s[StringResource.AUTH_LICENSE_EXPIRED_MESSAGE],
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(
-                text = "Support: support@zyntapos.com",
+                text = s[StringResource.AUTH_LICENSE_SUPPORT_CONTACT],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

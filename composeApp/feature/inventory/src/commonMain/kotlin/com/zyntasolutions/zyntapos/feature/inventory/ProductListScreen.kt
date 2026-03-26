@@ -26,6 +26,8 @@ import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.Product
 
@@ -61,6 +63,7 @@ fun ProductListScreen(
     modifier: Modifier = Modifier,
     currencyFormatter: CurrencyFormatter = koinInject(),
 ) {
+    val s = LocalStrings.current
     val windowSize = currentWindowSize()
 
     LaunchedEffect(Unit) {
@@ -75,8 +78,8 @@ fun ProductListScreen(
     if (showBatchDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showBatchDeleteDialog = false },
-            title = { Text("Delete ${state.selectedProductIds.size} product(s)?") },
-            text = { Text("This will deactivate all selected products. This cannot be undone.") },
+            title = { Text(s[StringResource.INVENTORY_BATCH_DELETE_TITLE]) },
+            text = { Text(s[StringResource.INVENTORY_BATCH_DELETE_MESSAGE]) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -84,10 +87,10 @@ fun ProductListScreen(
                         onIntent(InventoryIntent.BatchDeleteSelectedProducts)
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Delete") }
+                ) { Text(s[StringResource.COMMON_DELETE]) }
             },
             dismissButton = {
-                TextButton(onClick = { showBatchDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showBatchDeleteDialog = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -98,8 +101,8 @@ fun ProductListScreen(
             if (!state.isSelectionMode) {
                 ExtendedFloatingActionButton(
                     onClick = { onNavigateToDetail(null) },
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Add Product") },
-                    text = { Text("Add Product") },
+                    icon = { Icon(Icons.Default.Add, contentDescription = s[StringResource.INVENTORY_ADD_PRODUCT]) },
+                    text = { Text(s[StringResource.INVENTORY_ADD_PRODUCT]) },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
                 )
@@ -136,7 +139,7 @@ fun ProductListScreen(
                         }
                     },
                     isScanActive = state.isScannerActive,
-                    placeholder = "Search products by name, barcode, SKU…",
+                    placeholder = s[StringResource.INVENTORY_SEARCH_PLACEHOLDER],
                 )
             }
 
@@ -164,7 +167,7 @@ fun ProductListScreen(
                 (state.searchQuery.isNotBlank() || state.selectedCategoryId != null || state.stockFilter != StockFilter.ALL)
             ) {
                 Text(
-                    text = "${state.products.size} product${if (state.products.size != 1) "s" else ""} found",
+                    text = s[StringResource.INVENTORY_PRODUCTS_FOUND],
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = ZyntaSpacing.xs),
@@ -242,6 +245,7 @@ private fun BatchActionToolbar(
     onDelete: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.primaryContainer,
@@ -254,18 +258,18 @@ private fun BatchActionToolbar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onCancel) {
-                Icon(Icons.Default.Close, contentDescription = "Exit selection mode")
+                Icon(Icons.Default.Close, contentDescription = s[StringResource.INVENTORY_EXIT_SELECTION])
             }
             Text(
-                text = "$selectedCount of $totalCount selected",
+                text = s[StringResource.INVENTORY_SELECTED_COUNT],
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onSelectAll) { Text("All") }
+            TextButton(onClick = onSelectAll) { Text(s[StringResource.COMMON_SELECT_ALL]) }
             IconButton(onClick = onDelete, enabled = selectedCount > 0) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "Delete selected",
+                    contentDescription = s[StringResource.INVENTORY_DELETE_SELECTED],
                     tint = if (selectedCount > 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
                 )
@@ -289,6 +293,7 @@ private fun ProductFilterRow(
     onStocktake: () -> Unit = {},
     onEnterSelectionMode: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -302,7 +307,7 @@ private fun ProductFilterRow(
             FilterChip(
                 selected = selectedCategoryId == null,
                 onClick = { onSelectCategory(null) },
-                label = { Text("All") },
+                label = { Text(s[StringResource.INVENTORY_FILTER_ALL]) },
             )
             categories.forEach { cat ->
                 FilterChip(
@@ -327,32 +332,32 @@ private fun ProductFilterRow(
         IconButton(onClick = onStocktake) {
             Icon(
                 imageVector = Icons.Default.Inventory,
-                contentDescription = "Stocktake",
+                contentDescription = s[StringResource.INVENTORY_STOCKTAKE],
             )
         }
         IconButton(onClick = onPrintLabels) {
             Icon(
                 imageVector = Icons.Default.Print,
-                contentDescription = "Print Labels",
+                contentDescription = s[StringResource.INVENTORY_PRINT_LABELS],
             )
         }
         IconButton(onClick = onBulkImport) {
             Icon(
                 imageVector = Icons.Default.Upload,
-                contentDescription = "Bulk Import",
+                contentDescription = s[StringResource.INVENTORY_BULK_IMPORT],
             )
         }
         // INV-7: Enter multi-select mode
         IconButton(onClick = onEnterSelectionMode) {
             Icon(
                 imageVector = Icons.Default.Checklist,
-                contentDescription = "Select products",
+                contentDescription = s[StringResource.INVENTORY_SELECT_PRODUCTS],
             )
         }
         IconButton(onClick = onToggleViewMode) {
             Icon(
                 imageVector = if (viewMode == ViewMode.LIST) Icons.Default.GridView else Icons.AutoMirrored.Filled.ViewList,
-                contentDescription = if (viewMode == ViewMode.LIST) "Switch to grid view" else "Switch to list view",
+                contentDescription = if (viewMode == ViewMode.LIST) s[StringResource.INVENTORY_SWITCH_GRID] else s[StringResource.INVENTORY_SWITCH_LIST],
             )
         }
     }
@@ -389,19 +394,20 @@ private fun ProductTableView(
     isSelectionMode: Boolean = false,
     selectedProductIds: Set<String> = emptySet(),
 ) {
+    val s = LocalStrings.current
     val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
     val columns = buildList {
         if (isSelectionMode) add(ZyntaTableColumn("select", "", weight = 0.5f, sortable = false))
-        add(ZyntaTableColumn("name", "Product Name", weight = 2.5f))
+        add(ZyntaTableColumn("name", s[StringResource.INVENTORY_PRODUCT_NAME], weight = 2.5f))
         if (windowSize != WindowSize.COMPACT) {
-            add(ZyntaTableColumn("sku", "SKU", weight = 1.2f))
-            add(ZyntaTableColumn("category", "Category", weight = 1.5f))
+            add(ZyntaTableColumn("sku", s[StringResource.INVENTORY_SKU], weight = 1.2f))
+            add(ZyntaTableColumn("category", s[StringResource.INVENTORY_CATEGORY], weight = 1.5f))
         }
-        add(ZyntaTableColumn("price", "Price", weight = 1f))
-        add(ZyntaTableColumn("stockQty", "Stock", weight = 1f))
+        add(ZyntaTableColumn("price", s[StringResource.COMMON_PRICE], weight = 1f))
+        add(ZyntaTableColumn("stockQty", s[StringResource.INVENTORY_STOCK_LEVEL], weight = 1f))
         if (windowSize == WindowSize.EXPANDED) {
-            add(ZyntaTableColumn("status", "Status", weight = 1f, sortable = false))
+            add(ZyntaTableColumn("status", s[StringResource.COMMON_STATUS], weight = 1f, sortable = false))
         }
     }
 
@@ -421,9 +427,9 @@ private fun ProductTableView(
         rowKey = { it.id },
         emptyContent = {
             ZyntaEmptyState(
-                title = "No products found",
+                title = s[StringResource.INVENTORY_NO_PRODUCTS],
                 icon = Icons.Default.Inventory2,
-                subtitle = "Add your first product or adjust filters",
+                subtitle = s[StringResource.INVENTORY_NO_PRODUCTS_SUBTITLE],
                 modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
             )
         },
@@ -527,11 +533,12 @@ private fun ProductGridView(
         return
     }
 
+    val s = LocalStrings.current
     if (products.isEmpty()) {
         ZyntaEmptyState(
-            title = "No products found",
+            title = s[StringResource.INVENTORY_NO_PRODUCTS],
             icon = Icons.Default.Inventory2,
-            subtitle = "Add your first product or adjust filters",
+            subtitle = s[StringResource.INVENTORY_NO_PRODUCTS_SUBTITLE],
             modifier = Modifier.fillMaxSize(),
         )
         return

@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.JournalEntry
@@ -39,6 +41,7 @@ fun JournalEntryListScreen(
     onNavigateToEntry: (entryId: String?) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -75,18 +78,18 @@ fun JournalEntryListScreen(
     deleteConfirmEntryId?.let { entryId ->
         AlertDialog(
             onDismissRequest = { deleteConfirmEntryId = null },
-            title = { Text("Delete Draft Entry") },
-            text = { Text("Are you sure you want to permanently delete this draft entry? This action cannot be undone.") },
+            title = { Text(s[StringResource.ACCOUNTING_DELETE_DRAFT_ENTRY]) },
+            text = { Text(s[StringResource.ACCOUNTING_DELETE_DRAFT_CONFIRM]) },
             confirmButton = {
                 TextButton(
                     onClick = {
                         viewModel.dispatch(JournalEntryListIntent.DeleteDraft(entryId))
                         deleteConfirmEntryId = null
                     },
-                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                ) { Text(s[StringResource.COMMON_DELETE], color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { deleteConfirmEntryId = null }) { Text("Cancel") }
+                TextButton(onClick = { deleteConfirmEntryId = null }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -94,17 +97,17 @@ fun JournalEntryListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Journal Entries") },
+                title = { Text(s[StringResource.ACCOUNTING_JOURNAL_ENTRIES]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToEntry(null) }) {
-                Icon(Icons.Default.Add, contentDescription = "New Entry")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.ACCOUNTING_NEW_ENTRY])
             }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -127,7 +130,7 @@ fun JournalEntryListScreen(
                     onValueChange = {
                         viewModel.dispatch(JournalEntryListIntent.SetDateRange(it, state.toDate))
                     },
-                    label = { Text("From") },
+                    label = { Text(s[StringResource.ACCOUNTING_FROM]) },
                     placeholder = { Text("YYYY-MM-DD") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -137,7 +140,7 @@ fun JournalEntryListScreen(
                     onValueChange = {
                         viewModel.dispatch(JournalEntryListIntent.SetDateRange(state.fromDate, it))
                     },
-                    label = { Text("To") },
+                    label = { Text(s[StringResource.ACCOUNTING_TO]) },
                     placeholder = { Text("YYYY-MM-DD") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -154,12 +157,12 @@ fun JournalEntryListScreen(
                 FilterChip(
                     selected = !state.showUnpostedOnly,
                     onClick = { viewModel.dispatch(JournalEntryListIntent.ToggleUnpostedFilter(false)) },
-                    label = { Text("All") },
+                    label = { Text(s[StringResource.COMMON_ALL]) },
                 )
                 FilterChip(
                     selected = state.showUnpostedOnly,
                     onClick = { viewModel.dispatch(JournalEntryListIntent.ToggleUnpostedFilter(true)) },
-                    label = { Text("Drafts Only") },
+                    label = { Text(s[StringResource.ACCOUNTING_DRAFTS_ONLY]) },
                 )
             }
 
@@ -173,9 +176,9 @@ fun JournalEntryListScreen(
                     }
                     state.entries.isEmpty() -> {
                         ZyntaEmptyState(
-                            title = "No journal entries found",
+                            title = s[StringResource.ACCOUNTING_NO_JOURNAL_ENTRIES],
                             icon = Icons.Default.Book,
-                            subtitle = "Tap + to create a new entry.",
+                            subtitle = s[StringResource.ACCOUNTING_TAP_NEW_ENTRY],
                         )
                     }
                     else -> {
@@ -209,6 +212,7 @@ private fun JournalEntryCard(
     onClick: () -> Unit,
     onDeleteDraft: (() -> Unit)?,
 ) {
+    val s = LocalStrings.current
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -235,7 +239,7 @@ private fun JournalEntryCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    entry.description.ifBlank { "(No description)" },
+                    entry.description.ifBlank { s[StringResource.ACCOUNTING_NO_DESCRIPTION] },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
@@ -282,7 +286,7 @@ private fun JournalEntryCard(
                     shape = MaterialTheme.shapes.extraSmall,
                 ) {
                     Text(
-                        text = if (entry.isPosted) "Posted" else "Draft",
+                        text = if (entry.isPosted) s[StringResource.ACCOUNTING_POSTED] else s[StringResource.ACCOUNTING_DRAFT],
                         style = MaterialTheme.typography.labelSmall,
                         color = if (entry.isPosted) MaterialTheme.colorScheme.onTertiaryContainer
                         else MaterialTheme.colorScheme.onSecondaryContainer,
@@ -298,7 +302,7 @@ private fun JournalEntryCard(
                     ) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete draft",
+                            contentDescription = s[StringResource.ACCOUNTING_DELETE_DRAFT],
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(18.dp),
                         )

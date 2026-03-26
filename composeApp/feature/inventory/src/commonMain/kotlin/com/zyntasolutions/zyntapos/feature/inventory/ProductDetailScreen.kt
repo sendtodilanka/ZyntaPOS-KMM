@@ -21,6 +21,8 @@ import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.Category
 import com.zyntasolutions.zyntapos.domain.model.ProductVariant
 import com.zyntasolutions.zyntapos.domain.model.TaxGroup
@@ -53,10 +55,17 @@ fun ProductDetailScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val form = state.editFormState
     val isNew = form.id == null
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Identification", "Pricing", "Stock", "Variants", "Images")
+    val tabTitles = listOf(
+        s[StringResource.INVENTORY_TAB_IDENTIFICATION],
+        s[StringResource.INVENTORY_TAB_PRICING],
+        s[StringResource.INVENTORY_TAB_STOCK],
+        s[StringResource.INVENTORY_TAB_VARIANTS],
+        s[StringResource.INVENTORY_TAB_IMAGES],
+    )
 
     // INV-9: Track initial form state to detect unsaved changes
     val initialForm = remember(state.selectedProduct) { form }
@@ -66,8 +75,8 @@ fun ProductDetailScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text("Discard changes?") },
-            text = { Text("You have unsaved changes. Are you sure you want to go back?") },
+            title = { Text(s[StringResource.INVENTORY_DISCARD_CHANGES_TITLE]) },
+            text = { Text(s[StringResource.INVENTORY_DISCARD_CHANGES_MESSAGE]) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -75,10 +84,10 @@ fun ProductDetailScreen(
                         onBack()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Discard") }
+                ) { Text(s[StringResource.INVENTORY_DISCARD]) }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) { Text("Keep editing") }
+                TextButton(onClick = { showDiscardDialog = false }) { Text(s[StringResource.INVENTORY_KEEP_EDITING]) }
             },
         )
     }
@@ -121,7 +130,7 @@ fun ProductDetailScreen(
     }
 
     ZyntaPageScaffold(
-        title = if (isNew) "New Product" else "Edit Product",
+        title = if (isNew) s[StringResource.INVENTORY_NEW_PRODUCT] else s[StringResource.INVENTORY_EDIT_PRODUCT],
         modifier = modifier,
         onNavigateBack = {
             if (isDirty) showDiscardDialog = true else onBack()
@@ -133,7 +142,7 @@ fun ProductDetailScreen(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(ZyntaSpacing.xs))
-                Text(if (isNew) "Create" else "Save")
+                Text(if (isNew) s[StringResource.INVENTORY_CREATE] else s[StringResource.COMMON_SAVE])
             }
         },
     ) { innerPadding ->
@@ -217,6 +226,7 @@ private fun CoreFieldsSection(
     state: InventoryState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -225,13 +235,13 @@ private fun CoreFieldsSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Product Details", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_PRODUCT_DETAILS], style = MaterialTheme.typography.titleMedium)
 
             // Name (required)
             ZyntaTextField(
                 value = form.name,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("name", it)) },
-                label = "Product Name *",
+                label = s[StringResource.INVENTORY_PRODUCT_NAME_REQUIRED],
                 error = form.validationErrors["name"],
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -241,7 +251,7 @@ private fun CoreFieldsSection(
                 ZyntaTextField(
                     value = form.barcode,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("barcode", it)) },
-                    label = "Barcode (EAN-13 / Code128)",
+                    label = s[StringResource.INVENTORY_BARCODE_LABEL],
                     error = form.validationErrors["barcode"],
                     modifier = Modifier.weight(1f),
                 )
@@ -257,7 +267,7 @@ private fun CoreFieldsSection(
                 ) {
                     Icon(
                         Icons.Default.QrCodeScanner,
-                        contentDescription = if (state.isScannerActive) "Stop scanner" else "Scan barcode",
+                        contentDescription = if (state.isScannerActive) s[StringResource.INVENTORY_STOP_SCANNER] else s[StringResource.INVENTORY_SCAN_BARCODE],
                         tint = if (state.isScannerActive) MaterialTheme.colorScheme.primary else LocalContentColor.current,
                     )
                 }
@@ -267,7 +277,7 @@ private fun CoreFieldsSection(
             ZyntaTextField(
                 value = form.sku,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("sku", it)) },
-                label = "SKU",
+                label = s[StringResource.INVENTORY_SKU],
                 error = form.validationErrors["sku"],
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -296,7 +306,7 @@ private fun CoreFieldsSection(
                     )
                 }
                 TextButton(onClick = { onIntent(InventoryIntent.OpenUnitManagement) }) {
-                    Text("Manage", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.INVENTORY_MANAGE], style = MaterialTheme.typography.labelMedium)
                 }
             }
 
@@ -304,7 +314,7 @@ private fun CoreFieldsSection(
             ZyntaTextField(
                 value = form.description,
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("description", it)) },
-                label = "Description",
+                label = s[StringResource.INVENTORY_DESCRIPTION],
                 modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
                 singleLine = false,
                 maxLines = 4,
@@ -322,6 +332,7 @@ private fun PricingSection(
     state: InventoryState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -330,20 +341,20 @@ private fun PricingSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Pricing", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_TAB_PRICING], style = MaterialTheme.typography.titleMedium)
 
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 ZyntaTextField(
                     value = form.price,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("price", it)) },
-                    label = "Selling Price *",
+                    label = s[StringResource.INVENTORY_SELLING_PRICE],
                     error = form.validationErrors["price"],
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = form.costPrice,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("costPrice", it)) },
-                    label = "Cost Price",
+                    label = s[StringResource.INVENTORY_COST_PRICE],
                     error = form.validationErrors["costPrice"],
                     modifier = Modifier.weight(1f),
                 )
@@ -362,7 +373,7 @@ private fun PricingSection(
                     )
                 }
                 TextButton(onClick = { onIntent(InventoryIntent.OpenTaxGroupManagement) }) {
-                    Text("Manage", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.INVENTORY_MANAGE], style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -378,6 +389,7 @@ private fun StockSection(
     isNew: Boolean,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -386,7 +398,7 @@ private fun StockSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Stock", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_TAB_STOCK], style = MaterialTheme.typography.titleMedium)
 
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 ZyntaTextField(
@@ -394,21 +406,21 @@ private fun StockSection(
                     onValueChange = {
                         if (isNew) onIntent(InventoryIntent.UpdateFormField("stockQty", it))
                     },
-                    label = if (isNew) "Initial Stock Qty" else "Stock Qty (read-only)",
+                    label = if (isNew) s[StringResource.INVENTORY_INITIAL_STOCK_QTY] else s[StringResource.INVENTORY_STOCK_QTY_READONLY],
                     enabled = isNew,
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = form.minStockQty,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("minStockQty", it)) },
-                    label = "Low Stock Alert Threshold",
+                    label = s[StringResource.INVENTORY_LOW_STOCK_THRESHOLD],
                     modifier = Modifier.weight(1f),
                 )
             }
 
             if (!isNew) {
                 Text(
-                    "Stock adjustments are made via the Stock Adjustment dialog.",
+                    s[StringResource.INVENTORY_STOCK_ADJUSTMENT_HINT],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -426,6 +438,7 @@ private fun ImageSection(
     form: ProductFormState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     var showImagePicker by remember { mutableStateOf(false) }
 
     PlatformFilePicker(
@@ -447,12 +460,12 @@ private fun ImageSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Image", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_TAB_IMAGES], style = MaterialTheme.typography.titleMedium)
 
             ZyntaTextField(
                 value = form.imageUrl ?: "",
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("imageUrl", it)) },
-                label = "Image URL or file path",
+                label = s[StringResource.INVENTORY_IMAGE_URL],
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -470,7 +483,7 @@ private fun ImageSection(
                     ) {
                         AsyncImage(
                             model = form.imageUrl,
-                            contentDescription = "Product image preview",
+                            contentDescription = s[StringResource.INVENTORY_IMAGE_PREVIEW],
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit,
                         )
@@ -479,7 +492,7 @@ private fun ImageSection(
             }
 
             ZyntaButton(
-                text = "Browse Image",
+                text = s[StringResource.INVENTORY_BROWSE_IMAGE],
                 onClick = { showImagePicker = true },
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -495,6 +508,7 @@ private fun VariantSection(
     variants: List<ProductVariant>,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -508,17 +522,17 @@ private fun VariantSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Variations", style = MaterialTheme.typography.titleMedium)
+                Text(s[StringResource.INVENTORY_TAB_VARIANTS], style = MaterialTheme.typography.titleMedium)
                 FilledTonalButton(onClick = { onIntent(InventoryIntent.AddVariant) }) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(ZyntaSpacing.xs))
-                    Text("Add Variant")
+                    Text(s[StringResource.INVENTORY_ADD_VARIANT])
                 }
             }
 
             if (variants.isEmpty()) {
                 Text(
-                    "No variations. Add variants for products with different sizes, colors, etc.",
+                    s[StringResource.INVENTORY_NO_VARIANTS],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -546,6 +560,7 @@ private fun VariantRow(
     onUpdate: (String, String) -> Unit,
     onRemove: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -561,7 +576,7 @@ private fun VariantRow(
             ) {
                 Text("Variant ${index + 1}", style = MaterialTheme.typography.labelLarge)
                 IconButton(onClick = onRemove) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove variant",
+                    Icon(Icons.Default.Delete, contentDescription = s[StringResource.INVENTORY_REMOVE_VARIANT],
                         tint = MaterialTheme.colorScheme.error)
                 }
             }
@@ -570,13 +585,13 @@ private fun VariantRow(
                 ZyntaTextField(
                     value = variant.name,
                     onValueChange = { onUpdate("name", it) },
-                    label = "Variant Name",
+                    label = s[StringResource.INVENTORY_VARIANT_NAME],
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = variant.price?.toString() ?: "",
                     onValueChange = { onUpdate("price", it) },
-                    label = "Price Override",
+                    label = s[StringResource.INVENTORY_PRICE_OVERRIDE],
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -585,13 +600,13 @@ private fun VariantRow(
                 ZyntaTextField(
                     value = variant.barcode ?: "",
                     onValueChange = { onUpdate("barcode", it) },
-                    label = "Barcode",
+                    label = s[StringResource.INVENTORY_BARCODE],
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = variant.stock.toString(),
                     onValueChange = { onUpdate("stock", it) },
-                    label = "Stock",
+                    label = s[StringResource.INVENTORY_TAB_STOCK],
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -607,6 +622,7 @@ private fun ActiveToggleSection(
     form: ProductFormState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -619,10 +635,10 @@ private fun ActiveToggleSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column {
-                Text("Active", style = MaterialTheme.typography.titleSmall)
+                Text(s[StringResource.INVENTORY_ACTIVE], style = MaterialTheme.typography.titleSmall)
                 Text(
-                    if (form.isActive) "Product visible in POS and search"
-                    else "Product hidden from POS and search",
+                    if (form.isActive) s[StringResource.INVENTORY_PRODUCT_VISIBLE]
+                    else s[StringResource.INVENTORY_PRODUCT_HIDDEN],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -651,6 +667,7 @@ private fun CategoryDropdown(
     isError: Boolean = false,
     errorText: String? = null,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selectedName = categories.find { it.id == selectedId }?.name ?: ""
 
@@ -662,7 +679,7 @@ private fun CategoryDropdown(
             value = selectedName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Category *") },
+            label = { Text(s[StringResource.INVENTORY_CATEGORY_REQUIRED]) },
             isError = isError,
             supportingText = errorText?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -694,6 +711,7 @@ private fun UnitDropdown(
     isError: Boolean = false,
     errorText: String? = null,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selectedName = units.find { it.id == selectedId }?.let { "${it.name} (${it.abbreviation})" } ?: ""
 
@@ -705,7 +723,7 @@ private fun UnitDropdown(
             value = selectedName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Unit *") },
+            label = { Text(s[StringResource.INVENTORY_UNIT_REQUIRED]) },
             isError = isError,
             supportingText = errorText?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -735,8 +753,9 @@ private fun TaxGroupDropdown(
     selectedId: String?,
     onSelect: (String?) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
-    val selectedName = taxGroups.find { it.id == selectedId }?.let { "${it.name} (${it.rate}%)" } ?: "No Tax"
+    val selectedName = taxGroups.find { it.id == selectedId }?.let { "${it.name} (${it.rate}%)" } ?: s[StringResource.INVENTORY_NO_TAX]
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -746,13 +765,13 @@ private fun TaxGroupDropdown(
             value = selectedName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Tax Group") },
+            label = { Text(s[StringResource.INVENTORY_TAX_GROUP]) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
-                text = { Text("No Tax") },
+                text = { Text(s[StringResource.INVENTORY_NO_TAX]) },
                 onClick = { onSelect(null); expanded = false },
             )
             taxGroups.filter { it.isActive }.forEach { tg ->

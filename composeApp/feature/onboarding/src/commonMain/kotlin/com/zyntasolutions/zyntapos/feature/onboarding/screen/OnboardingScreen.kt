@@ -50,6 +50,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonVariant
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaCurrencyPicker
@@ -98,8 +100,9 @@ fun OnboardingScreen(
         }
     }
 
+    val s = LocalStrings.current
     ZyntaPageScaffold(
-        title = "Welcome to ZyntaPOS",
+        title = s[StringResource.ONBOARDING_WELCOME_TITLE],
         snackbarHostState = snackbarHostState,
     ) { paddingValues ->
         Column(
@@ -174,6 +177,7 @@ fun OnboardingScreen(
 
 @Composable
 private fun StepProgress(currentStep: OnboardingState.Step, modifier: Modifier = Modifier) {
+    val s = LocalStrings.current
     val totalSteps = OnboardingState.Step.entries.size
     val progress = (currentStep.ordinal + 1).toFloat() / totalSteps
     Column(modifier = modifier) {
@@ -188,12 +192,12 @@ private fun StepProgress(currentStep: OnboardingState.Step, modifier: Modifier =
             )
             Text(
                 when (currentStep) {
-                    OnboardingState.Step.BUSINESS_INFO -> "Business Info"
-                    OnboardingState.Step.ADMIN_ACCOUNT -> "Admin Account"
-                    OnboardingState.Step.STORE_SETTINGS -> "Store Settings"
-                    OnboardingState.Step.TAX_SETUP -> "Tax Setup"
-                    OnboardingState.Step.RECEIPT_FORMAT -> "Receipt Format"
-                    OnboardingState.Step.MULTI_STORE_SETUP -> "Multi-Store"
+                    OnboardingState.Step.BUSINESS_INFO -> s[StringResource.ONBOARDING_STEP_BUSINESS]
+                    OnboardingState.Step.ADMIN_ACCOUNT -> s[StringResource.ONBOARDING_STEP_ADMIN]
+                    OnboardingState.Step.STORE_SETTINGS -> s[StringResource.ONBOARDING_STEP_STORE_SETTINGS]
+                    OnboardingState.Step.TAX_SETUP -> s[StringResource.ONBOARDING_STEP_TAX_SETUP]
+                    OnboardingState.Step.RECEIPT_FORMAT -> s[StringResource.ONBOARDING_STEP_RECEIPT_FORMAT]
+                    OnboardingState.Step.MULTI_STORE_SETUP -> s[StringResource.ONBOARDING_STEP_MULTI_STORE]
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
@@ -217,6 +221,7 @@ private fun BusinessInfoStep(
     onIntent: (OnboardingIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -228,13 +233,13 @@ private fun BusinessInfoStep(
         )
 
         Text(
-            "Set up your business",
+            s[StringResource.ONBOARDING_SETUP_BUSINESS],
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
-            "Enter the name of your store or business. This appears on receipts and reports.",
+            s[StringResource.ONBOARDING_BUSINESS_NAME_HINT],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -245,8 +250,8 @@ private fun BusinessInfoStep(
         ZyntaTextField(
             value = state.businessName,
             onValueChange = { onIntent(OnboardingIntent.BusinessNameChanged(it)) },
-            label = "Business Name",
-            placeholder = "e.g. Zyntara Coffee Shop",
+            label = s[StringResource.ONBOARDING_BUSINESS_NAME],
+            placeholder = s[StringResource.ONBOARDING_BUSINESS_NAME_PLACEHOLDER],
             error = state.businessNameError,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),
@@ -263,7 +268,7 @@ private fun BusinessInfoStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Next",
+            text = s[StringResource.ONBOARDING_NEXT],
             onClick = { onIntent(OnboardingIntent.NextStep) },
             modifier = Modifier.fillMaxWidth(),
         )
@@ -278,6 +283,7 @@ private fun AdminAccountStep(
     onIntent: (OnboardingIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -289,13 +295,13 @@ private fun AdminAccountStep(
         )
 
         Text(
-            "Create admin account",
+            s[StringResource.ONBOARDING_CREATE_ADMIN],
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
-            "This is the owner/administrator account. You can add more staff accounts later in Settings.",
+            s[StringResource.ONBOARDING_ADMIN_HINT],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -306,8 +312,8 @@ private fun AdminAccountStep(
         ZyntaTextField(
             value = state.adminName,
             onValueChange = { onIntent(OnboardingIntent.AdminNameChanged(it)) },
-            label = "Full Name",
-            placeholder = "e.g. Jane Smith",
+            label = s[StringResource.ONBOARDING_ADMIN_NAME],
+            placeholder = s[StringResource.ONBOARDING_ADMIN_NAME_PLACEHOLDER],
             error = state.adminNameError,
             leadingIcon = Icons.Default.Person,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -317,8 +323,8 @@ private fun AdminAccountStep(
         ZyntaTextField(
             value = state.adminEmail,
             onValueChange = { onIntent(OnboardingIntent.AdminEmailChanged(it)) },
-            label = "Email Address",
-            placeholder = "admin@yourbusiness.com",
+            label = s[StringResource.ONBOARDING_ADMIN_EMAIL],
+            placeholder = s[StringResource.ONBOARDING_ADMIN_EMAIL_PLACEHOLDER],
             error = state.adminEmailError,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
             modifier = Modifier.fillMaxWidth(),
@@ -327,15 +333,15 @@ private fun AdminAccountStep(
         ZyntaTextField(
             value = state.adminPassword,
             onValueChange = { onIntent(OnboardingIntent.AdminPasswordChanged(it)) },
-            label = "Password",
-            placeholder = "Minimum 8 characters",
+            label = s[StringResource.ONBOARDING_ADMIN_PASSWORD],
+            placeholder = s[StringResource.ONBOARDING_PASSWORD_PLACEHOLDER],
             error = state.adminPasswordError,
             leadingIcon = Icons.Default.Lock,
             trailingIcon = {
                 IconButton(onClick = { onIntent(OnboardingIntent.TogglePasswordVisibility) }) {
                     Icon(
                         if (state.isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (state.isPasswordVisible) "Hide password" else "Show password",
+                        contentDescription = if (state.isPasswordVisible) s[StringResource.ONBOARDING_HIDE_PASSWORD] else s[StringResource.ONBOARDING_SHOW_PASSWORD],
                     )
                 }
             },
@@ -347,8 +353,8 @@ private fun AdminAccountStep(
         ZyntaTextField(
             value = state.adminConfirmPassword,
             onValueChange = { onIntent(OnboardingIntent.AdminConfirmPasswordChanged(it)) },
-            label = "Confirm Password",
-            placeholder = "Re-enter your password",
+            label = s[StringResource.ONBOARDING_CONFIRM_PASSWORD],
+            placeholder = s[StringResource.ONBOARDING_CONFIRM_PASSWORD_PLACEHOLDER],
             error = state.adminConfirmPasswordError,
             leadingIcon = Icons.Default.Lock,
             visualTransformation = if (state.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -367,13 +373,13 @@ private fun AdminAccountStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Next",
+            text = s[StringResource.ONBOARDING_NEXT],
             onClick = { onIntent(OnboardingIntent.NextStep) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Back",
+            text = s[StringResource.COMMON_BACK],
             onClick = { onIntent(OnboardingIntent.BackStep) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
@@ -389,6 +395,7 @@ private fun StoreSettingsStep(
     onIntent: (OnboardingIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -400,13 +407,13 @@ private fun StoreSettingsStep(
         )
 
         Text(
-            "Store settings",
+            s[StringResource.ONBOARDING_STORE_SETTINGS_TITLE],
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
-            "Select your store's currency and timezone. You can change these later in Settings.",
+            s[StringResource.ONBOARDING_STORE_SETTINGS_HINT],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -417,14 +424,14 @@ private fun StoreSettingsStep(
         ZyntaCurrencyPicker(
             selectedCode = state.currencyCode,
             onCurrencySelected = { onIntent(OnboardingIntent.CurrencyChanged(it.code)) },
-            label = "Store Currency",
+            label = s[StringResource.ONBOARDING_STORE_CURRENCY],
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaTimezonePicker(
             selectedTimezoneId = state.timezoneId,
             onTimezoneSelected = { onIntent(OnboardingIntent.TimezoneChanged(it.id)) },
-            label = "Store Timezone",
+            label = s[StringResource.ONBOARDING_STORE_TIMEZONE],
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -439,13 +446,13 @@ private fun StoreSettingsStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Next",
+            text = s[StringResource.ONBOARDING_NEXT],
             onClick = { onIntent(OnboardingIntent.NextStep) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Back",
+            text = s[StringResource.COMMON_BACK],
             onClick = { onIntent(OnboardingIntent.BackStep) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
@@ -461,6 +468,7 @@ private fun TaxSetupStep(
     onIntent: (OnboardingIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -472,13 +480,13 @@ private fun TaxSetupStep(
         )
 
         Text(
-            "Tax setup (optional)",
+            s[StringResource.ONBOARDING_TAX_SETUP_TITLE],
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
-            "Create a default tax group for your store. You can skip this and configure taxes later in Settings.",
+            s[StringResource.ONBOARDING_TAX_SETUP_HINT],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -489,8 +497,8 @@ private fun TaxSetupStep(
         ZyntaTextField(
             value = state.taxGroupName,
             onValueChange = { onIntent(OnboardingIntent.TaxGroupNameChanged(it)) },
-            label = "Tax Group Name",
-            placeholder = "e.g. VAT, GST, Sales Tax",
+            label = s[StringResource.ONBOARDING_TAX_GROUP_NAME],
+            placeholder = s[StringResource.ONBOARDING_TAX_GROUP_PLACEHOLDER],
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -498,8 +506,8 @@ private fun TaxSetupStep(
         ZyntaTextField(
             value = state.taxRate,
             onValueChange = { onIntent(OnboardingIntent.TaxRateChanged(it)) },
-            label = "Tax Rate (%)",
-            placeholder = "e.g. 15",
+            label = s[StringResource.ONBOARDING_TAX_RATE],
+            placeholder = s[StringResource.ONBOARDING_TAX_RATE_PLACEHOLDER],
             error = state.taxRateError,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),
@@ -512,12 +520,12 @@ private fun TaxSetupStep(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Tax Inclusive",
+                    s[StringResource.ONBOARDING_TAX_INCLUSIVE],
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "Price already includes tax (e.g. VAT-inclusive pricing)",
+                    s[StringResource.ONBOARDING_TAX_INCLUSIVE_HINT],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -539,20 +547,20 @@ private fun TaxSetupStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Next",
+            text = s[StringResource.ONBOARDING_NEXT],
             onClick = { onIntent(OnboardingIntent.NextStep) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Skip Tax Setup",
+            text = s[StringResource.ONBOARDING_SKIP_TAX_SETUP],
             onClick = { onIntent(OnboardingIntent.SkipTaxSetup) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Back",
+            text = s[StringResource.COMMON_BACK],
             onClick = { onIntent(OnboardingIntent.BackStep) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
@@ -568,6 +576,7 @@ private fun ReceiptFormatStep(
     onIntent: (OnboardingIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -579,13 +588,13 @@ private fun ReceiptFormatStep(
         )
 
         Text(
-            "Receipt format (optional)",
+            s[StringResource.ONBOARDING_RECEIPT_FORMAT_TITLE],
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
-            "Customize your receipts. You can change this later in Settings → Printer.",
+            s[StringResource.ONBOARDING_RECEIPT_FORMAT_HINT],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -596,8 +605,8 @@ private fun ReceiptFormatStep(
         ZyntaTextField(
             value = state.receiptHeader,
             onValueChange = { onIntent(OnboardingIntent.ReceiptHeaderChanged(it)) },
-            label = "Receipt Header (optional)",
-            placeholder = "e.g. Welcome to our store!",
+            label = s[StringResource.ONBOARDING_RECEIPT_HEADER],
+            placeholder = s[StringResource.ONBOARDING_RECEIPT_HEADER_PLACEHOLDER],
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -605,8 +614,8 @@ private fun ReceiptFormatStep(
         ZyntaTextField(
             value = state.receiptFooter,
             onValueChange = { onIntent(OnboardingIntent.ReceiptFooterChanged(it)) },
-            label = "Receipt Footer",
-            placeholder = "e.g. Thank you for your purchase!",
+            label = s[StringResource.ONBOARDING_RECEIPT_FOOTER],
+            placeholder = s[StringResource.ONBOARDING_RECEIPT_FOOTER_PLACEHOLDER],
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -614,7 +623,7 @@ private fun ReceiptFormatStep(
         // Paper width selector
         Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
             Text(
-                "Paper Width",
+                s[StringResource.ONBOARDING_PAPER_WIDTH],
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
             )
@@ -636,12 +645,12 @@ private fun ReceiptFormatStep(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Auto-print Receipt",
+                    s[StringResource.ONBOARDING_AUTO_PRINT],
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "Automatically print after each payment",
+                    s[StringResource.ONBOARDING_AUTO_PRINT_HINT],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -663,20 +672,20 @@ private fun ReceiptFormatStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Next",
+            text = s[StringResource.ONBOARDING_NEXT],
             onClick = { onIntent(OnboardingIntent.NextStep) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Skip Receipt Setup",
+            text = s[StringResource.ONBOARDING_SKIP_RECEIPT_SETUP],
             onClick = { onIntent(OnboardingIntent.SkipReceiptFormat) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Back",
+            text = s[StringResource.COMMON_BACK],
             onClick = { onIntent(OnboardingIntent.BackStep) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
@@ -692,6 +701,7 @@ private fun MultiStoreSetupStep(
     onIntent: (OnboardingIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
@@ -703,13 +713,13 @@ private fun MultiStoreSetupStep(
         )
 
         Text(
-            "Multi-store setup (optional)",
+            s[StringResource.ONBOARDING_MULTI_STORE_TITLE],
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
         Text(
-            "Add additional stores now, or skip and add them later in Settings.",
+            s[StringResource.ONBOARDING_MULTI_STORE_HINT],
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -726,14 +736,14 @@ private fun MultiStoreSetupStep(
             ZyntaTextField(
                 value = state.newStoreName,
                 onValueChange = { onIntent(OnboardingIntent.NewStoreNameChanged(it)) },
-                label = "Store Name",
-                placeholder = "e.g. Branch 2",
+                label = s[StringResource.ONBOARDING_STORE_NAME],
+                placeholder = s[StringResource.ONBOARDING_STORE_NAME_PLACEHOLDER],
                 error = state.newStoreNameError,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 modifier = Modifier.weight(1f),
             )
             ZyntaButton(
-                text = "Add",
+                text = s[StringResource.ONBOARDING_ADD],
                 onClick = { onIntent(OnboardingIntent.AddAdditionalStore) },
                 modifier = Modifier.padding(top = ZyntaSpacing.md),
             )
@@ -754,7 +764,7 @@ private fun MultiStoreSetupStep(
                 IconButton(onClick = { onIntent(OnboardingIntent.RemoveAdditionalStore(index)) }) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Remove ${store.name}",
+                        contentDescription = "${s[StringResource.ONBOARDING_REMOVE]} ${store.name}",
                         tint = MaterialTheme.colorScheme.error,
                     )
                 }
@@ -772,20 +782,20 @@ private fun MultiStoreSetupStep(
         Spacer(Modifier.height(ZyntaSpacing.sm))
 
         ZyntaButton(
-            text = "Complete Setup",
+            text = s[StringResource.ONBOARDING_COMPLETE_SETUP],
             onClick = { onIntent(OnboardingIntent.CompleteOnboarding) },
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Skip Multi-Store Setup",
+            text = s[StringResource.ONBOARDING_SKIP_MULTI_STORE],
             onClick = { onIntent(OnboardingIntent.SkipMultiStoreSetup) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaButton(
-            text = "Back",
+            text = s[StringResource.COMMON_BACK],
             onClick = { onIntent(OnboardingIntent.BackStep) },
             variant = ZyntaButtonVariant.Secondary,
             modifier = Modifier.fillMaxWidth(),

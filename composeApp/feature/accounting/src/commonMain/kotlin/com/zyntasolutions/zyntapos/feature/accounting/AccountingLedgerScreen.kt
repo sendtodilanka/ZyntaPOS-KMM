@@ -13,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.AccountSummary
 
@@ -36,13 +38,14 @@ fun AccountingLedgerScreen(
     onNavigateUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Accounting Ledger — ${state.period}") },
+                title = { Text("${s[StringResource.ACCOUNTING_LEDGER]} — ${state.period}") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -54,7 +57,7 @@ fun AccountingLedgerScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (state.summaries.isEmpty()) {
                 ZyntaEmptyState(
-                    title = "No accounting entries for ${state.period}",
+                    title = "${s[StringResource.ACCOUNTING_NO_ENTRIES_FOR]} ${state.period}",
                     icon = Icons.Default.AccountBalance,
                 )
             } else {

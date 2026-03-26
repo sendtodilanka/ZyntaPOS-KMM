@@ -30,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.Coupon
 import com.zyntasolutions.zyntapos.domain.model.DiscountType
@@ -45,6 +47,7 @@ fun CouponListScreen(
     onNavigateToDetail: (couponId: String?) -> Unit,
     viewModel: CouponViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -53,11 +56,11 @@ fun CouponListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Coupons") })
+            TopAppBar(title = { Text(s[StringResource.COUPONS_TITLE]) })
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigateToDetail(null) }) {
-                Icon(Icons.Default.Add, contentDescription = "New Coupon")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.COUPONS_NEW])
             }
         },
     ) { padding ->
@@ -74,20 +77,20 @@ fun CouponListScreen(
                 FilterChip(
                     selected = !state.showActiveOnly,
                     onClick = { viewModel.dispatch(CouponIntent.ToggleActiveFilter(false)) },
-                    label = { Text("All") },
+                    label = { Text(s[StringResource.COUPONS_ALL]) },
                 )
                 FilterChip(
                     selected = state.showActiveOnly,
                     onClick = { viewModel.dispatch(CouponIntent.ToggleActiveFilter(true)) },
-                    label = { Text("Active") },
+                    label = { Text(s[StringResource.COUPONS_ACTIVE]) },
                 )
             }
 
             if (state.coupons.isEmpty() && !state.isLoading) {
                 ZyntaEmptyState(
-                    title = if (state.showActiveOnly) "No active coupons" else "No coupons yet",
+                    title = if (state.showActiveOnly) s[StringResource.COUPONS_NO_ACTIVE] else s[StringResource.COUPONS_NO_COUPONS],
                     icon = Icons.Default.LocalOffer,
-                    subtitle = "Tap + to create a coupon.",
+                    subtitle = s[StringResource.COUPONS_TAP_CREATE],
                 )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -113,6 +116,7 @@ private fun CouponListItem(
     onEdit: () -> Unit,
     onToggleActive: (Boolean) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         onClick = onEdit,
         modifier = Modifier.fillMaxWidth(),
@@ -133,9 +137,9 @@ private fun CouponListItem(
                 )
                 Text(
                     text = when (coupon.discountType) {
-                        DiscountType.FIXED -> "LKR ${coupon.discountValue} off"
-                        DiscountType.PERCENT -> "${coupon.discountValue}% off"
-                        DiscountType.BOGO -> "Buy-one-get-one"
+                        DiscountType.FIXED -> "LKR ${coupon.discountValue} ${s[StringResource.COUPONS_OFF]}"
+                        DiscountType.PERCENT -> "${coupon.discountValue}% ${s[StringResource.COUPONS_OFF]}"
+                        DiscountType.BOGO -> s[StringResource.COUPONS_BOGO]
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,

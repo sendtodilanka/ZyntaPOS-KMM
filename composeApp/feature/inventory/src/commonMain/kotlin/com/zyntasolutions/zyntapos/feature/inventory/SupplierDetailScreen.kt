@@ -17,6 +17,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.Supplier
 
 /**
@@ -49,6 +51,7 @@ fun SupplierDetailScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val isEditing = existingSupplier != null
 
     // ── Form State ───────────────────────────────────────────────────────────
@@ -63,7 +66,7 @@ fun SupplierDetailScreen(
     var nameError by remember { mutableStateOf<String?>(null) }
 
     ZyntaPageScaffold(
-        title = if (isEditing) "Edit Supplier" else "New Supplier",
+        title = if (isEditing) s[StringResource.INVENTORY_EDIT_SUPPLIER] else s[StringResource.INVENTORY_NEW_SUPPLIER],
         modifier = modifier,
         onNavigateBack = onNavigateBack,
     ) { innerPadding ->
@@ -90,7 +93,7 @@ fun SupplierDetailScreen(
             // ──────────────────────────────────────────────────────────────
             // Section 1: Contact Info
             // ──────────────────────────────────────────────────────────────
-            SectionHeader("Contact Information")
+            SectionHeader(s[StringResource.INVENTORY_CONTACT_INFO])
 
             Column(
                 modifier = Modifier.padding(horizontal = ZyntaSpacing.md),
@@ -100,7 +103,7 @@ fun SupplierDetailScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it; nameError = if (it.isBlank()) "Name is required" else null },
-                    label = { Text("Supplier Name *") },
+                    label = { Text(s[StringResource.INVENTORY_SUPPLIER_NAME_REQUIRED]) },
                     placeholder = { Text("e.g. Lanka Distributors Ltd.") },
                     leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
                     isError = nameError != null,
@@ -117,7 +120,7 @@ fun SupplierDetailScreen(
                 OutlinedTextField(
                     value = contactPerson,
                     onValueChange = { contactPerson = it },
-                    label = { Text("Contact Person") },
+                    label = { Text(s[StringResource.INVENTORY_CONTACT_PERSON]) },
                     placeholder = { Text("e.g. Kamal Perera") },
                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
@@ -132,7 +135,7 @@ fun SupplierDetailScreen(
                 OutlinedTextField(
                     value = phone,
                     onValueChange = { phone = it },
-                    label = { Text("Phone") },
+                    label = { Text(s[StringResource.INVENTORY_PHONE]) },
                     placeholder = { Text("+94 11 234 5678") },
                     leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
@@ -147,7 +150,7 @@ fun SupplierDetailScreen(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text(s[StringResource.INVENTORY_EMAIL]) },
                     placeholder = { Text("supplier@example.com") },
                     leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
@@ -162,7 +165,7 @@ fun SupplierDetailScreen(
                 OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
-                    label = { Text("Address") },
+                    label = { Text(s[StringResource.INVENTORY_ADDRESS]) },
                     placeholder = { Text("Street, City, Province") },
                     leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
@@ -178,7 +181,7 @@ fun SupplierDetailScreen(
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes (internal)") },
+                    label = { Text(s[StringResource.INVENTORY_NOTES_INTERNAL]) },
                     placeholder = { Text("Payment terms, lead time, special instructions…") },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Notes, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(
@@ -197,9 +200,9 @@ fun SupplierDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Column {
-                        Text("Active", style = MaterialTheme.typography.bodyLarge)
+                        Text(s[StringResource.INVENTORY_ACTIVE], style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            if (isActive) "Available for purchase orders" else "Archived supplier",
+                            if (isActive) s[StringResource.INVENTORY_SUPPLIER_AVAILABLE] else s[StringResource.INVENTORY_SUPPLIER_ARCHIVED],
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -211,7 +214,7 @@ fun SupplierDetailScreen(
 
                 // Action buttons
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                    OutlinedButton(onClick = onNavigateBack, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                    OutlinedButton(onClick = onNavigateBack, modifier = Modifier.weight(1f)) { Text(s[StringResource.COMMON_CANCEL]) }
                     Button(
                         onClick = {
                             if (name.isBlank()) { nameError = "Name is required"; return@Button }
@@ -235,7 +238,7 @@ fun SupplierDetailScreen(
                             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(ZyntaSpacing.sm))
                         }
-                        Text(if (isEditing) "Update" else "Create")
+                        Text(if (isEditing) s[StringResource.INVENTORY_UPDATE] else s[StringResource.INVENTORY_CREATE])
                     }
                 }
             }
@@ -245,7 +248,7 @@ fun SupplierDetailScreen(
             // ──────────────────────────────────────────────────────────────
             if (isEditing) {
                 Spacer(Modifier.height(ZyntaSpacing.lg))
-                SectionHeader("Purchase History")
+                SectionHeader(s[StringResource.INVENTORY_PURCHASE_HISTORY])
 
                 if (purchaseHistory.isEmpty()) {
                     Box(
@@ -257,7 +260,7 @@ fun SupplierDetailScreen(
                                 modifier = Modifier.size(40.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.height(ZyntaSpacing.sm))
-                            Text("No purchase orders yet", style = MaterialTheme.typography.bodyMedium,
+                            Text(s[StringResource.INVENTORY_NO_PURCHASE_ORDERS], style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

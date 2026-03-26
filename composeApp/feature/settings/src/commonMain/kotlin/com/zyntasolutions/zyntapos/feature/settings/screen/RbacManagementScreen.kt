@@ -38,6 +38,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBottomSheet
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonVariant
@@ -79,6 +82,7 @@ fun RbacManagementScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadRbac) }
 
     // Consume effects (RoleSaved / RoleDeleted → dismiss sheet)
@@ -95,11 +99,11 @@ fun RbacManagementScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ZyntaPageScaffold(
-        title = "Roles & Permissions",
+        title = s[StringResource.SETTINGS_RBAC_ROLES_PERMISSIONS],
         onNavigateBack = onBack,
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateCustomRole) }) {
-                Icon(Icons.Default.Add, contentDescription = "Create custom role")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.SETTINGS_RBAC_CREATE_CUSTOM_ROLE])
             }
         },
     ) { innerPadding ->
@@ -114,13 +118,13 @@ fun RbacManagementScreen(
         ) {
             // ── Built-in Roles ────────────────────────────────────────────────
             item {
-                SectionLabel("Built-in Roles")
+                SectionLabel(s[StringResource.SETTINGS_RBAC_BUILTIN_ROLES])
             }
 
             if (state.isLoading && state.builtInRoles.isEmpty()) {
                 item {
                     Text(
-                        "Loading…",
+                        s[StringResource.COMMON_LOADING],
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(ZyntaSpacing.sm),
@@ -142,13 +146,13 @@ fun RbacManagementScreen(
             // ── Custom Roles ──────────────────────────────────────────────────
             item {
                 Spacer(Modifier.height(ZyntaSpacing.sm))
-                SectionLabel("Custom Roles")
+                SectionLabel(s[StringResource.SETTINGS_RBAC_CUSTOM_ROLES])
             }
 
             if (state.customRoles.isEmpty() && !state.isLoading) {
                 item {
                     Text(
-                        "No custom roles yet. Tap + to create one.",
+                        s[StringResource.SETTINGS_RBAC_NO_CUSTOM_ROLES],
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(ZyntaSpacing.sm),
@@ -197,6 +201,7 @@ private fun BuiltInRoleCard(
     onTogglePermission: (Permission) -> Unit,
     onReset: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
 
     Card(
@@ -208,7 +213,7 @@ private fun BuiltInRoleCard(
         // Header row
         ListItem(
             headlineContent = {
-                Text(roleName(role), style = MaterialTheme.typography.bodyLarge)
+                Text(roleName(role, s), style = MaterialTheme.typography.bodyLarge)
             },
             supportingContent = {
                 Text(
@@ -220,7 +225,7 @@ private fun BuiltInRoleCard(
             trailingContent = {
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    contentDescription = if (expanded) s[StringResource.COMMON_COLLAPSE] else s[StringResource.COMMON_EXPAND],
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
@@ -249,7 +254,7 @@ private fun BuiltInRoleCard(
                         onCheckedChange = { onTogglePermission(perm) },
                     )
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(permissionLabel(perm), style = MaterialTheme.typography.bodyMedium)
+                        Text(permissionLabel(perm, s), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -262,7 +267,7 @@ private fun BuiltInRoleCard(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onReset) {
-                    Text("Reset to defaults")
+                    Text(s[StringResource.SETTINGS_RBAC_RESET_DEFAULTS])
                 }
             }
         }
@@ -277,6 +282,7 @@ private fun CustomRoleCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -301,14 +307,14 @@ private fun CustomRoleCard(
                     IconButton(onClick = onEdit) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "Edit ${role.name}",
+                            contentDescription = s[StringResource.COMMON_EDIT],
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                     IconButton(onClick = onDelete) {
                         Icon(
                             Icons.Default.Delete,
-                            contentDescription = "Delete ${role.name}",
+                            contentDescription = s[StringResource.COMMON_DELETE],
                             tint = MaterialTheme.colorScheme.error,
                         )
                     }
@@ -335,6 +341,7 @@ private fun CustomRoleFormContent(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -342,26 +349,26 @@ private fun CustomRoleFormContent(
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
         Text(
-            text = if (isEditing) "Edit Custom Role" else "Create Custom Role",
+            text = if (isEditing) s[StringResource.SETTINGS_RBAC_EDIT_CUSTOM_ROLE] else s[StringResource.SETTINGS_RBAC_CREATE_CUSTOM_ROLE],
             style = MaterialTheme.typography.titleLarge,
         )
 
         ZyntaTextField(
             value = form.name,
             onValueChange = onNameChange,
-            label = "Role Name",
+            label = s[StringResource.SETTINGS_RBAC_ROLE_NAME],
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaTextField(
             value = form.description,
             onValueChange = onDescChange,
-            label = "Description (optional)",
+            label = s[StringResource.SETTINGS_RBAC_DESCRIPTION_OPTIONAL],
             modifier = Modifier.fillMaxWidth(),
         )
 
         Text(
-            text = "Permissions",
+            text = s[StringResource.SETTINGS_RBAC_PERMISSIONS],
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -383,7 +390,7 @@ private fun CustomRoleFormContent(
                         checked = perm in form.selectedPermissions,
                         onCheckedChange = { onTogglePermission(perm) },
                     )
-                    Text(permissionLabel(perm), style = MaterialTheme.typography.bodyMedium)
+                    Text(permissionLabel(perm, s), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
@@ -401,12 +408,12 @@ private fun CustomRoleFormContent(
             horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm, Alignment.End),
         ) {
             ZyntaButton(
-                text = "Cancel",
+                text = s[StringResource.COMMON_CANCEL],
                 onClick = onDismiss,
                 variant = ZyntaButtonVariant.Ghost,
             )
             ZyntaButton(
-                text = if (isEditing) "Update" else "Create",
+                text = if (isEditing) s[StringResource.COMMON_UPDATE] else s[StringResource.COMMON_CREATE],
                 onClick = onSave,
                 isLoading = isLoading,
             )
@@ -418,49 +425,49 @@ private fun CustomRoleFormContent(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-private fun roleName(role: Role): String = when (role) {
-    Role.ADMIN         -> "Admin"
-    Role.STORE_MANAGER -> "Store Manager"
-    Role.CASHIER       -> "Cashier"
-    Role.ACCOUNTANT    -> "Accountant"
-    Role.STOCK_MANAGER -> "Stock Manager"
+private fun roleName(role: Role, s: StringResolver): String = when (role) {
+    Role.ADMIN         -> s[StringResource.SETTINGS_RBAC_ROLE_ADMIN]
+    Role.STORE_MANAGER -> s[StringResource.SETTINGS_RBAC_ROLE_STORE_MANAGER]
+    Role.CASHIER       -> s[StringResource.SETTINGS_RBAC_ROLE_CASHIER]
+    Role.ACCOUNTANT    -> s[StringResource.SETTINGS_RBAC_ROLE_ACCOUNTANT]
+    Role.STOCK_MANAGER -> s[StringResource.SETTINGS_RBAC_ROLE_STOCK_MANAGER]
 }
 
-private fun permissionLabel(permission: Permission): String = when (permission) {
-    Permission.VIEW_REPORTS         -> "View Reports"
-    Permission.EXPORT_REPORTS       -> "Export Reports"
-    Permission.PROCESS_SALE         -> "Process Sale"
-    Permission.VOID_ORDER           -> "Void Order"
-    Permission.APPLY_DISCOUNT       -> "Apply Discount"
-    Permission.HOLD_ORDER           -> "Hold Order"
-    Permission.PROCESS_REFUND       -> "Process Refund"
-    Permission.OPEN_REGISTER        -> "Open Register"
-    Permission.CLOSE_REGISTER       -> "Close Register"
-    Permission.RECORD_CASH_MOVEMENT -> "Record Cash Movement"
-    Permission.MANAGE_PRODUCTS      -> "Manage Products"
-    Permission.MANAGE_CATEGORIES    -> "Manage Categories"
-    Permission.ADJUST_STOCK         -> "Adjust Stock"
-    Permission.MANAGE_SUPPLIERS     -> "Manage Suppliers"
-    Permission.MANAGE_USERS         -> "Manage Users"
-    Permission.MANAGE_SETTINGS      -> "Manage Settings"
-    Permission.MANAGE_TAX           -> "Manage Tax"
-    Permission.MANAGE_HARDWARE      -> "Manage Hardware"
-    Permission.MANAGE_CUSTOMERS     -> "Manage Customers"
-    Permission.VIEW_AUDIT_LOG       -> "View Audit Log"
-    Permission.MANAGE_BACKUP        -> "Manage Backup"
-    Permission.MANAGE_CUSTOMER_GROUPS -> "Manage Customer Groups"
-    Permission.MANAGE_WALLETS       -> "Manage Wallets"
-    Permission.MANAGE_LOYALTY       -> "Manage Loyalty"
-    Permission.MANAGE_COUPONS       -> "Manage Coupons"
-    Permission.MANAGE_EXPENSES      -> "Manage Expenses"
-    Permission.APPROVE_EXPENSES     -> "Approve Expenses"
-    Permission.MANAGE_WAREHOUSES    -> "Manage Warehouses"
-    Permission.MANAGE_STOCK_TRANSFERS -> "Manage Stock Transfers"
-    Permission.MANAGE_STAFF         -> "Manage Staff"
-    Permission.ADMIN_ACCESS         -> "Admin Access"
-    Permission.MANAGE_ACCOUNTING    -> "Manage Accounting"
-    Permission.PRINT_INVOICE        -> "Print Invoice"
-    Permission.MANAGE_STOCKTAKE     -> "Manage Stocktake"
+private fun permissionLabel(permission: Permission, s: StringResolver): String = when (permission) {
+    Permission.VIEW_REPORTS         -> s[StringResource.SETTINGS_RBAC_PERM_VIEW_REPORTS]
+    Permission.EXPORT_REPORTS       -> s[StringResource.SETTINGS_RBAC_PERM_EXPORT_REPORTS]
+    Permission.PROCESS_SALE         -> s[StringResource.SETTINGS_RBAC_PERM_PROCESS_SALE]
+    Permission.VOID_ORDER           -> s[StringResource.SETTINGS_RBAC_PERM_VOID_ORDER]
+    Permission.APPLY_DISCOUNT       -> s[StringResource.SETTINGS_RBAC_PERM_APPLY_DISCOUNT]
+    Permission.HOLD_ORDER           -> s[StringResource.SETTINGS_RBAC_PERM_HOLD_ORDER]
+    Permission.PROCESS_REFUND       -> s[StringResource.SETTINGS_RBAC_PERM_PROCESS_REFUND]
+    Permission.OPEN_REGISTER        -> s[StringResource.SETTINGS_RBAC_PERM_OPEN_REGISTER]
+    Permission.CLOSE_REGISTER       -> s[StringResource.SETTINGS_RBAC_PERM_CLOSE_REGISTER]
+    Permission.RECORD_CASH_MOVEMENT -> s[StringResource.SETTINGS_RBAC_PERM_RECORD_CASH_MOVEMENT]
+    Permission.MANAGE_PRODUCTS      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_PRODUCTS]
+    Permission.MANAGE_CATEGORIES    -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_CATEGORIES]
+    Permission.ADJUST_STOCK         -> s[StringResource.SETTINGS_RBAC_PERM_ADJUST_STOCK]
+    Permission.MANAGE_SUPPLIERS     -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_SUPPLIERS]
+    Permission.MANAGE_USERS         -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_USERS]
+    Permission.MANAGE_SETTINGS      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_SETTINGS]
+    Permission.MANAGE_TAX           -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_TAX]
+    Permission.MANAGE_HARDWARE      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_HARDWARE]
+    Permission.MANAGE_CUSTOMERS     -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_CUSTOMERS]
+    Permission.VIEW_AUDIT_LOG       -> s[StringResource.SETTINGS_RBAC_PERM_VIEW_AUDIT_LOG]
+    Permission.MANAGE_BACKUP        -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_BACKUP]
+    Permission.MANAGE_CUSTOMER_GROUPS -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_CUSTOMER_GROUPS]
+    Permission.MANAGE_WALLETS       -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_WALLETS]
+    Permission.MANAGE_LOYALTY       -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_LOYALTY]
+    Permission.MANAGE_COUPONS       -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_COUPONS]
+    Permission.MANAGE_EXPENSES      -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_EXPENSES]
+    Permission.APPROVE_EXPENSES     -> s[StringResource.SETTINGS_RBAC_PERM_APPROVE_EXPENSES]
+    Permission.MANAGE_WAREHOUSES    -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_WAREHOUSES]
+    Permission.MANAGE_STOCK_TRANSFERS -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_STOCK_TRANSFERS]
+    Permission.MANAGE_STAFF         -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_STAFF]
+    Permission.ADMIN_ACCESS         -> s[StringResource.SETTINGS_RBAC_PERM_ADMIN_ACCESS]
+    Permission.MANAGE_ACCOUNTING    -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_ACCOUNTING]
+    Permission.PRINT_INVOICE        -> s[StringResource.SETTINGS_RBAC_PERM_PRINT_INVOICE]
+    Permission.MANAGE_STOCKTAKE     -> s[StringResource.SETTINGS_RBAC_PERM_MANAGE_STOCKTAKE]
 }
 
 @Composable

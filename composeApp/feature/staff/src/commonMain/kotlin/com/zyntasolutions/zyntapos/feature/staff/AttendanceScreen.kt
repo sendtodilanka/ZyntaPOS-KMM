@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.AttendanceRecord
@@ -39,6 +41,7 @@ fun AttendanceScreen(
     today: String,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(today) {
         onIntent(StaffIntent.LoadTodayAttendance(storeId, today))
     }
@@ -60,17 +63,17 @@ fun AttendanceScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SummaryChip(
-                    label = "Total",
+                    label = s[StringResource.COMMON_TOTAL],
                     count = state.employees.size,
                     icon = Icons.Default.Group,
                 )
                 SummaryChip(
-                    label = "Present",
+                    label = s[StringResource.STAFF_PRESENT],
                     count = state.todayAttendance.size,
                     icon = Icons.Default.CheckCircle,
                 )
                 SummaryChip(
-                    label = "Clocked In",
+                    label = s[StringResource.STAFF_CLOCKED_IN],
                     count = openRecordsByEmployee.size,
                     icon = Icons.Default.Login,
                 )
@@ -78,7 +81,7 @@ fun AttendanceScreen(
                 IconButton(onClick = { onIntent(StaffIntent.ExportAttendanceCsv) }) {
                     Icon(
                         Icons.Default.Download,
-                        contentDescription = "Export attendance CSV",
+                        contentDescription = s[StringResource.STAFF_EXPORT_ATTENDANCE],
                         tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
@@ -94,9 +97,9 @@ fun AttendanceScreen(
 
         if (state.employees.isEmpty()) {
             ZyntaEmptyState(
-                title = "No employees found",
+                title = s[StringResource.STAFF_NO_EMPLOYEES],
                 icon = Icons.Default.Group,
-                subtitle = "Add employees in the Employees tab.",
+                subtitle = s[StringResource.STAFF_ADD_EMPLOYEES_HINT],
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             )
             return@Column
@@ -147,6 +150,7 @@ private fun AttendanceCard(
     onClockIn: () -> Unit,
     onClockOut: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -184,7 +188,7 @@ private fun AttendanceCard(
                     }
                     else -> {
                         Text(
-                            text = "Not clocked in today",
+                            text = s[StringResource.STAFF_NOT_CLOCKED_IN],
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -195,12 +199,12 @@ private fun AttendanceCard(
             when {
                 openRecord != null -> {
                     OutlinedButton(onClick = onClockOut) {
-                        Text("Clock Out")
+                        Text(s[StringResource.STAFF_CLOCK_OUT])
                     }
                 }
                 todayRecord == null -> {
                     Button(onClick = onClockIn) {
-                        Text("Clock In")
+                        Text(s[StringResource.STAFF_CLOCK_IN])
                     }
                 }
             }

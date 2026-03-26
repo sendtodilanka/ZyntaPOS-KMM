@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.WarehouseRack
@@ -37,6 +39,7 @@ fun WarehouseRackListScreen(
     warehouseId: String,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(warehouseId) {
         onIntent(WarehouseIntent.LoadRacks(warehouseId))
     }
@@ -47,7 +50,7 @@ fun WarehouseRackListScreen(
             FloatingActionButton(
                 onClick = { onIntent(WarehouseIntent.SelectRack(null, warehouseId)) },
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Rack")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.MULTISTORE_ADD_RACK])
             }
         },
     ) { innerPadding ->
@@ -60,9 +63,9 @@ fun WarehouseRackListScreen(
             }
         } else if (state.racks.isEmpty()) {
             ZyntaEmptyState(
-                title = "No racks defined",
+                title = s[StringResource.MULTISTORE_NO_RACKS],
                 icon = Icons.Default.Inventory2,
-                subtitle = "Tap + to add a rack.",
+                subtitle = s[StringResource.MULTISTORE_TAP_ADD_RACK],
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
         } else {
@@ -88,18 +91,18 @@ fun WarehouseRackListScreen(
         state.showDeleteRackConfirm?.let { rack ->
             AlertDialog(
                 onDismissRequest = { onIntent(WarehouseIntent.CancelDeleteRack) },
-                title = { Text("Delete Rack") },
-                text = { Text("Delete \"${rack.name}\"? This action cannot be undone.") },
+                title = { Text(s[StringResource.MULTISTORE_DELETE_RACK]) },
+                text = { Text("${s[StringResource.COMMON_DELETE]} \"${rack.name}\"? ${s[StringResource.COMMON_CANNOT_UNDO]}") },
                 confirmButton = {
                     TextButton(
                         onClick = { onIntent(WarehouseIntent.ConfirmDeleteRack) },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
-                        Text("Delete")
+                        Text(s[StringResource.COMMON_DELETE])
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { onIntent(WarehouseIntent.CancelDeleteRack) }) { Text("Cancel") }
+                    TextButton(onClick = { onIntent(WarehouseIntent.CancelDeleteRack) }) { Text(s[StringResource.COMMON_CANCEL]) }
                 },
             )
         }
@@ -112,6 +115,7 @@ private fun RackListItem(
     onClick: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
@@ -134,7 +138,7 @@ private fun RackListItem(
                 }
                 rack.capacity?.let { cap ->
                     Text(
-                        "Capacity: $cap units",
+                        "${s[StringResource.MULTISTORE_CAPACITY]}: $cap",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                     )
@@ -142,14 +146,14 @@ private fun RackListItem(
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                    Icon(Icons.Default.MoreVert, contentDescription = s[StringResource.COMMON_MORE_OPTIONS])
                 }
                 DropdownMenu(
                     expanded = menuExpanded,
                     onDismissRequest = { menuExpanded = false },
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                        text = { Text(s[StringResource.COMMON_DELETE], color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Delete,

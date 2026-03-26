@@ -29,6 +29,8 @@ import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
 import kotlinx.coroutines.flow.Flow
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -60,6 +62,7 @@ fun BackupSettingsScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
     var showFilePicker by remember { mutableStateOf(false) }
 
@@ -94,10 +97,10 @@ fun BackupSettingsScreen(
     if (state.confirmRestore) {
         ZyntaDialogContent(
             variant = ZyntaDialogVariant.Confirm(
-                title = "Confirm Restore",
+                title = s[StringResource.SETTINGS_BACKUP_CONFIRM_RESTORE],
                 message = "Restore from '${state.restoreFilePath}'? All current data will be replaced.",
-                confirmLabel = "Restore",
-                cancelLabel = "Cancel",
+                confirmLabel = s[StringResource.SETTINGS_BACKUP_RESTORE_ACTION],
+                cancelLabel = s[StringResource.COMMON_CANCEL],
                 onConfirm = { onIntent(SettingsIntent.ConfirmRestore) },
                 onCancel = { onIntent(SettingsIntent.CancelRestore) },
                 isDangerous = true,
@@ -106,7 +109,7 @@ fun BackupSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Backup & Restore",
+        title = s[StringResource.SETTINGS_BACKUP_RESTORE],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->
@@ -120,13 +123,13 @@ fun BackupSettingsScreen(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             item {
-                SectionHeader("Backup")
+                SectionHeader(s[StringResource.SETTINGS_BACKUP_SECTION])
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 val lastBackupText = state.lastBackupAt?.let { instant ->
                     val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
                     "Last backup: ${local.date} at ${local.hour.toString().padStart(2, '0')}:" +
                         local.minute.toString().padStart(2, '0')
-                } ?: "No backup found"
+                } ?: s[StringResource.SETTINGS_BACKUP_NO_BACKUP]
                 Text(
                     text = lastBackupText,
                     style = MaterialTheme.typography.bodyMedium,
@@ -142,23 +145,23 @@ fun BackupSettingsScreen(
                     )
                 }
                 ZyntaButton(
-                    text = if (state.isBackingUp) "Backing up…" else "Backup Now",
+                    text = if (state.isBackingUp) s[StringResource.SETTINGS_BACKUP_BACKING_UP] else s[StringResource.SETTINGS_BACKUP_NOW],
                     onClick = { onIntent(SettingsIntent.TriggerBackup) },
                     enabled = !state.isBackingUp && !state.isRestoring,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
             item {
-                SectionHeader("Restore")
+                SectionHeader(s[StringResource.SETTINGS_BACKUP_RESTORE_SECTION])
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
-                    text = "Select a database backup file (.db) to restore from.",
+                    text = s[StringResource.SETTINGS_BACKUP_SELECT_FILE],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
                 )
                 ZyntaButton(
-                    text = if (state.isRestoring) "Restoring…" else "Select Backup File",
+                    text = if (state.isRestoring) s[StringResource.SETTINGS_BACKUP_RESTORING] else s[StringResource.SETTINGS_BACKUP_SELECT_BACKUP],
                     onClick = { showFilePicker = true },
                     enabled = !state.isBackingUp && !state.isRestoring,
                     modifier = Modifier.fillMaxWidth(),

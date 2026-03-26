@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.SalaryType
 
@@ -34,6 +36,7 @@ fun EmployeeDetailScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val form = state.employeeForm
     val isEditing = form.isEditing
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -43,14 +46,14 @@ fun EmployeeDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (isEditing) "Edit Employee" else "New Employee")
+                    Text(if (isEditing) s[StringResource.STAFF_EDIT_EMPLOYEE] else s[StringResource.STAFF_NEW_EMPLOYEE])
                 },
                 navigationIcon = {
                     IconButton(onClick = {
                         onIntent(StaffIntent.BackToEmployeeList)
                         onNavigateBack()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -58,7 +61,7 @@ fun EmployeeDetailScreen(
                         IconButton(onClick = { showDeleteConfirm = true }) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete employee",
+                                contentDescription = s[StringResource.STAFF_DELETE_EMPLOYEE],
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
@@ -78,13 +81,13 @@ fun EmployeeDetailScreen(
             Spacer(Modifier.height(ZyntaSpacing.sm))
 
             // ── Personal Info ──────────────────────────────────────────────
-            SectionHeader("Personal Information")
+            SectionHeader(s[StringResource.STAFF_PERSONAL_INFO])
 
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 OutlinedTextField(
                     value = form.firstName,
                     onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("firstName", it)) },
-                    label = { Text("First Name *") },
+                    label = { Text(s[StringResource.STAFF_FIRST_NAME]) },
                     isError = form.validationErrors.containsKey("firstName"),
                     supportingText = form.validationErrors["firstName"]?.let { { Text(it) } },
                     modifier = Modifier.weight(1f),
@@ -93,7 +96,7 @@ fun EmployeeDetailScreen(
                 OutlinedTextField(
                     value = form.lastName,
                     onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("lastName", it)) },
-                    label = { Text("Last Name *") },
+                    label = { Text(s[StringResource.STAFF_LAST_NAME]) },
                     isError = form.validationErrors.containsKey("lastName"),
                     supportingText = form.validationErrors["lastName"]?.let { { Text(it) } },
                     modifier = Modifier.weight(1f),
@@ -104,25 +107,25 @@ fun EmployeeDetailScreen(
             OutlinedTextField(
                 value = form.email,
                 onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("email", it)) },
-                label = { Text("Email") },
+                label = { Text(s[StringResource.CUSTOMERS_EMAIL]) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             OutlinedTextField(
                 value = form.phone,
                 onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("phone", it)) },
-                label = { Text("Phone") },
+                label = { Text(s[StringResource.CUSTOMERS_PHONE]) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
 
             // ── Employment Info ────────────────────────────────────────────
-            SectionHeader("Employment")
+            SectionHeader(s[StringResource.STAFF_EMPLOYMENT])
 
             OutlinedTextField(
                 value = form.position,
                 onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("position", it)) },
-                label = { Text("Position *") },
+                label = { Text(s[StringResource.STAFF_POSITION_REQUIRED]) },
                 isError = form.validationErrors.containsKey("position"),
                 supportingText = form.validationErrors["position"]?.let { { Text(it) } },
                 modifier = Modifier.fillMaxWidth(),
@@ -131,26 +134,26 @@ fun EmployeeDetailScreen(
             OutlinedTextField(
                 value = form.department,
                 onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("department", it)) },
-                label = { Text("Department") },
+                label = { Text(s[StringResource.STAFF_DEPARTMENT]) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
             OutlinedTextField(
                 value = form.hireDate,
                 onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("hireDate", it)) },
-                label = { Text("Hire Date (YYYY-MM-DD)") },
+                label = { Text(s[StringResource.STAFF_HIRE_DATE]) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
 
             // ── Compensation ───────────────────────────────────────────────
-            SectionHeader("Compensation")
+            SectionHeader(s[StringResource.STAFF_COMPENSATION])
 
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 OutlinedTextField(
                     value = form.salary,
                     onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("salary", it)) },
-                    label = { Text("Salary") },
+                    label = { Text(s[StringResource.STAFF_SALARY]) },
                     isError = form.validationErrors.containsKey("salary"),
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -158,14 +161,14 @@ fun EmployeeDetailScreen(
                 OutlinedTextField(
                     value = form.commissionRate,
                     onValueChange = { onIntent(StaffIntent.UpdateEmployeeField("commissionRate", it)) },
-                    label = { Text("Commission %") },
+                    label = { Text(s[StringResource.STAFF_COMMISSION]) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                 )
             }
 
             // Salary type selector
-            Text("Salary Type", style = MaterialTheme.typography.labelMedium)
+            Text(s[StringResource.STAFF_SALARY_TYPE], style = MaterialTheme.typography.labelMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SalaryType.entries.forEach { type ->
                     FilterChip(
@@ -182,7 +185,7 @@ fun EmployeeDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "Active",
+                    text = s[StringResource.STAFF_ACTIVE],
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -204,7 +207,7 @@ fun EmployeeDetailScreen(
                 ) {
                     Icon(Icons.Default.Store, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Manage Store Assignments")
+                    Text(s[StringResource.STAFF_MANAGE_STORE_ASSIGNMENTS])
                 }
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
@@ -224,7 +227,7 @@ fun EmployeeDetailScreen(
                 } else {
                     Icon(Icons.Default.Save, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isEditing) "Update Employee" else "Create Employee")
+                    Text(if (isEditing) s[StringResource.STAFF_UPDATE_EMPLOYEE] else s[StringResource.STAFF_CREATE_EMPLOYEE])
                 }
             }
 
@@ -236,8 +239,8 @@ fun EmployeeDetailScreen(
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
                 icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                title = { Text("Deactivate Employee?") },
-                text = { Text("This will deactivate the employee. Historical records are preserved.") },
+                title = { Text(s[StringResource.STAFF_DEACTIVATE_EMPLOYEE_TITLE]) },
+                text = { Text(s[StringResource.STAFF_DEACTIVATE_EMPLOYEE_MESSAGE]) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -247,11 +250,11 @@ fun EmployeeDetailScreen(
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
-                        Text("Deactivate")
+                        Text(s[StringResource.STAFF_DEACTIVATE])
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text(s[StringResource.COMMON_CANCEL]) }
                 },
             )
         }

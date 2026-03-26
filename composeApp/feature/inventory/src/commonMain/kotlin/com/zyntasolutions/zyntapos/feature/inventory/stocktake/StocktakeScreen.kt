@@ -56,6 +56,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.domain.model.StocktakeCount
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
@@ -75,6 +77,7 @@ fun StocktakeScreen(
     onNavigateBack: () -> Unit,
     viewModel: StocktakeViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var showCompleteDialog by remember { mutableStateOf(false) }
@@ -106,12 +109,12 @@ fun StocktakeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Stocktake") },
+                title = { Text(s[StringResource.INVENTORY_STOCKTAKE]) },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (state.isInProgress) showCancelDialog = true else onNavigateBack()
                     }) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = s[StringResource.COMMON_CLOSE])
                     }
                 },
                 actions = {
@@ -128,7 +131,7 @@ fun StocktakeScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.QrCodeScanner,
-                                    contentDescription = if (state.isScanning) "Scanner active" else "Activate scanner",
+                                    contentDescription = if (state.isScanning) s[StringResource.INVENTORY_SCANNER_ACTIVE] else s[StringResource.INVENTORY_ACTIVATE_SCANNER],
                                     tint = if (state.isScanning)
                                         MaterialTheme.colorScheme.primary
                                     else
@@ -199,7 +202,7 @@ fun StocktakeScreen(
                             contentColor = MaterialTheme.colorScheme.error,
                         ),
                     ) {
-                        Text("Cancel")
+                        Text(s[StringResource.COMMON_CANCEL])
                     }
                     Button(
                         onClick = { showCompleteDialog = true },
@@ -217,7 +220,7 @@ fun StocktakeScreen(
                             Icon(Icons.Default.CheckCircle, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (state.isCompleting) "Completing…" else "Complete Stocktake")
+                        Text(if (state.isCompleting) s[StringResource.INVENTORY_COMPLETING] else s[StringResource.INVENTORY_COMPLETE_STOCKTAKE])
                     }
                 }
 
@@ -244,7 +247,7 @@ fun StocktakeScreen(
                             TextButton(
                                 onClick = { viewModel.dispatch(StocktakeIntent.DismissError) },
                             ) {
-                                Text("Dismiss")
+                                Text(s[StringResource.COMMON_DISMISS])
                             }
                         }
                     }
@@ -259,10 +262,10 @@ fun StocktakeScreen(
         val varianceCount = state.counts.count { (it.computedVariance ?: 0) != 0 }
         AlertDialog(
             onDismissRequest = { showCompleteDialog = false },
-            title = { Text("Complete Stocktake?") },
+            title = { Text(s[StringResource.INVENTORY_COMPLETE_STOCKTAKE_TITLE]) },
             text = {
                 Column {
-                    Text("This will apply stock adjustments for all counted products.")
+                    Text(s[StringResource.INVENTORY_COMPLETE_STOCKTAKE_MESSAGE])
                     if (varianceCount > 0) {
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -277,10 +280,10 @@ fun StocktakeScreen(
                 Button(onClick = {
                     showCompleteDialog = false
                     viewModel.dispatch(StocktakeIntent.CompleteStocktake)
-                }) { Text("Complete") }
+                }) { Text(s[StringResource.INVENTORY_COMPLETE]) }
             },
             dismissButton = {
-                TextButton(onClick = { showCompleteDialog = false }) { Text("Review") }
+                TextButton(onClick = { showCompleteDialog = false }) { Text(s[StringResource.INVENTORY_REVIEW]) }
             },
         )
     }
@@ -289,8 +292,8 @@ fun StocktakeScreen(
     if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = { showCancelDialog = false },
-            title = { Text("Cancel Stocktake?") },
-            text = { Text("All scanned counts will be discarded. No stock adjustments will be made.") },
+            title = { Text(s[StringResource.INVENTORY_CANCEL_STOCKTAKE_TITLE]) },
+            text = { Text(s[StringResource.INVENTORY_CANCEL_STOCKTAKE_MESSAGE]) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -300,10 +303,10 @@ fun StocktakeScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                     ),
-                ) { Text("Discard & Cancel") }
+                ) { Text(s[StringResource.INVENTORY_DISCARD_AND_CANCEL]) }
             },
             dismissButton = {
-                TextButton(onClick = { showCancelDialog = false }) { Text("Keep Counting") }
+                TextButton(onClick = { showCancelDialog = false }) { Text(s[StringResource.INVENTORY_KEEP_COUNTING]) }
             },
         )
     }
@@ -318,6 +321,7 @@ private fun StartSessionPanel(
     isStarting: Boolean,
     onStart: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -331,12 +335,12 @@ private fun StartSessionPanel(
             )
             Spacer(Modifier.height(16.dp))
             Text(
-                text = "Start Stocktake",
+                text = s[StringResource.INVENTORY_START_STOCKTAKE],
                 style = MaterialTheme.typography.headlineMedium,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Count your physical inventory and reconcile with system stock.",
+                text = s[StringResource.INVENTORY_START_STOCKTAKE_SUBTITLE],
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -352,9 +356,9 @@ private fun StartSessionPanel(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Starting…")
+                    Text(s[StringResource.INVENTORY_STARTING])
                 } else {
-                    Text("Start New Session")
+                    Text(s[StringResource.INVENTORY_START_NEW_SESSION])
                 }
             }
         }
@@ -363,6 +367,7 @@ private fun StartSessionPanel(
 
 @Composable
 private fun SessionSummaryRow(counts: List<StocktakeCount>) {
+    val s = LocalStrings.current
     val totalCounted = counts.size
     val withVariance = counts.count { (it.computedVariance ?: 0) != 0 }
 
@@ -370,9 +375,9 @@ private fun SessionSummaryRow(counts: List<StocktakeCount>) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        SummaryChip(label = "Scanned", value = "$totalCounted", modifier = Modifier.weight(1f))
+        SummaryChip(label = s[StringResource.INVENTORY_SCANNED], value = "$totalCounted", modifier = Modifier.weight(1f))
         SummaryChip(
-            label = "Variances",
+            label = s[StringResource.INVENTORY_VARIANCES],
             value = "$withVariance",
             isWarning = withVariance > 0,
             modifier = Modifier.weight(1f),
@@ -447,8 +452,9 @@ private fun LastScannedChip(barcode: String) {
 
 @Composable
 private fun EmptyCountsPlaceholder() {
+    val s = LocalStrings.current
     ZyntaEmptyState(
-        title = "Scan a product to begin counting",
+        title = s[StringResource.INVENTORY_SCAN_TO_BEGIN],
         icon = Icons.Default.QrCodeScanner,
         modifier = Modifier.fillMaxWidth().height(200.dp),
     )
@@ -461,6 +467,7 @@ private fun CountList(
     onAdjust: (productId: String, qty: Int) -> Unit,
     onRemove: (productId: String) -> Unit,
 ) {
+    val s = LocalStrings.current
     LazyColumn(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -473,25 +480,25 @@ private fun CountList(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             ) {
                 Text(
-                    text = "Product",
+                    text = s[StringResource.INVENTORY_PRODUCT],
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(3f),
                 )
                 Text(
-                    text = "System",
+                    text = s[StringResource.INVENTORY_SYSTEM],
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "Counted",
+                    text = s[StringResource.INVENTORY_COUNTED],
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1.5f),
                 )
                 Text(
-                    text = "Var.",
+                    text = s[StringResource.INVENTORY_VAR],
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(0.8f),
@@ -594,10 +601,11 @@ private fun CountRow(
             )
 
             // Remove button
+            val s = LocalStrings.current
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove",
+                    contentDescription = s[StringResource.COMMON_REMOVE],
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

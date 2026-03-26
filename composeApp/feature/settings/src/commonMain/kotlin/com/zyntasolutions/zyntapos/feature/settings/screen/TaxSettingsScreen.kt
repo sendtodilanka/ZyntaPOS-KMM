@@ -38,6 +38,8 @@ import com.zyntasolutions.zyntapos.domain.model.TaxGroup
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -47,10 +49,11 @@ import kotlinx.coroutines.flow.collectLatest
 // Sprint 23 — Step 13.1.4
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val TAX_COLUMNS = listOf(
-    ZyntaTableColumn(key = "name",      header = "Name",       weight = 2f),
-    ZyntaTableColumn(key = "rate",      header = "Rate (%)",   weight = 1f),
-    ZyntaTableColumn(key = "inclusive", header = "Inclusive",  weight = 1f),
+@Composable
+private fun taxColumns() = listOf(
+    ZyntaTableColumn(key = "name",      header = LocalStrings.current[StringResource.COMMON_NAME],       weight = 2f),
+    ZyntaTableColumn(key = "rate",      header = LocalStrings.current[StringResource.SETTINGS_TAX_RATE_PERCENT],   weight = 1f),
+    ZyntaTableColumn(key = "inclusive", header = LocalStrings.current[StringResource.SETTINGS_TAX_INCLUSIVE],  weight = 1f),
     ZyntaTableColumn(key = "actions",   header = "",           weight = 1f, sortable = false),
 )
 
@@ -71,6 +74,7 @@ fun TaxSettingsScreen(
     onBack: () -> Unit,
     onNavigateToRegionalOverrides: (storeId: String) -> Unit = {},
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadTaxGroups) }
@@ -88,10 +92,10 @@ fun TaxSettingsScreen(
     state.deleteTarget?.let { target ->
         ZyntaDialogContent(
             variant = ZyntaDialogVariant.Confirm(
-                title = "Delete Tax Group",
+                title = s[StringResource.SETTINGS_TAX_DELETE_TITLE],
                 message = "Delete '${target.name}'? This cannot be undone.",
-                confirmLabel = "Delete",
-                cancelLabel = "Cancel",
+                confirmLabel = s[StringResource.COMMON_DELETE],
+                cancelLabel = s[StringResource.COMMON_CANCEL],
                 onConfirm = { onIntent(SettingsIntent.ConfirmDeleteTaxGroup) },
                 onCancel = { onIntent(SettingsIntent.CancelDeleteTaxGroup) },
                 isDangerous = true,
@@ -111,12 +115,12 @@ fun TaxSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Tax Groups",
+        title = s[StringResource.SETTINGS_TAX_GROUPS],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(SettingsIntent.OpenCreateTaxGroup) }) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Tax Group")
+                Icon(Icons.Filled.Add, contentDescription = s[StringResource.SETTINGS_TAX_ADD_GROUP])
             }
         },
     ) { innerPadding ->
@@ -132,17 +136,17 @@ fun TaxSettingsScreen(
             item {
                 when {
                     state.isLoading -> Text(
-                        "Loading tax groups…",
+                        s[StringResource.SETTINGS_TAX_LOADING],
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(ZyntaSpacing.md),
                     )
                     state.taxGroups.isEmpty() -> Text(
-                        "No tax groups yet. Tap + to create one.",
+                        s[StringResource.SETTINGS_TAX_EMPTY],
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(ZyntaSpacing.md),
                     )
                     else -> ZyntaTable(
-                        columns = TAX_COLUMNS,
+                        columns = taxColumns(),
                         items = state.taxGroups,
                         rowKey = { it.id },
                         modifier = Modifier.fillMaxWidth(),
@@ -160,11 +164,11 @@ fun TaxSettingsScreen(
                             Column(modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
                                 ZyntaButton(
-                                    text = "Edit",
+                                    text = s[StringResource.COMMON_EDIT],
                                     onClick = { onIntent(SettingsIntent.OpenEditTaxGroup(tg)) },
                                 )
                                 ZyntaButton(
-                                    text = "Delete",
+                                    text = s[StringResource.COMMON_DELETE],
                                     onClick = { onIntent(SettingsIntent.RequestDeleteTaxGroup(tg)) },
                                 )
                             }
@@ -188,11 +192,11 @@ fun TaxSettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "Regional Tax Overrides",
+                                s[StringResource.SETTINGS_TAX_REGIONAL_OVERRIDES],
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             Text(
-                                "Configure jurisdiction-specific tax rates that override global tax groups for this store.",
+                                s[StringResource.SETTINGS_TAX_REGIONAL_OVERRIDES_DESC],
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -224,6 +228,7 @@ private fun TaxGroupFormSheet(
     val rateState = remember(initial) { mutableStateOf(initial?.rate?.toString() ?: "") }
     val inclusiveState = remember(initial) { mutableStateOf(initial?.isInclusive ?: false) }
 
+    val s = LocalStrings.current
     ZyntaBottomSheet(
         sheetState = sheetState,
         onDismiss = onDismiss,
@@ -236,24 +241,24 @@ private fun TaxGroupFormSheet(
                 .padding(bottom = ZyntaSpacing.lg),
         ) {
             Text(
-                text = if (initial != null) "Edit Tax Group" else "New Tax Group",
+                text = if (initial != null) s[StringResource.SETTINGS_TAX_EDIT_GROUP] else s[StringResource.SETTINGS_TAX_NEW_GROUP],
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
             )
             ZyntaTextField(
                 value = nameState.value,
                 onValueChange = { nameState.value = it },
-                label = "Tax Name (e.g. VAT, GST)",
+                label = s[StringResource.SETTINGS_TAX_NAME_LABEL],
                 modifier = Modifier.fillMaxWidth(),
             )
             ZyntaTextField(
                 value = rateState.value,
                 onValueChange = { rateState.value = it },
-                label = "Rate (%)",
+                label = s[StringResource.SETTINGS_TAX_RATE_PERCENT],
                 modifier = Modifier.fillMaxWidth(),
             )
             ToggleRow(
-                label = "Tax Inclusive",
+                label = s[StringResource.SETTINGS_TAX_INCLUSIVE],
                 checked = inclusiveState.value,
                 onCheckedChange = { inclusiveState.value = it },
             )
@@ -262,7 +267,7 @@ private fun TaxGroupFormSheet(
                     style = MaterialTheme.typography.bodySmall)
             }
             ZyntaButton(
-                text = "Save Tax Group",
+                text = s[StringResource.SETTINGS_TAX_SAVE_GROUP],
                 onClick = {
                     val rate = rateState.value.toDoubleOrNull() ?: 0.0
                     val tg = if (initial != null) {

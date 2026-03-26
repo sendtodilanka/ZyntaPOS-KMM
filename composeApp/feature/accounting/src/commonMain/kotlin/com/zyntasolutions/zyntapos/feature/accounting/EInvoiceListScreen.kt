@@ -18,6 +18,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.EInvoice
@@ -41,6 +44,7 @@ fun EInvoiceListScreen(
     onNavigateToDetail: (invoiceId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val filtered = if (state.statusFilter == null) state.invoices
                    else state.invoices.filter { it.status == state.statusFilter }
 
@@ -54,7 +58,7 @@ fun EInvoiceListScreen(
                 FilterChip(
                     selected = state.statusFilter == null,
                     onClick = { onIntent(EInvoiceIntent.FilterByStatus(null)) },
-                    label = { Text("All (${state.invoices.size})") },
+                    label = { Text("${s[StringResource.COMMON_ALL]} (${state.invoices.size})") },
                 )
             }
             items(EInvoiceStatus.values()) { status ->
@@ -62,7 +66,7 @@ fun EInvoiceListScreen(
                 FilterChip(
                     selected = state.statusFilter == status,
                     onClick = { onIntent(EInvoiceIntent.FilterByStatus(status)) },
-                    label = { Text("${status.label()} ($count)") },
+                    label = { Text("${status.label(s)} ($count)") },
                 )
             }
         }
@@ -75,7 +79,7 @@ fun EInvoiceListScreen(
             }
         } else if (filtered.isEmpty()) {
             ZyntaEmptyState(
-                title = "No invoices found",
+                title = s[StringResource.EINVOICE_NO_INVOICES],
                 icon = Icons.Default.Receipt,
             )
         } else {
@@ -149,7 +153,10 @@ private fun EInvoiceListItem(
 private fun EInvoiceStatusChip(status: EInvoiceStatus) {
     SuggestionChip(
         onClick = {},
-        label = { Text(status.label(), style = MaterialTheme.typography.labelSmall) },
+        label = {
+            val s = LocalStrings.current
+            Text(status.label(s), style = MaterialTheme.typography.labelSmall)
+        },
         icon = {
             Icon(
                 imageVector = status.icon(),
@@ -167,12 +174,12 @@ private fun EInvoiceStatusChip(status: EInvoiceStatus) {
 
 // ── Extension helpers ──────────────────────────────────────────────────────
 
-private fun EInvoiceStatus.label(): String = when (this) {
-    EInvoiceStatus.DRAFT -> "Draft"
-    EInvoiceStatus.SUBMITTED -> "Submitted"
-    EInvoiceStatus.ACCEPTED -> "Accepted"
-    EInvoiceStatus.REJECTED -> "Rejected"
-    EInvoiceStatus.CANCELLED -> "Cancelled"
+private fun EInvoiceStatus.label(s: StringResolver): String = when (this) {
+    EInvoiceStatus.DRAFT -> s[StringResource.EINVOICE_STATUS_DRAFT]
+    EInvoiceStatus.SUBMITTED -> s[StringResource.EINVOICE_STATUS_SUBMITTED]
+    EInvoiceStatus.ACCEPTED -> s[StringResource.EINVOICE_STATUS_ACCEPTED]
+    EInvoiceStatus.REJECTED -> s[StringResource.EINVOICE_STATUS_REJECTED]
+    EInvoiceStatus.CANCELLED -> s[StringResource.EINVOICE_STATUS_CANCELLED]
 }
 
 private fun EInvoiceStatus.icon(): ImageVector = when (this) {

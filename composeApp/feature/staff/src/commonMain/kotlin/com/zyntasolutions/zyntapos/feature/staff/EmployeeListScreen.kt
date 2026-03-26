@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSearchBar
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
@@ -35,6 +37,7 @@ fun EmployeeListScreen(
     onNavigateToDetail: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(Unit) { onIntent(StaffIntent.LoadEmployees) }
 
     val filtered = remember(state.employees, state.searchQuery, state.showInactive) {
@@ -53,8 +56,8 @@ fun EmployeeListScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onNavigateToDetail(null) },
-                icon = { Icon(Icons.Default.PersonAdd, contentDescription = "Add Employee") },
-                text = { Text("Add Employee") },
+                icon = { Icon(Icons.Default.PersonAdd, contentDescription = s[StringResource.STAFF_ADD_EMPLOYEE]) },
+                text = { Text(s[StringResource.STAFF_ADD_EMPLOYEE]) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
@@ -71,7 +74,7 @@ fun EmployeeListScreen(
                 onQueryChange = { onIntent(StaffIntent.SearchEmployees(it)) },
                 onClear = { onIntent(StaffIntent.SearchEmployees("")) },
                 onScanToggle = {},
-                placeholder = "Search employees…",
+                placeholder = s[StringResource.STAFF_SEARCH_EMPLOYEES],
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = ZyntaSpacing.sm),
@@ -89,7 +92,7 @@ fun EmployeeListScreen(
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Show inactive",
+                        text = s[StringResource.STAFF_SHOW_INACTIVE],
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Switch(
@@ -106,9 +109,9 @@ fun EmployeeListScreen(
                 }
             } else if (filtered.isEmpty()) {
                 ZyntaEmptyState(
-                    title = if (state.searchQuery.isBlank()) "No employees found" else "No results for \"${state.searchQuery}\"",
+                    title = if (state.searchQuery.isBlank()) s[StringResource.STAFF_NO_EMPLOYEES] else s[StringResource.STAFF_NO_RESULTS],
                     icon = Icons.Default.PersonAdd,
-                    subtitle = if (state.searchQuery.isBlank()) "Tap + to add one." else null,
+                    subtitle = if (state.searchQuery.isBlank()) s[StringResource.STAFF_TAP_TO_ADD] else null,
                 )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -138,6 +141,7 @@ private fun EmployeeListItem(
     employee: Employee,
     onClick: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -183,13 +187,13 @@ private fun EmployeeListItem(
             if (!employee.isActive) {
                 AssistChip(
                     onClick = {},
-                    label = { Text("Inactive") },
+                    label = { Text(s[StringResource.STAFF_INACTIVE]) },
                     modifier = Modifier.padding(start = ZyntaSpacing.sm),
                 )
             }
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "View",
+                contentDescription = s[StringResource.STAFF_VIEW],
                 tint = MaterialTheme.colorScheme.outline,
             )
         }

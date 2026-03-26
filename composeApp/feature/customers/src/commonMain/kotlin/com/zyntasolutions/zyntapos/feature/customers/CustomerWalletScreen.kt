@@ -37,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingSkeleton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
@@ -59,6 +61,7 @@ fun CustomerWalletScreen(
     onNavigateUp: () -> Unit,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(customerId) {
         onIntent(CustomerIntent.LoadWallet(customerId))
     }
@@ -71,10 +74,10 @@ fun CustomerWalletScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Wallet & Loyalty") },
+                title = { Text(s[StringResource.CUSTOMERS_WALLET_LOYALTY]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -98,12 +101,12 @@ fun CustomerWalletScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     WalletBalanceCard(
-                        label = "Wallet Balance",
+                        label = s[StringResource.CUSTOMERS_WALLET_BALANCE],
                         value = "LKR ${state.wallet?.balance?.let { "%.2f".format(it) } ?: "0.00"}",
                         modifier = Modifier.weight(1f),
                     )
                     WalletBalanceCard(
-                        label = "Loyalty Points",
+                        label = s[StringResource.CUSTOMERS_LOYALTY_POINTS],
                         value = "${state.pointsBalance} pts",
                         modifier = Modifier.weight(1f),
                     )
@@ -113,10 +116,10 @@ fun CustomerWalletScreen(
                     onClick = { showTopUpSheet = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Top Up Wallet")
+                    Text(s[StringResource.CUSTOMERS_TOP_UP_WALLET])
                 }
                 Spacer(Modifier.height(16.dp))
-                Text("Transaction History", style = MaterialTheme.typography.titleSmall)
+                Text(s[StringResource.CUSTOMERS_TRANSACTION_HISTORY], style = MaterialTheme.typography.titleSmall)
                 HorizontalDivider()
             }
 
@@ -124,7 +127,7 @@ fun CustomerWalletScreen(
             if (state.walletTransactions.isEmpty()) {
                 item {
                     Text(
-                        "No transactions yet",
+                        s[StringResource.CUSTOMERS_NO_TRANSACTIONS],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 16.dp),
@@ -140,13 +143,13 @@ fun CustomerWalletScreen(
             // ── Reward Points History ───────────────────────────────────────
             item {
                 Spacer(Modifier.height(16.dp))
-                Text("Reward Points History", style = MaterialTheme.typography.titleSmall)
+                Text(s[StringResource.CUSTOMERS_REWARD_HISTORY], style = MaterialTheme.typography.titleSmall)
                 HorizontalDivider()
             }
             if (state.rewardHistory.isEmpty()) {
                 item {
                     Text(
-                        "No reward points history",
+                        s[StringResource.CUSTOMERS_NO_REWARD_HISTORY],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 16.dp),
@@ -189,21 +192,21 @@ fun CustomerWalletScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Top Up Wallet", style = MaterialTheme.typography.titleMedium)
+                Text(s[StringResource.CUSTOMERS_TOP_UP_WALLET], style = MaterialTheme.typography.titleMedium)
                 ZyntaTextField(
                     value = topUpAmount,
                     onValueChange = { topUpAmount = it },
-                    label = "Amount (LKR)",
+                    label = s[StringResource.CUSTOMERS_AMOUNT_LKR],
                     modifier = Modifier.fillMaxWidth(),
                 )
                 ZyntaTextField(
                     value = topUpNote,
                     onValueChange = { topUpNote = it },
-                    label = "Note (optional)",
+                    label = s[StringResource.CUSTOMERS_NOTE_OPTIONAL],
                     modifier = Modifier.fillMaxWidth(),
                 )
                 ZyntaButton(
-                    text = "Confirm Top Up",
+                    text = s[StringResource.CUSTOMERS_CONFIRM_TOP_UP],
                     onClick = {
                         val amount = topUpAmount.toDoubleOrNull()
                         if (amount != null && amount > 0) {

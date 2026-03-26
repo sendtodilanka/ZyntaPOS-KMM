@@ -6,6 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
+import com.zyntasolutions.zyntapos.core.i18n.LocalizationManager
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.tokens.LocalSpacing
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacingTokens
 
@@ -124,9 +128,16 @@ fun ZyntaTheme(
         dynamicScheme ?: if (isDark) zentaDarkColorScheme() else zentaLightColorScheme()
     }
 
+    // Provide a default StringResolver so ZyntaTheme works in tests and previews
+    // without requiring Koin. In production, App.kt wraps content in an inner
+    // CompositionLocalProvider(LocalStrings provides koinStringResolver) which
+    // takes precedence over this fallback.
+    val fallbackStrings = remember { StringResolver(LocalizationManager()) }
+
     CompositionLocalProvider(
         LocalThemeMode provides themeMode,
         LocalSpacing   provides ZyntaSpacingTokens(),
+        LocalStrings   provides fallbackStrings,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

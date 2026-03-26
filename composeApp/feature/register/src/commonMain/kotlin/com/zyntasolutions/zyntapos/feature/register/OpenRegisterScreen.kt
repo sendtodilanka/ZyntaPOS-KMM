@@ -18,6 +18,8 @@ import com.zyntasolutions.zyntapos.designsystem.components.NumericPadMode
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaNumericPad
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.domain.model.CashRegister
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -46,6 +48,7 @@ fun OpenRegisterScreen(
     viewModel: RegisterViewModel = koinViewModel(),
     onOpened: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
 
@@ -67,7 +70,7 @@ fun OpenRegisterScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Open Register",
+        title = s[StringResource.REGISTER_OPEN_REGISTER],
         snackbarHostState = snackbarHost,
     ) { innerPadding ->
         val form = state.openRegisterForm
@@ -156,9 +159,10 @@ private fun RegisterSelectorPanel(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     Column(modifier = modifier) {
         Text(
-            text = "Select Register",
+            text = s[StringResource.REGISTER_SELECT_REGISTER],
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
@@ -180,7 +184,7 @@ private fun RegisterSelectorPanel(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No registers available.\nPlease contact your manager.",
+                    text = s[StringResource.REGISTER_NO_REGISTERS_AVAILABLE],
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )

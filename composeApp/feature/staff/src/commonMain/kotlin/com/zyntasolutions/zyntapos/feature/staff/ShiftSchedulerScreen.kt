@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.ShiftSchedule
@@ -36,6 +38,7 @@ fun ShiftSchedulerScreen(
     weekEnd: String,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(weekStart, weekEnd) {
         if (weekStart.isNotBlank() && weekEnd.isNotBlank()) {
             onIntent(StaffIntent.LoadWeeklyShifts(storeId, weekStart, weekEnd))
@@ -53,7 +56,7 @@ fun ShiftSchedulerScreen(
             ExtendedFloatingActionButton(
                 onClick = { onIntent(StaffIntent.ShowShiftForm) },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add Shift") },
+                text = { Text(s[StringResource.STAFF_ADD_SHIFT]) },
             )
         },
     ) { innerPadding ->
@@ -85,9 +88,9 @@ fun ShiftSchedulerScreen(
                 }
             } else if (state.weeklyShifts.isEmpty()) {
                 ZyntaEmptyState(
-                    title = "No shifts scheduled this week",
+                    title = s[StringResource.STAFF_NO_SHIFTS],
                     icon = Icons.Default.CalendarMonth,
-                    subtitle = "Tap + to add a shift.",
+                    subtitle = s[StringResource.STAFF_TAP_ADD_SHIFT],
                 )
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
@@ -150,6 +153,7 @@ private fun ShiftRow(
     onDelete: () -> Unit,
     onEdit: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -181,12 +185,12 @@ private fun ShiftRow(
                 }
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit shift")
+                Icon(Icons.Default.Edit, contentDescription = s[StringResource.STAFF_EDIT_SHIFT])
             }
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete shift",
+                    contentDescription = s[StringResource.STAFF_DELETE_SHIFT],
                     tint = MaterialTheme.colorScheme.error,
                 )
             }
@@ -201,11 +205,12 @@ private fun ShiftFormDialog(
     employees: List<com.zyntasolutions.zyntapos.domain.model.Employee>,
     onIntent: (StaffIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = { onIntent(StaffIntent.HideShiftForm) },
-        title = { Text(if (form.id == null) "Add Shift" else "Edit Shift") },
+        title = { Text(if (form.id == null) s[StringResource.STAFF_ADD_SHIFT] else s[StringResource.STAFF_EDIT_SHIFT]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 ExposedDropdownMenuBox(
@@ -213,10 +218,10 @@ private fun ShiftFormDialog(
                     onExpandedChange = { expanded = it },
                 ) {
                     OutlinedTextField(
-                        value = employees.find { it.id == form.employeeId }?.fullName ?: "Select Employee",
+                        value = employees.find { it.id == form.employeeId }?.fullName ?: s[StringResource.STAFF_SELECT_EMPLOYEE],
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Employee *") },
+                        label = { Text(s[StringResource.STAFF_EMPLOYEE_REQUIRED]) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
                             .menuAnchor()
@@ -237,7 +242,7 @@ private fun ShiftFormDialog(
                 OutlinedTextField(
                     value = form.shiftDate,
                     onValueChange = { onIntent(StaffIntent.UpdateShiftField("shiftDate", it)) },
-                    label = { Text("Date (YYYY-MM-DD) *") },
+                    label = { Text(s[StringResource.STAFF_DATE_REQUIRED]) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -245,14 +250,14 @@ private fun ShiftFormDialog(
                     OutlinedTextField(
                         value = form.startTime,
                         onValueChange = { onIntent(StaffIntent.UpdateShiftField("startTime", it)) },
-                        label = { Text("Start (HH:MM) *") },
+                        label = { Text(s[StringResource.STAFF_START_TIME_REQUIRED]) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                     )
                     OutlinedTextField(
                         value = form.endTime,
                         onValueChange = { onIntent(StaffIntent.UpdateShiftField("endTime", it)) },
-                        label = { Text("End (HH:MM) *") },
+                        label = { Text(s[StringResource.STAFF_END_TIME_REQUIRED]) },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                     )
@@ -260,17 +265,17 @@ private fun ShiftFormDialog(
                 OutlinedTextField(
                     value = form.notes,
                     onValueChange = { onIntent(StaffIntent.UpdateShiftField("notes", it)) },
-                    label = { Text("Notes") },
+                    label = { Text(s[StringResource.STAFF_NOTES]) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onIntent(StaffIntent.SaveShift) }) { Text("Save") }
+            TextButton(onClick = { onIntent(StaffIntent.SaveShift) }) { Text(s[StringResource.COMMON_SAVE]) }
         },
         dismissButton = {
-            TextButton(onClick = { onIntent(StaffIntent.HideShiftForm) }) { Text("Cancel") }
+            TextButton(onClick = { onIntent(StaffIntent.HideShiftForm) }) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

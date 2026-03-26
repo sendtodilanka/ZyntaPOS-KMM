@@ -29,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import kotlin.time.Clock
@@ -47,6 +49,7 @@ fun CrossStoreAttendanceScreen(
     onIntent: (StaffIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     // Compute current month date range
     val (from, to) = remember {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
@@ -80,14 +83,14 @@ fun CrossStoreAttendanceScreen(
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
-                    text = "Cross-Store Attendance",
+                    text = s[StringResource.STAFF_CROSS_STORE_ATTENDANCE],
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Spacer(Modifier.weight(1f))
                 AssistChip(
                     onClick = {},
-                    label = { Text("This Month") },
+                    label = { Text(s[StringResource.STAFF_THIS_MONTH]) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.CalendarMonth,
@@ -107,7 +110,7 @@ fun CrossStoreAttendanceScreen(
             ) {
                 CircularProgressIndicator()
                 Text(
-                    "Loading cross-store data...",
+                    s[StringResource.STAFF_LOADING_CROSS_STORE],
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = ZyntaSpacing.sm),
                 )
@@ -117,9 +120,9 @@ fun CrossStoreAttendanceScreen(
 
         if (state.crossStoreAttendance.isEmpty()) {
             ZyntaEmptyState(
-                title = "No cross-store attendance data",
+                title = s[StringResource.STAFF_NO_CROSS_STORE_DATA],
                 icon = Icons.Default.Business,
-                subtitle = "Employee attendance across stores will appear here.",
+                subtitle = s[StringResource.STAFF_CROSS_STORE_HINT],
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             )
             return
@@ -143,10 +146,10 @@ fun CrossStoreAttendanceScreen(
                 modifier = Modifier.padding(ZyntaSpacing.md),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                SummaryKpi("Employees", grouped.size.toString())
-                SummaryKpi("Stores", storeCount.toString())
-                SummaryKpi("Total Days", totalDays.toString())
-                SummaryKpi("Total Hours", "%.1f".format(totalHours))
+                SummaryKpi(s[StringResource.STAFF_EMPLOYEES], grouped.size.toString())
+                SummaryKpi(s[StringResource.STAFF_STORES], storeCount.toString())
+                SummaryKpi(s[StringResource.STAFF_TOTAL_DAYS], totalDays.toString())
+                SummaryKpi(s[StringResource.STAFF_TOTAL_HOURS], "%.1f".format(totalHours))
             }
         }
 

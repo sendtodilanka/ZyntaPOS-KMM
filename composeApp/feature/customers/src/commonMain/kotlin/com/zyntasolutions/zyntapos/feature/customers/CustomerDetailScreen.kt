@@ -57,6 +57,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoyaltyTierBadge
@@ -90,6 +92,7 @@ fun CustomerDetailScreen(
     onNavigateToWallet: (String) -> Unit,
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val s = LocalStrings.current
     LaunchedEffect(customerId) {
         onIntent(CustomerIntent.SelectCustomer(customerId))
     }
@@ -112,7 +115,7 @@ fun CustomerDetailScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(if (isEditMode) "Edit Customer" else "New Customer")
+                        Text(if (isEditMode) s[StringResource.CUSTOMERS_EDIT] else s[StringResource.CUSTOMERS_NEW])
                         if (isEditMode && state.currentLoyaltyTier != null) {
                             Spacer(Modifier.width(8.dp))
                             ZyntaLoyaltyTierBadge(tierName = state.currentLoyaltyTier.name)
@@ -121,7 +124,7 @@ fun CustomerDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -131,7 +134,7 @@ fun CustomerDetailScreen(
                             onClick = { onIntent(CustomerIntent.ExportCustomerData(state.selectedCustomer.id)) },
                             enabled = !state.isExporting,
                         ) {
-                            Icon(Icons.Filled.FileDownload, contentDescription = "Export Customer Data (GDPR)")
+                            Icon(Icons.Filled.FileDownload, contentDescription = s[StringResource.CUSTOMERS_EXPORT_GDPR])
                         }
                         // Merge customer (C4.3)
                         if (!state.selectedCustomer.isWalkIn) {
@@ -139,16 +142,16 @@ fun CustomerDetailScreen(
                                 onIntent(CustomerIntent.LoadCustomers)
                                 showMergeDialog = true
                             }) {
-                                Icon(Icons.Filled.CallMerge, contentDescription = "Merge with another customer")
+                                Icon(Icons.Filled.CallMerge, contentDescription = s[StringResource.CUSTOMERS_MERGE])
                             }
                         }
                         IconButton(onClick = {
                             onNavigateToWallet(state.selectedCustomer.id)
                         }) {
-                            Icon(Icons.Filled.AccountBalanceWallet, contentDescription = "Wallet")
+                            Icon(Icons.Filled.AccountBalanceWallet, contentDescription = s[StringResource.CUSTOMERS_WALLET])
                         }
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Filled.Delete, contentDescription = s[StringResource.COMMON_DELETE], tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 },
@@ -168,7 +171,7 @@ fun CustomerDetailScreen(
                         Tab(
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 },
-                            text = { Text("Profile") },
+                            text = { Text(s[StringResource.CUSTOMERS_PROFILE]) },
                         )
                         Tab(
                             selected = selectedTab == 1,
@@ -178,7 +181,7 @@ fun CustomerDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    Text("History")
+                                    Text(s[StringResource.CUSTOMERS_HISTORY])
                                     if (state.purchaseHistory.isNotEmpty()) {
                                         Text(
                                             "(${state.purchaseHistory.size})",
@@ -232,7 +235,7 @@ fun CustomerDetailScreen(
     if (showDeleteDialog && state.selectedCustomer != null) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Customer") },
+            title = { Text(s[StringResource.CUSTOMERS_DELETE]) },
             text = { Text("Delete ${state.selectedCustomer.name}? This cannot be undone.") },
             confirmButton = {
                 TextButton(
@@ -241,12 +244,12 @@ fun CustomerDetailScreen(
                         onIntent(CustomerIntent.DeleteCustomer(state.selectedCustomer.id))
                     },
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.COMMON_DELETE], color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(s[StringResource.COMMON_CANCEL])
                 }
             },
         )
@@ -264,6 +267,7 @@ private fun ProfileTab(
     isLoading: Boolean,
     onIntent: (CustomerIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -275,7 +279,7 @@ private fun ProfileTab(
         ZyntaTextField(
             value = form.name,
             onValueChange = { onIntent(CustomerIntent.UpdateFormField("name", it)) },
-            label = "Full Name *",
+            label = s[StringResource.CUSTOMERS_FULL_NAME],
             error = form.validationErrors["name"],
             modifier = Modifier.fillMaxWidth(),
         )
@@ -283,7 +287,7 @@ private fun ProfileTab(
         ZyntaTextField(
             value = form.phone,
             onValueChange = { onIntent(CustomerIntent.UpdateFormField("phone", it)) },
-            label = "Phone *",
+            label = s[StringResource.CUSTOMERS_PHONE],
             error = form.validationErrors["phone"],
             modifier = Modifier.fillMaxWidth(),
         )
@@ -291,14 +295,14 @@ private fun ProfileTab(
         ZyntaTextField(
             value = form.email,
             onValueChange = { onIntent(CustomerIntent.UpdateFormField("email", it)) },
-            label = "Email",
+            label = s[StringResource.CUSTOMERS_EMAIL],
             modifier = Modifier.fillMaxWidth(),
         )
 
         ZyntaTextField(
             value = form.address,
             onValueChange = { onIntent(CustomerIntent.UpdateFormField("address", it)) },
-            label = "Address",
+            label = s[StringResource.CUSTOMERS_ADDRESS],
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -310,13 +314,13 @@ private fun ProfileTab(
             ZyntaTextField(
                 value = form.gender,
                 onValueChange = { onIntent(CustomerIntent.UpdateFormField("gender", it)) },
-                label = "Gender",
+                label = s[StringResource.CUSTOMERS_GENDER],
                 modifier = Modifier.weight(1f),
             )
             ZyntaTextField(
                 value = form.birthday,
                 onValueChange = { onIntent(CustomerIntent.UpdateFormField("birthday", it)) },
-                label = "Birthday (YYYY-MM-DD)",
+                label = s[StringResource.CUSTOMERS_BIRTHDAY],
                 modifier = Modifier.weight(1f),
             )
         }
@@ -324,19 +328,19 @@ private fun ProfileTab(
         ZyntaTextField(
             value = form.notes,
             onValueChange = { onIntent(CustomerIntent.UpdateFormField("notes", it)) },
-            label = "Notes",
+            label = s[StringResource.CUSTOMERS_NOTES],
             modifier = Modifier.fillMaxWidth(),
         )
 
         // ── Credit Settings ──────────────────────────────────────────
         Spacer(Modifier.height(8.dp))
-        Text("Credit Settings", style = MaterialTheme.typography.titleSmall)
+        Text(s[StringResource.CUSTOMERS_CREDIT_SETTINGS], style = MaterialTheme.typography.titleSmall)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Credit Enabled", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(s[StringResource.CUSTOMERS_CREDIT_ENABLED], style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(
                 checked = form.creditEnabled,
                 onCheckedChange = { onIntent(CustomerIntent.UpdateCreditEnabled(it)) },
@@ -347,7 +351,7 @@ private fun ProfileTab(
             ZyntaTextField(
                 value = form.creditLimit,
                 onValueChange = { onIntent(CustomerIntent.UpdateFormField("creditLimit", it)) },
-                label = "Credit Limit",
+                label = s[StringResource.CUSTOMERS_CREDIT_LIMIT],
                 error = form.validationErrors["creditLimit"],
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -357,7 +361,7 @@ private fun ProfileTab(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Walk-in Customer", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(s[StringResource.CUSTOMERS_WALK_IN], style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(
                 checked = form.isWalkIn,
                 onCheckedChange = { onIntent(CustomerIntent.UpdateIsWalkIn(it)) },
@@ -368,7 +372,7 @@ private fun ProfileTab(
 
         // ── Save Button ──────────────────────────────────────────────
         ZyntaButton(
-            text = if (isEditMode) "Update Customer" else "Create Customer",
+            text = if (isEditMode) s[StringResource.CUSTOMERS_UPDATE] else s[StringResource.CUSTOMERS_CREATE],
             onClick = { onIntent(CustomerIntent.SaveCustomer) },
             isLoading = isLoading,
             modifier = Modifier.fillMaxWidth(),
@@ -385,6 +389,7 @@ private fun HistoryTab(
     orders: List<Order>,
     isLoading: Boolean,
 ) {
+    val s = LocalStrings.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
@@ -403,7 +408,7 @@ private fun HistoryTab(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        "No purchase history",
+                        s[StringResource.CUSTOMERS_NO_HISTORY],
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -516,6 +521,7 @@ private fun MergeCustomerDialog(
     onMerge: (sourceId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedSource by remember { mutableStateOf<Customer?>(null) }
 
@@ -534,7 +540,7 @@ private fun MergeCustomerDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (selectedSource == null) "Merge Customer" else "Confirm Merge",
+                if (selectedSource == null) s[StringResource.CUSTOMERS_MERGE] else s[StringResource.CUSTOMERS_CONFIRM_MERGE],
                 style = MaterialTheme.typography.titleMedium,
             )
         },
@@ -582,7 +588,7 @@ private fun MergeCustomerDialog(
                             contentAlignment = Alignment.Center,
                         ) { CircularProgressIndicator() }
                         filtered.isEmpty() -> Text(
-                            "No matching customers",
+                            s[StringResource.CUSTOMERS_NO_MATCHING],
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -627,7 +633,7 @@ private fun MergeCustomerDialog(
                 TextButton(
                     onClick = { onMerge(selectedSource!!.id) },
                 ) {
-                    Text("Merge", color = MaterialTheme.colorScheme.error)
+                    Text(s[StringResource.CUSTOMERS_MERGE], color = MaterialTheme.colorScheme.error)
                 }
             }
         },
@@ -638,7 +644,7 @@ private fun MergeCustomerDialog(
                     else onDismiss()
                 },
             ) {
-                Text(if (selectedSource != null) "Back" else "Cancel")
+                Text(if (selectedSource != null) s[StringResource.COMMON_BACK] else s[StringResource.COMMON_CANCEL])
             }
         },
     )

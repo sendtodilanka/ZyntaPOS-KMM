@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.Category
 
 /**
@@ -49,6 +51,7 @@ fun CategoryListScreen(
     onDeleteCategory: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     // Compute tree structure: roots and their children maps
     val roots = remember(categories) {
         categories.filter { it.parentId == null }.sortedBy { it.displayOrder }
@@ -64,7 +67,7 @@ fun CategoryListScreen(
     val expandedIds = remember(roots) { mutableStateSetOf<String>().apply { addAll(roots.map { it.id }) } }
 
     ZyntaPageScaffold(
-        title = "Categories",
+        title = s[StringResource.INVENTORY_CATEGORIES],
         modifier = modifier,
         floatingActionButton = {
             FloatingActionButton(
@@ -72,7 +75,7 @@ fun CategoryListScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
-                Icon(Icons.Default.Add, contentDescription = "New Category")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.INVENTORY_NEW_CATEGORY])
             }
         },
     ) { innerPadding ->
@@ -84,10 +87,10 @@ fun CategoryListScreen(
             when {
                 isLoading -> CategoryLoadingSkeleton()
                 categories.isEmpty() -> ZyntaEmptyState(
-                    title = "No categories yet",
+                    title = s[StringResource.INVENTORY_NO_CATEGORIES],
                     icon = Icons.Default.Category,
-                    subtitle = "Create your first category to organise products",
-                    ctaLabel = "Add Category",
+                    subtitle = s[StringResource.INVENTORY_NO_CATEGORIES_SUBTITLE],
+                    ctaLabel = s[StringResource.INVENTORY_ADD_CATEGORY],
                     onCtaClick = { onNavigateToDetail(null) },
                 )
                 else -> LazyColumn(
@@ -180,6 +183,7 @@ private fun CategoryRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Row(
@@ -202,7 +206,7 @@ private fun CategoryRow(
             ) {
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.ExpandMore else Icons.Default.ChevronRight,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand",
+                    contentDescription = if (isExpanded) s[StringResource.INVENTORY_COLLAPSE] else s[StringResource.INVENTORY_EXPAND],
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
@@ -241,7 +245,7 @@ private fun CategoryRow(
             )
             if (!category.isActive) {
                 Text(
-                    text = "Inactive",
+                    text = s[StringResource.INVENTORY_INACTIVE],
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -280,7 +284,7 @@ private fun CategoryRow(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Category?") },
+            title = { Text(s[StringResource.INVENTORY_DELETE_CATEGORY_TITLE]) },
             text = { Text("\"${category.name}\" will be deactivated. Active products in this category will be unaffected.") },
             confirmButton = {
                 TextButton(
@@ -289,10 +293,10 @@ private fun CategoryRow(
                         onDelete()
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Delete") }
+                ) { Text(s[StringResource.COMMON_DELETE]) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }

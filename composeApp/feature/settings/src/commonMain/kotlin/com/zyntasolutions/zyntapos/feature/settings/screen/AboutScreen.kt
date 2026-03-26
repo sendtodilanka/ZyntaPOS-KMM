@@ -19,7 +19,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import org.koin.compose.koinInject
@@ -61,10 +63,11 @@ fun AboutScreen(
     onBack: () -> Unit,
     appInfo: AppInfoProvider = koinInject(),
 ) {
+    val s = LocalStrings.current
     val appVersion = appInfo.appVersion
     val buildDate = appInfo.buildDate
     ZyntaPageScaffold(
-        title = "About",
+        title = s[StringResource.SETTINGS_ABOUT],
         onNavigateBack = onBack,
     ) { innerPadding ->
         LazyColumn(
@@ -91,7 +94,7 @@ fun AboutScreen(
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        text = "Enterprise Point of Sale",
+                        text = s[StringResource.SETTINGS_ABOUT_TAGLINE],
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.fillMaxWidth().padding(bottom = ZyntaSpacing.lg),
@@ -102,19 +105,19 @@ fun AboutScreen(
 
             // ── Build info ────────────────────────────────────────────────────
             item {
-                SectionHeader("Build Information")
+                SectionHeader(s[StringResource.SETTINGS_ABOUT_BUILD_INFO])
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    InfoRow(label = "Version", value = appInfo.fullVersionString)
+                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_VERSION], value = appInfo.fullVersionString)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-                    InfoRow(label = "Build Date", value = buildDate)
+                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_BUILD_DATE], value = buildDate)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-                    InfoRow(label = "Platform", value = appInfo.platformName)
+                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_PLATFORM], value = appInfo.platformName)
                     HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-                    InfoRow(label = "UI Framework", value = "Compose Multiplatform")
+                    InfoRow(label = s[StringResource.SETTINGS_ABOUT_UI_FRAMEWORK], value = "Compose Multiplatform")
                 }
             }
 

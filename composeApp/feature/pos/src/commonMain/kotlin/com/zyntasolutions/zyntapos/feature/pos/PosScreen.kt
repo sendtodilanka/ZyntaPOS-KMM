@@ -44,6 +44,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
 import com.zyntasolutions.zyntapos.designsystem.util.WindowSize
 import com.zyntasolutions.zyntapos.designsystem.util.currentWindowSize
@@ -64,6 +66,7 @@ fun PosScreen(
     onNavigateToRefund: (orderId: String) -> Unit = {},
     viewModel: PosViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val windowSize = currentWindowSize()
@@ -91,8 +94,8 @@ fun PosScreen(
                 is PosEffect.PrintReceipt       -> { /* handled by print service */ }
                 is PosEffect.OpenCashDrawer     -> { /* handled by HAL */ }
                 is PosEffect.ShowEmailDialog    -> { /* email dialog handled by state.emailDialogOpen */ }
-                is PosEffect.ReceiptEmailSent   -> snackbarHostState.showSnackbar("Receipt emailed successfully")
-                is PosEffect.A4InvoicePrinted   -> snackbarHostState.showSnackbar("A4 invoice sent to printer")
+                is PosEffect.ReceiptEmailSent   -> snackbarHostState.showSnackbar(s[StringResource.POS_RECEIPT_EMAILED])
+                is PosEffect.A4InvoicePrinted   -> snackbarHostState.showSnackbar(s[StringResource.POS_A4_INVOICE_SENT])
                 is PosEffect.NavigateToRefund   -> onNavigateToRefund(effect.orderId)
                 is PosEffect.RequestAppReview   -> reviewTrigger = true
             }
@@ -117,7 +120,7 @@ fun PosScreen(
                                 Badge { Text("${state.cartItems.size}") }
                             },
                         ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = "Cart")
+                            Icon(Icons.Default.ShoppingCart, contentDescription = s[StringResource.POS_CART])
                         }
                     }
                 }
@@ -139,7 +142,7 @@ fun PosScreen(
                                 if (state.storeName.isNotBlank()) {
                                     Icon(
                                         Icons.Default.Store,
-                                        contentDescription = "Active store",
+                                        contentDescription = s[StringResource.POS_ACTIVE_STORE],
                                         modifier = Modifier.size(16.dp),
                                         tint = MaterialTheme.colorScheme.primary,
                                     )
@@ -175,7 +178,7 @@ fun PosScreen(
                                 IconButton(onClick = { viewModel.dispatch(PosIntent.ShowReturnLookupDialog) }) {
                                     Icon(
                                         Icons.Default.AssignmentReturn,
-                                        contentDescription = "Process Return",
+                                        contentDescription = s[StringResource.POS_PROCESS_RETURN],
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
@@ -227,7 +230,7 @@ fun PosScreen(
                                 if (state.storeName.isNotBlank()) {
                                     Icon(
                                         Icons.Default.Store,
-                                        contentDescription = "Active store",
+                                        contentDescription = s[StringResource.POS_ACTIVE_STORE],
                                         modifier = Modifier.size(16.dp),
                                         tint = MaterialTheme.colorScheme.primary,
                                     )
@@ -263,7 +266,7 @@ fun PosScreen(
                                 IconButton(onClick = { viewModel.dispatch(PosIntent.ShowReturnLookupDialog) }) {
                                     Icon(
                                         Icons.Default.AssignmentReturn,
-                                        contentDescription = "Process Return",
+                                        contentDescription = s[StringResource.POS_PROCESS_RETURN],
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
@@ -370,15 +373,16 @@ private fun EmailReceiptDialog(
     onSend: (orderId: String, email: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var emailAddress by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = { if (!isSending) onDismiss() },
-        title = { Text("Email Receipt") },
+        title = { Text(s[StringResource.POS_EMAIL_RECEIPT_TITLE]) },
         text = {
             OutlinedTextField(
                 value = emailAddress,
                 onValueChange = { emailAddress = it },
-                label = { Text("Email address") },
+                label = { Text(s[StringResource.POS_EMAIL_ADDRESS_LABEL]) },
                 singleLine = true,
                 enabled = !isSending,
                 modifier = Modifier.fillMaxWidth(),
@@ -388,10 +392,10 @@ private fun EmailReceiptDialog(
             Button(
                 onClick = { onSend(orderId, emailAddress) },
                 enabled = !isSending && emailAddress.contains("@"),
-            ) { Text(if (isSending) "Sending…" else "Send") }
+            ) { Text(if (isSending) s[StringResource.POS_SENDING] else s[StringResource.POS_SEND]) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isSending) { Text("Cancel") }
+            TextButton(onClick = onDismiss, enabled = !isSending) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }
@@ -404,15 +408,16 @@ private fun CustomerPickerDialog(
     onSelect: (Customer) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Customer") },
+        title = { Text(s[StringResource.POS_SELECT_CUSTOMER]) },
         text = {
             Column {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onSearchChange,
-                    label = { Text("Search by name or phone") },
+                    label = { Text(s[StringResource.POS_SEARCH_CUSTOMER]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -420,7 +425,7 @@ private fun CustomerPickerDialog(
                     if (customers.isEmpty()) {
                         item {
                             Text(
-                                text = "No customers found",
+                                text = s[StringResource.POS_NO_CUSTOMERS_FOUND],
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(vertical = 16.dp),
                             )
@@ -441,7 +446,7 @@ private fun CustomerPickerDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }
@@ -455,19 +460,20 @@ private fun ReturnLookupDialog(
     onLookup: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = { if (!isLoading) onDismiss() },
-        title = { Text("Process Return") },
+        title = { Text(s[StringResource.POS_PROCESS_RETURN]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Enter the order ID or receipt number to look up the original order.",
+                    s[StringResource.POS_RETURN_LOOKUP_DESCRIPTION],
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 OutlinedTextField(
                     value = query,
                     onValueChange = onQueryChange,
-                    label = { Text("Order ID / Receipt No.") },
+                    label = { Text(s[StringResource.POS_ORDER_ID_LABEL]) },
                     singleLine = true,
                     enabled = !isLoading,
                     isError = error != null,
@@ -483,10 +489,10 @@ private fun ReturnLookupDialog(
             Button(
                 onClick = onLookup,
                 enabled = !isLoading && query.isNotBlank(),
-            ) { Text("Look Up") }
+            ) { Text(s[StringResource.POS_LOOK_UP]) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isLoading) { Text("Cancel") }
+            TextButton(onClick = onDismiss, enabled = !isLoading) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.PricingRule
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -33,6 +35,7 @@ fun PricingRuleScreen(
     modifier: Modifier = Modifier,
     viewModel: PricingRuleViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -51,14 +54,14 @@ fun PricingRuleScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Pricing Rules",
+        title = s[StringResource.INVENTORY_PRICING_RULES],
         modifier = modifier,
         snackbarHostState = snackbarHostState,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { viewModel.dispatch(PricingRuleIntent.OpenDialog(null)) },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("New Rule") },
+                text = { Text(s[StringResource.INVENTORY_NEW_RULE]) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
             )
@@ -83,10 +86,10 @@ fun PricingRuleScreen(
                 CircularProgressIndicator()
             }
             displayedRules.isEmpty() -> ZyntaEmptyState(
-                title = "No pricing rules",
+                title = s[StringResource.INVENTORY_NO_PRICING_RULES],
                 icon = Icons.Default.AttachMoney,
-                subtitle = "Create pricing rules to set store-specific or time-bounded prices",
-                ctaLabel = "New Rule",
+                subtitle = s[StringResource.INVENTORY_NO_PRICING_RULES_SUBTITLE],
+                ctaLabel = s[StringResource.INVENTORY_NEW_RULE],
                 onCtaClick = { viewModel.dispatch(PricingRuleIntent.OpenDialog(null)) },
                 modifier = Modifier.padding(innerPadding),
             )
@@ -128,7 +131,7 @@ fun PricingRuleScreen(
     state.deleteTarget?.let { rule ->
         AlertDialog(
             onDismissRequest = { viewModel.dispatch(PricingRuleIntent.DismissDelete) },
-            title = { Text("Delete Pricing Rule?") },
+            title = { Text(s[StringResource.INVENTORY_DELETE_PRICING_RULE_TITLE]) },
             text = {
                 Text("\"${rule.description.ifBlank { "Rule for ${rule.productId.take(8)}" }}\" will be permanently deleted.")
             },
@@ -136,10 +139,10 @@ fun PricingRuleScreen(
                 TextButton(
                     onClick = { viewModel.dispatch(PricingRuleIntent.ExecuteDelete) },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Delete") }
+                ) { Text(s[StringResource.COMMON_DELETE]) }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dispatch(PricingRuleIntent.DismissDelete) }) { Text("Cancel") }
+                TextButton(onClick = { viewModel.dispatch(PricingRuleIntent.DismissDelete) }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -156,6 +159,7 @@ private fun PricingRuleCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onEdit() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -205,7 +209,7 @@ private fun PricingRuleCard(
                         onClick = {},
                         label = {
                             Text(
-                                if (rule.storeId != null) "Store" else "Global",
+                                if (rule.storeId != null) s[StringResource.INVENTORY_STORE] else s[StringResource.INVENTORY_GLOBAL],
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
@@ -230,7 +234,7 @@ private fun PricingRuleCard(
                     if (!rule.isActive) {
                         AssistChip(
                             onClick = {},
-                            label = { Text("Inactive", style = MaterialTheme.typography.labelSmall) },
+                            label = { Text(s[StringResource.INVENTORY_INACTIVE], style = MaterialTheme.typography.labelSmall) },
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer,
                             ),
@@ -240,11 +244,11 @@ private fun PricingRuleCard(
             }
 
             IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(18.dp),
+                Icon(Icons.Default.Edit, contentDescription = s[StringResource.COMMON_EDIT], modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(18.dp),
+                Icon(Icons.Default.Delete, contentDescription = s[StringResource.COMMON_DELETE], modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.error)
             }
         }
@@ -263,11 +267,12 @@ private fun PricingRuleEditDialog(
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val isEditing = state.editingRule != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (isEditing) "Edit Pricing Rule" else "New Pricing Rule") },
+        title = { Text(if (isEditing) s[StringResource.INVENTORY_EDIT_PRICING_RULE] else s[StringResource.INVENTORY_NEW_PRICING_RULE]) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
@@ -277,7 +282,7 @@ private fun PricingRuleEditDialog(
                 OutlinedTextField(
                     value = state.formDescription,
                     onValueChange = { onUpdateField(PricingField.DESCRIPTION, it) },
-                    label = { Text("Description") },
+                    label = { Text(s[StringResource.INVENTORY_DESCRIPTION]) },
                     placeholder = { Text("e.g. Summer Sale, Colombo Region") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -287,7 +292,7 @@ private fun PricingRuleEditDialog(
                 OutlinedTextField(
                     value = state.formProductId,
                     onValueChange = { onUpdateField(PricingField.PRODUCT_ID, it) },
-                    label = { Text("Product ID *") },
+                    label = { Text(s[StringResource.INVENTORY_PRODUCT_ID_REQUIRED]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -296,8 +301,8 @@ private fun PricingRuleEditDialog(
                 OutlinedTextField(
                     value = state.formStoreId,
                     onValueChange = { onUpdateField(PricingField.STORE_ID, it) },
-                    label = { Text("Store ID") },
-                    placeholder = { Text("Leave blank for global rule") },
+                    label = { Text(s[StringResource.INVENTORY_STORE_ID]) },
+                    placeholder = { Text(s[StringResource.INVENTORY_GLOBAL_RULE_HINT]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -306,7 +311,7 @@ private fun PricingRuleEditDialog(
                 OutlinedTextField(
                     value = state.formPrice,
                     onValueChange = { onUpdateField(PricingField.PRICE, it) },
-                    label = { Text("Price *") },
+                    label = { Text(s[StringResource.INVENTORY_PRICE_REQUIRED]) },
                     leadingIcon = { Icon(Icons.Default.AttachMoney, contentDescription = null) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
@@ -317,7 +322,7 @@ private fun PricingRuleEditDialog(
                 OutlinedTextField(
                     value = state.formCostPrice,
                     onValueChange = { onUpdateField(PricingField.COST_PRICE, it) },
-                    label = { Text("Cost Price") },
+                    label = { Text(s[StringResource.INVENTORY_COST_PRICE]) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -327,8 +332,8 @@ private fun PricingRuleEditDialog(
                 OutlinedTextField(
                     value = state.formPriority,
                     onValueChange = { onUpdateField(PricingField.PRIORITY, it) },
-                    label = { Text("Priority") },
-                    placeholder = { Text("Higher = precedence") },
+                    label = { Text(s[StringResource.INVENTORY_PRIORITY]) },
+                    placeholder = { Text(s[StringResource.INVENTORY_PRIORITY_HINT]) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -340,7 +345,7 @@ private fun PricingRuleEditDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Active", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(s[StringResource.INVENTORY_ACTIVE], style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Switch(checked = state.formIsActive, onCheckedChange = { onSetActive(it) })
                 }
             }
@@ -353,10 +358,10 @@ private fun PricingRuleEditDialog(
                 if (state.isSaving) {
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Save")
+                    Text(s[StringResource.COMMON_SAVE])
                 }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) } },
     )
 }

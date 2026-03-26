@@ -47,6 +47,9 @@ import com.zyntasolutions.zyntapos.core.health.DatabaseStatus
 import com.zyntasolutions.zyntapos.core.health.HealthSnapshot
 import com.zyntasolutions.zyntapos.core.health.OverallStatus
 import com.zyntasolutions.zyntapos.core.health.SystemHealthTracker
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import org.koin.compose.koinInject
@@ -64,6 +67,7 @@ fun SystemHealthScreen(
     onBack: () -> Unit,
     healthTracker: SystemHealthTracker = koinInject(),
 ) {
+    val s = LocalStrings.current
     val snapshot by healthTracker.snapshot.collectAsState()
     val scope = rememberCoroutineScope()
 
@@ -73,11 +77,11 @@ fun SystemHealthScreen(
     }
 
     ZyntaPageScaffold(
-        title = "System Health",
+        title = s[StringResource.SETTINGS_SYSTEM_HEALTH],
         onNavigateBack = onBack,
         actions = {
             IconButton(onClick = { scope.launch { healthTracker.refresh() } }) {
-                Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                Icon(Icons.Filled.Refresh, contentDescription = s[StringResource.COMMON_REFRESH])
             }
         },
     ) { innerPadding ->
@@ -113,24 +117,25 @@ fun SystemHealthScreen(
 
 @Composable
 private fun OverallStatusBanner(status: OverallStatus) {
+    val s = LocalStrings.current
     val style = when (status) {
         OverallStatus.HEALTHY -> StatusStyle(
-            Icons.Filled.CheckCircle, "All Systems Healthy",
+            Icons.Filled.CheckCircle, s[StringResource.SETTINGS_HEALTH_ALL_HEALTHY],
             MaterialTheme.colorScheme.primaryContainer,
             MaterialTheme.colorScheme.onPrimaryContainer,
         )
         OverallStatus.WARNING -> StatusStyle(
-            Icons.Filled.Warning, "Performance Warning",
+            Icons.Filled.Warning, s[StringResource.SETTINGS_HEALTH_PERFORMANCE_WARNING],
             MaterialTheme.colorScheme.tertiaryContainer,
             MaterialTheme.colorScheme.onTertiaryContainer,
         )
         OverallStatus.CRITICAL -> StatusStyle(
-            Icons.Filled.Error, "Critical Issue Detected",
+            Icons.Filled.Error, s[StringResource.SETTINGS_HEALTH_CRITICAL_ISSUE],
             MaterialTheme.colorScheme.errorContainer,
             MaterialTheme.colorScheme.onErrorContainer,
         )
         OverallStatus.UNKNOWN -> StatusStyle(
-            Icons.Filled.Warning, "Collecting Metrics...",
+            Icons.Filled.Warning, s[StringResource.SETTINGS_HEALTH_COLLECTING_METRICS],
             MaterialTheme.colorScheme.surfaceContainerHigh,
             MaterialTheme.colorScheme.onSurface,
         )
@@ -160,7 +165,7 @@ private fun OverallStatusBanner(status: OverallStatus) {
                     color = contentColor,
                 )
                 Text(
-                    text = statusSubtitle(status),
+                    text = statusSubtitle(status, s),
                     style = MaterialTheme.typography.bodySmall,
                     color = contentColor.copy(alpha = 0.8f),
                 )
@@ -169,31 +174,32 @@ private fun OverallStatusBanner(status: OverallStatus) {
     }
 }
 
-private fun statusSubtitle(status: OverallStatus): String = when (status) {
-    OverallStatus.HEALTHY -> "Memory, disk, and database are operating normally."
-    OverallStatus.WARNING -> "Some metrics are approaching their limits."
-    OverallStatus.CRITICAL -> "Immediate attention required. Check details below."
-    OverallStatus.UNKNOWN -> "Waiting for the first health check to complete..."
+private fun statusSubtitle(status: OverallStatus, s: StringResolver): String = when (status) {
+    OverallStatus.HEALTHY -> s[StringResource.SETTINGS_HEALTH_HEALTHY_DESC]
+    OverallStatus.WARNING -> s[StringResource.SETTINGS_HEALTH_WARNING_DESC]
+    OverallStatus.CRITICAL -> s[StringResource.SETTINGS_HEALTH_CRITICAL_DESC]
+    OverallStatus.UNKNOWN -> s[StringResource.SETTINGS_HEALTH_UNKNOWN_DESC]
 }
 
 // ─── Memory Health Card ──────────────────────────────────────────────────────
 
 @Composable
 private fun MemoryHealthCard(snapshot: HealthSnapshot) {
+    val s = LocalStrings.current
     HealthSectionCard(
-        title = "Memory",
+        title = s[StringResource.SETTINGS_HEALTH_MEMORY],
         icon = Icons.Filled.Memory,
     ) {
         UsageBar(
-            label = "Heap Usage",
+            label = s[StringResource.SETTINGS_HEALTH_HEAP_USAGE],
             usedBytes = snapshot.heapUsedBytes,
             totalBytes = snapshot.heapMaxBytes,
             percent = snapshot.heapUsagePercent,
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("Used", formatBytes(snapshot.heapUsedBytes))
+        MetricRow(s[StringResource.SETTINGS_HEALTH_USED], formatBytes(snapshot.heapUsedBytes))
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("Maximum", formatBytes(snapshot.heapMaxBytes))
+        MetricRow(s[StringResource.SETTINGS_HEALTH_MAXIMUM], formatBytes(snapshot.heapMaxBytes))
     }
 }
 
@@ -201,20 +207,21 @@ private fun MemoryHealthCard(snapshot: HealthSnapshot) {
 
 @Composable
 private fun DiskHealthCard(snapshot: HealthSnapshot) {
+    val s = LocalStrings.current
     HealthSectionCard(
-        title = "Disk Storage",
+        title = s[StringResource.SETTINGS_HEALTH_DISK_STORAGE],
         icon = Icons.Filled.SdStorage,
     ) {
         UsageBar(
-            label = "Disk Usage",
+            label = s[StringResource.SETTINGS_HEALTH_DISK_USAGE],
             usedBytes = snapshot.diskTotalBytes - snapshot.diskFreeBytes,
             totalBytes = snapshot.diskTotalBytes,
             percent = snapshot.diskUsagePercent,
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("Free Space", formatBytes(snapshot.diskFreeBytes))
+        MetricRow(s[StringResource.SETTINGS_HEALTH_FREE_SPACE], formatBytes(snapshot.diskFreeBytes))
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("Total Space", formatBytes(snapshot.diskTotalBytes))
+        MetricRow(s[StringResource.SETTINGS_HEALTH_TOTAL_SPACE], formatBytes(snapshot.diskTotalBytes))
     }
 }
 
@@ -222,20 +229,21 @@ private fun DiskHealthCard(snapshot: HealthSnapshot) {
 
 @Composable
 private fun DatabaseHealthCard(snapshot: HealthSnapshot) {
+    val s = LocalStrings.current
     HealthSectionCard(
-        title = "Database",
+        title = s[StringResource.SETTINGS_HEALTH_DATABASE],
         icon = Icons.Filled.Storage,
     ) {
         ListItem(
             headlineContent = {
-                Text("Status", style = MaterialTheme.typography.bodyMedium)
+                Text(s[StringResource.SETTINGS_HEALTH_STATUS], style = MaterialTheme.typography.bodyMedium)
             },
             trailingContent = {
                 val (statusText, statusColor) = when (snapshot.databaseStatus) {
-                    DatabaseStatus.HEALTHY -> "Healthy" to MaterialTheme.colorScheme.primary
-                    DatabaseStatus.DEGRADED -> "Degraded" to MaterialTheme.colorScheme.tertiary
-                    DatabaseStatus.ERROR -> "Error" to MaterialTheme.colorScheme.error
-                    DatabaseStatus.UNKNOWN -> "Unknown" to MaterialTheme.colorScheme.onSurfaceVariant
+                    DatabaseStatus.HEALTHY -> s[StringResource.SETTINGS_HEALTH_DB_HEALTHY] to MaterialTheme.colorScheme.primary
+                    DatabaseStatus.DEGRADED -> s[StringResource.SETTINGS_HEALTH_DB_DEGRADED] to MaterialTheme.colorScheme.tertiary
+                    DatabaseStatus.ERROR -> s[StringResource.SETTINGS_HEALTH_DB_ERROR] to MaterialTheme.colorScheme.error
+                    DatabaseStatus.UNKNOWN -> s[StringResource.SETTINGS_HEALTH_DB_UNKNOWN] to MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 Text(
                     text = statusText,
@@ -245,7 +253,7 @@ private fun DatabaseHealthCard(snapshot: HealthSnapshot) {
             },
         )
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("Database Size", formatBytes(snapshot.databaseSizeBytes))
+        MetricRow(s[StringResource.SETTINGS_HEALTH_DATABASE_SIZE], formatBytes(snapshot.databaseSizeBytes))
     }
 }
 
@@ -253,17 +261,18 @@ private fun DatabaseHealthCard(snapshot: HealthSnapshot) {
 
 @Composable
 private fun RuntimeInfoCard(snapshot: HealthSnapshot) {
+    val s = LocalStrings.current
     HealthSectionCard(
-        title = "Runtime",
+        title = s[StringResource.SETTINGS_HEALTH_RUNTIME],
         icon = Icons.Filled.Timer,
     ) {
-        MetricRow("Platform", snapshot.platformDescription.ifBlank { "—" })
+        MetricRow(s[StringResource.SETTINGS_HEALTH_PLATFORM], snapshot.platformDescription.ifBlank { "—" })
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("Uptime", formatDuration(snapshot.uptimeMillis))
+        MetricRow(s[StringResource.SETTINGS_HEALTH_UPTIME], formatDuration(snapshot.uptimeMillis))
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("CPU Cores", "${snapshot.availableProcessors}")
+        MetricRow(s[StringResource.SETTINGS_HEALTH_CPU_CORES], "${snapshot.availableProcessors}")
         HorizontalDivider(modifier = Modifier.padding(horizontal = ZyntaSpacing.md))
-        MetricRow("Network", if (snapshot.isNetworkAvailable) "Connected" else "Offline")
+        MetricRow(s[StringResource.SETTINGS_HEALTH_NETWORK], if (snapshot.isNetworkAvailable) s[StringResource.SETTINGS_HEALTH_CONNECTED] else s[StringResource.SETTINGS_HEALTH_OFFLINE])
     }
 }
 

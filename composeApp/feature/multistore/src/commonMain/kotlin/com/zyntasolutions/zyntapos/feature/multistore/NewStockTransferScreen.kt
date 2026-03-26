@@ -30,6 +30,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.WarehouseOption
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaWarehouseDropdown
 import androidx.compose.ui.Modifier
@@ -55,6 +57,7 @@ fun NewStockTransferScreen(
     onCancel: () -> Unit,
     viewModel: WarehouseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val form = state.transferForm
 
@@ -74,14 +77,14 @@ fun NewStockTransferScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New Stock Transfer") },
+                title = { Text(s[StringResource.MULTISTORE_NEW_STOCK_TRANSFER]) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_CANCEL])
                     }
                 },
                 actions = {
-                    TextButton(onClick = onCancel) { Text("Cancel") }
+                    TextButton(onClick = onCancel) { Text(s[StringResource.COMMON_CANCEL]) }
                 },
             )
         },
@@ -96,7 +99,7 @@ fun NewStockTransferScreen(
             // ── Source Warehouse Dropdown ─────────────────────────────────
             val warehouseOptions = state.warehouses.map { WarehouseOption(it.id, it.name, it.address) }
             ZyntaWarehouseDropdown(
-                label = "Source Warehouse *",
+                label = s[StringResource.MULTISTORE_SOURCE_WAREHOUSE],
                 warehouses = warehouseOptions,
                 selectedId = form.sourceWarehouseId,
                 onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("sourceWarehouseId", it)) },
@@ -107,7 +110,7 @@ fun NewStockTransferScreen(
 
             // ── Destination Warehouse Dropdown ───────────────────────────
             ZyntaWarehouseDropdown(
-                label = "Destination Warehouse *",
+                label = s[StringResource.MULTISTORE_DEST_WAREHOUSE],
                 warehouses = warehouseOptions,
                 selectedId = form.destWarehouseId,
                 onSelect = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("destWarehouseId", it)) },
@@ -130,7 +133,7 @@ fun NewStockTransferScreen(
             OutlinedTextField(
                 value = form.quantity,
                 onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("quantity", it)) },
-                label = { Text("Quantity *") },
+                label = { Text(s[StringResource.MULTISTORE_QUANTITY]) },
                 isError = form.validationErrors.containsKey("quantity"),
                 supportingText = form.validationErrors["quantity"]?.let { { Text(it) } },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -141,7 +144,7 @@ fun NewStockTransferScreen(
             OutlinedTextField(
                 value = form.notes,
                 onValueChange = { viewModel.dispatch(WarehouseIntent.UpdateTransferField("notes", it)) },
-                label = { Text("Notes") },
+                label = { Text(s[StringResource.MULTISTORE_NOTES]) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4,
@@ -150,7 +153,7 @@ fun NewStockTransferScreen(
             Spacer(Modifier.height(8.dp))
 
             ZyntaButton(
-                text = "Create Transfer",
+                text = s[StringResource.MULTISTORE_CREATE_TRANSFER],
                 onClick = { viewModel.dispatch(WarehouseIntent.SubmitTransfer) },
                 modifier = Modifier.fillMaxWidth(),
                 isLoading = state.isLoading,
@@ -188,8 +191,8 @@ private fun ProductSearchDropdown(
                 onQueryChange(newValue)
                 expanded = true
             },
-            label = { Text("Product *") },
-            placeholder = { Text("Search by name or SKU...") },
+            label = { val s = LocalStrings.current; Text(s[StringResource.MULTISTORE_PRODUCT]) },
+            placeholder = { val s = LocalStrings.current; Text(s[StringResource.MULTISTORE_SEARCH_PRODUCT]) },
             isError = isError,
             supportingText = errorText?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },

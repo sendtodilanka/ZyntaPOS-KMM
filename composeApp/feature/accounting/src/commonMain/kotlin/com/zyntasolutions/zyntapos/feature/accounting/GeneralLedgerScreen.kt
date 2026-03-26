@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.GeneralLedgerEntry
@@ -38,6 +40,7 @@ fun GeneralLedgerScreen(
     viewModel: GeneralLedgerViewModel = koinViewModel(),
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     var accountDropdownExpanded by remember { mutableStateOf(false) }
@@ -68,10 +71,10 @@ fun GeneralLedgerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("General Ledger") },
+                title = { Text(s[StringResource.ACCOUNTING_GENERAL_LEDGER]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -79,7 +82,7 @@ fun GeneralLedgerScreen(
                         onClick = { viewModel.dispatch(GeneralLedgerIntent.Refresh) },
                         enabled = state.selectedAccountId != null && !state.isLoading,
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = s[StringResource.COMMON_REFRESH])
                     }
                 },
             )
@@ -101,10 +104,10 @@ fun GeneralLedgerScreen(
             ) {
                 OutlinedTextField(
                     value = selectedAccount?.let { "${it.accountCode} — ${it.accountName}" }
-                        ?: if (state.isLoading) "Loading accounts..." else "Select an account",
+                        ?: if (state.isLoading) s[StringResource.COMMON_LOADING] else s[StringResource.ACCOUNTING_SELECT_ACCOUNT],
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Account") },
+                    label = { Text(s[StringResource.ACCOUNTING_ACCOUNT]) },
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded)
                     },
@@ -118,7 +121,7 @@ fun GeneralLedgerScreen(
                 ) {
                     if (state.accounts.isEmpty()) {
                         DropdownMenuItem(
-                            text = { Text("No accounts available") },
+                            text = { Text(s[StringResource.ACCOUNTING_NO_ACCOUNTS]) },
                             onClick = { accountDropdownExpanded = false },
                         )
                     } else {
@@ -157,7 +160,7 @@ fun GeneralLedgerScreen(
                 OutlinedTextField(
                     value = state.fromDate,
                     onValueChange = { viewModel.dispatch(GeneralLedgerIntent.SetDateRange(it, state.toDate)) },
-                    label = { Text("From") },
+                    label = { Text(s[StringResource.ACCOUNTING_FROM]) },
                     placeholder = { Text("YYYY-MM-DD") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -165,7 +168,7 @@ fun GeneralLedgerScreen(
                 OutlinedTextField(
                     value = state.toDate,
                     onValueChange = { viewModel.dispatch(GeneralLedgerIntent.SetDateRange(state.fromDate, it)) },
-                    label = { Text("To") },
+                    label = { Text(s[StringResource.ACCOUNTING_TO]) },
                     placeholder = { Text("YYYY-MM-DD") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -187,7 +190,7 @@ fun GeneralLedgerScreen(
                             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                         ) {
                             Text(
-                                "Select an account to view its ledger",
+                                s[StringResource.ACCOUNTING_SELECT_ACCOUNT_PROMPT],
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -200,7 +203,7 @@ fun GeneralLedgerScreen(
                             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                         ) {
                             Text(
-                                "No ledger entries for this account in the selected period.",
+                                s[StringResource.ACCOUNTING_NO_LEDGER_ENTRIES],
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -215,31 +218,31 @@ fun GeneralLedgerScreen(
                                     .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
                             ) {
                                 Text(
-                                    "Date",
+                                    s[StringResource.COMMON_DATE],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md),
                                 )
                                 Text(
-                                    "Description",
+                                    s[StringResource.ACCOUNTING_DESCRIPTION],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.weight(1f),
                                 )
                                 Text(
-                                    "Debit",
+                                    s[StringResource.ACCOUNTING_DEBIT],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm),
                                 )
                                 Text(
-                                    "Credit",
+                                    s[StringResource.ACCOUNTING_CREDIT],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm),
                                 )
                                 Text(
-                                    "Balance",
+                                    s[StringResource.ACCOUNTING_BALANCE],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md),

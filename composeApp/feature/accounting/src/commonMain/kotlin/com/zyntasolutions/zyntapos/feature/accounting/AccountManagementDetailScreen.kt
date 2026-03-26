@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.AccountType
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.compose.viewmodel.koinViewModel
@@ -32,6 +34,7 @@ fun AccountManagementDetailScreen(
     viewModel: AccountDetailViewModel = koinViewModel(),
     onNavigateBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -51,7 +54,7 @@ fun AccountManagementDetailScreen(
                 is AccountDetailEffect.ShowError ->
                     snackbarHostState.showSnackbar(effect.message, duration = SnackbarDuration.Short)
                 is AccountDetailEffect.SavedSuccessfully -> {
-                    snackbarHostState.showSnackbar("Account saved", duration = SnackbarDuration.Short)
+                    snackbarHostState.showSnackbar(s[StringResource.ACCOUNTING_ACCOUNT_SAVED], duration = SnackbarDuration.Short)
                     onNavigateBack()
                 }
                 is AccountDetailEffect.NavigateBack -> onNavigateBack()
@@ -63,17 +66,17 @@ fun AccountManagementDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(if (accountId != null) "Edit Account" else "New Account")
+                    Text(if (accountId != null) s[StringResource.ACCOUNTING_EDIT_ACCOUNT] else s[StringResource.ACCOUNTING_NEW_ACCOUNT])
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
                     if (!state.isSaving) {
                         TextButton(onClick = { viewModel.dispatch(AccountDetailIntent.Save(storeId)) }) {
-                            Text("Save")
+                            Text(s[StringResource.COMMON_SAVE])
                         }
                     }
                 },
@@ -95,7 +98,7 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.accountCode,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateCode(it)) },
-                        label = { Text("Account Code") },
+                        label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_CODE]) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = state.error != null,
@@ -105,14 +108,14 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.accountName,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateName(it)) },
-                        label = { Text("Account Name") },
+                        label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_NAME]) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         isError = state.error != null,
                     )
 
                     // Account type
-                    Text("Account Type", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.ACCOUNTING_ACCOUNT_TYPE], style = MaterialTheme.typography.labelMedium)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -130,7 +133,7 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.subCategory,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateSubCategory(it)) },
-                        label = { Text("Sub-category (optional)") },
+                        label = { Text(s[StringResource.ACCOUNTING_SUB_CATEGORY]) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                     )
@@ -139,7 +142,7 @@ fun AccountManagementDetailScreen(
                     OutlinedTextField(
                         value = state.description,
                         onValueChange = { viewModel.dispatch(AccountDetailIntent.UpdateDescription(it)) },
-                        label = { Text("Description (optional)") },
+                        label = { Text(s[StringResource.ACCOUNTING_DESCRIPTION_OPTIONAL]) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                     )

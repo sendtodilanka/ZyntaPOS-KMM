@@ -9,8 +9,11 @@ import androidx.compose.ui.unit.Density
 import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.debug.DebugViewModel
+import com.zyntasolutions.zyntapos.core.i18n.LocalizationManager
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.components.SyncDisplayStatus
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaLoadingOverlay
@@ -225,6 +228,10 @@ fun App() {
     }
     val debugFontScale = debugFontScaleRaw?.toFloatOrNull()?.coerceIn(0.75f, 1.50f) ?: 1.0f
 
+    // ── Localization ──────────────────────────────────────────────────────────
+    val localizationManager: LocalizationManager = koinInject()
+    val stringResolver = remember(localizationManager) { StringResolver(localizationManager) }
+
     ZyntaTheme(themeMode = effectiveThemeMode) {
         val baseDensity = LocalDensity.current
         CompositionLocalProvider(
@@ -234,6 +241,7 @@ fun App() {
             ),
             LocalSyncDisplayStatus provides syncDisplayStatus,
             LocalSyncPendingCount provides syncPendingCount,
+            LocalStrings provides stringResolver,
         ) {
         Surface(
             modifier = Modifier.fillMaxSize(),

@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.EmployeeStoreAssignment
@@ -61,6 +63,7 @@ fun EmployeeStoreAssignmentScreen(
     onNavigateUp: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.error) {
@@ -82,14 +85,14 @@ fun EmployeeStoreAssignmentScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (state.employeeName.isNotBlank()) "Stores: ${state.employeeName}" else "Store Assignments",
+                        if (state.employeeName.isNotBlank()) "${s[StringResource.STAFF_STORES]}: ${state.employeeName}" else s[StringResource.STAFF_STORE_ASSIGNMENTS],
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
@@ -97,7 +100,7 @@ fun EmployeeStoreAssignmentScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { onIntent(EmployeeRoamingIntent.ShowAddDialog) }) {
-                Icon(Icons.Default.Add, contentDescription = "Add store assignment")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.STAFF_ADD_STORE_ASSIGNMENT])
             }
         },
     ) { innerPadding ->
@@ -108,8 +111,8 @@ fun EmployeeStoreAssignmentScreen(
             }
         } else if (state.assignments.isEmpty()) {
             ZyntaEmptyState(
-                title = "No additional stores assigned",
-                subtitle = "Tap + to add one.",
+                title = s[StringResource.STAFF_NO_STORES_ASSIGNED],
+                subtitle = s[StringResource.STAFF_TAP_TO_ADD],
                 icon = Icons.Default.Store,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             )
@@ -151,6 +154,7 @@ private fun AssignmentCard(
     assignment: EmployeeStoreAssignment,
     onRevoke: () -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(ZyntaSpacing.md),
@@ -173,7 +177,7 @@ private fun AssignmentCard(
             IconButton(onClick = onRevoke) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "Revoke",
+                    contentDescription = s[StringResource.STAFF_REVOKE],
                     tint = MaterialTheme.colorScheme.error,
                 )
             }
@@ -190,15 +194,16 @@ private fun AddAssignmentDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val s = LocalStrings.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Store Assignment") },
+        title = { Text(s[StringResource.STAFF_ADD_STORE_ASSIGNMENT]) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 OutlinedTextField(
                     value = form.storeId,
                     onValueChange = { onUpdateField("storeId", it) },
-                    label = { Text("Store ID") },
+                    label = { Text(s[StringResource.STAFF_STORE_ID]) },
                     isError = form.validationErrors.containsKey("storeId"),
                     supportingText = form.validationErrors["storeId"]?.let {
                         { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -209,7 +214,7 @@ private fun AddAssignmentDialog(
                 OutlinedTextField(
                     value = form.startDate,
                     onValueChange = { onUpdateField("startDate", it) },
-                    label = { Text("Start Date (YYYY-MM-DD)") },
+                    label = { Text(s[StringResource.STAFF_START_DATE]) },
                     isError = form.validationErrors.containsKey("startDate"),
                     supportingText = form.validationErrors["startDate"]?.let {
                         { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -220,8 +225,8 @@ private fun AddAssignmentDialog(
                 OutlinedTextField(
                     value = form.endDate,
                     onValueChange = { onUpdateField("endDate", it) },
-                    label = { Text("End Date (optional)") },
-                    placeholder = { Text("Leave blank for permanent") },
+                    label = { Text(s[StringResource.STAFF_END_DATE_OPTIONAL]) },
+                    placeholder = { Text(s[StringResource.STAFF_LEAVE_BLANK_PERMANENT]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -231,7 +236,7 @@ private fun AddAssignmentDialog(
                 ) {
                     Checkbox(checked = form.isTemporary, onCheckedChange = { onToggleTemporary() })
                     Spacer(Modifier.width(4.dp))
-                    Text("Temporary assignment", style = MaterialTheme.typography.bodyMedium)
+                    Text(s[StringResource.STAFF_TEMPORARY_ASSIGNMENT], style = MaterialTheme.typography.bodyMedium)
                 }
             }
         },
@@ -240,12 +245,12 @@ private fun AddAssignmentDialog(
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Add")
+                    Text(s[StringResource.STAFF_ADD])
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
         },
     )
 }

@@ -40,6 +40,8 @@ import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsState
 import com.zyntasolutions.zyntapos.feature.settings.components.PrinterStatusBadge
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
@@ -54,9 +56,10 @@ fun LabelPrinterSettingsScreen(
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
 ) {
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabTitles = listOf("Connection", "Options", "Status")
+    val tabTitles = listOf(s[StringResource.SETTINGS_PRINTER_TAB_CONNECTION], s[StringResource.SETTINGS_PRINTER_TAB_OPTIONS], s[StringResource.SETTINGS_PRINTER_TAB_STATUS])
 
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadLabelPrinter) }
 
@@ -73,7 +76,7 @@ fun LabelPrinterSettingsScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Label Printer",
+        title = s[StringResource.SETTINGS_LABEL_PRINTER],
         onNavigateBack = onBack,
         snackbarHostState = snackbarHostState,
     ) { innerPadding ->
@@ -107,6 +110,7 @@ private fun LabelPrinterConnectionTab(
     state: SettingsState.LabelPrinterState,
     onIntent: (SettingsIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -124,7 +128,7 @@ private fun LabelPrinterConnectionTab(
                 value = state.printerType.displayName,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Printer Type") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_TYPE]) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
             )
@@ -150,13 +154,13 @@ private fun LabelPrinterConnectionTab(
             OutlinedTextField(
                 value = state.tcpHost,
                 onValueChange = { onIntent(SettingsIntent.UpdateLabelPrinterTcpHost(it)) },
-                label = { Text("IP Address / Hostname") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_IP_ADDRESS]) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = state.tcpPort,
                 onValueChange = { onIntent(SettingsIntent.UpdateLabelPrinterTcpPort(it)) },
-                label = { Text("TCP Port") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_TCP_PORT]) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -167,13 +171,13 @@ private fun LabelPrinterConnectionTab(
             OutlinedTextField(
                 value = state.serialPort,
                 onValueChange = { onIntent(SettingsIntent.UpdateLabelPrinterSerialPort(it)) },
-                label = { Text("Serial Port (e.g. /dev/ttyUSB0)") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_SERIAL_PORT]) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = state.baudRate,
                 onValueChange = { onIntent(SettingsIntent.UpdateLabelPrinterBaudRate(it)) },
-                label = { Text("Baud Rate") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_BAUD_RATE]) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -184,7 +188,7 @@ private fun LabelPrinterConnectionTab(
             OutlinedTextField(
                 value = state.btAddress,
                 onValueChange = { onIntent(SettingsIntent.UpdateLabelPrinterBtAddress(it)) },
-                label = { Text("Bluetooth MAC Address") },
+                label = { Text(s[StringResource.SETTINGS_PRINTER_BT_ADDRESS]) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -202,7 +206,7 @@ private fun LabelPrinterConnectionTab(
             enabled = !state.isSaving,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.isSaving) "Saving…" else "Save")
+            Text(if (state.isSaving) s[StringResource.COMMON_SAVING] else s[StringResource.COMMON_SAVE])
         }
     }
 }
@@ -212,6 +216,7 @@ private fun LabelPrinterOptionsTab(
     state: SettingsState.LabelPrinterState,
     onIntent: (SettingsIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -219,7 +224,7 @@ private fun LabelPrinterOptionsTab(
             .padding(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        Text("Print Darkness (${state.darknessLevel})", style = MaterialTheme.typography.bodyMedium)
+        Text("${s[StringResource.SETTINGS_LABEL_PRINT_DARKNESS]} (${state.darknessLevel})", style = MaterialTheme.typography.bodyMedium)
         Slider(
             value = state.darknessLevel.toFloat(),
             onValueChange = { onIntent(SettingsIntent.UpdateLabelPrinterDarkness(it.toInt())) },
@@ -227,7 +232,7 @@ private fun LabelPrinterOptionsTab(
             steps = 14,
         )
 
-        Text("Print Speed (${state.speedLevel})", style = MaterialTheme.typography.bodyMedium)
+        Text("${s[StringResource.SETTINGS_LABEL_PRINT_SPEED]} (${state.speedLevel})", style = MaterialTheme.typography.bodyMedium)
         Slider(
             value = state.speedLevel.toFloat(),
             onValueChange = { onIntent(SettingsIntent.UpdateLabelPrinterSpeed(it.toInt())) },
@@ -240,24 +245,25 @@ private fun LabelPrinterOptionsTab(
             enabled = !state.isSaving,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.isSaving) "Saving…" else "Save Options")
+            Text(if (state.isSaving) s[StringResource.COMMON_SAVING] else s[StringResource.SETTINGS_LABEL_SAVE_OPTIONS])
         }
     }
 }
 
 @Composable
 private fun LabelPrinterStatusTab(state: SettingsState.LabelPrinterState) {
+    val s = LocalStrings.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(ZyntaSpacing.md),
         verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
     ) {
-        Text("Connection Status", style = MaterialTheme.typography.titleSmall)
+        Text(s[StringResource.SETTINGS_PRINTER_CONNECTION_STATUS], style = MaterialTheme.typography.titleSmall)
         PrinterStatusBadge(isConnected = state.isConnected)
         if (!state.isConnected && state.printerType != LabelPrinterTypeOption.NONE) {
             Text(
-                text = "Configure connection settings and save to connect.",
+                text = s[StringResource.SETTINGS_PRINTER_CONFIGURE_HINT],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.domain.model.Account
 import com.zyntasolutions.zyntapos.domain.model.JournalEntryLine
@@ -44,6 +46,7 @@ fun JournalEntryDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToEntry: (entryId: String) -> Unit,
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -80,14 +83,14 @@ fun JournalEntryDetailScreen(
     if (showReverseDialog) {
         AlertDialog(
             onDismissRequest = { showReverseDialog = false },
-            title = { Text("Reverse Entry") },
+            title = { Text(s[StringResource.ACCOUNTING_REVERSE_ENTRY]) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     Text("Create a reversal entry for Journal Entry #${state.entry?.entryNumber}?")
                     OutlinedTextField(
                         value = reversalDate,
                         onValueChange = { reversalDate = it },
-                        label = { Text("Reversal Date") },
+                        label = { Text(s[StringResource.ACCOUNTING_REVERSAL_DATE]) },
                         placeholder = { Text("YYYY-MM-DD") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -104,10 +107,10 @@ fun JournalEntryDetailScreen(
                         showReverseDialog = false
                     },
                     enabled = reversalDate.isNotBlank(),
-                ) { Text("Reverse") }
+                ) { Text(s[StringResource.ACCOUNTING_REVERSE]) }
             },
             dismissButton = {
-                TextButton(onClick = { showReverseDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showReverseDialog = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }
@@ -117,13 +120,13 @@ fun JournalEntryDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (entryId == null) "New Journal Entry"
-                        else "Journal Entry #${state.entry?.entryNumber ?: ""}",
+                        if (entryId == null) s[StringResource.ACCOUNTING_NEW_JOURNAL_ENTRY]
+                        else "${s[StringResource.ACCOUNTING_JOURNAL_ENTRY]} #${state.entry?.entryNumber ?: ""}",
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
                 actions = {
@@ -132,7 +135,7 @@ fun JournalEntryDetailScreen(
                             onClick = { viewModel.dispatch(JournalEntryDetailIntent.Save) },
                             enabled = !state.isSaving && !state.isPosting,
                         ) {
-                            Icon(Icons.Default.Save, contentDescription = "Save draft")
+                            Icon(Icons.Default.Save, contentDescription = s[StringResource.ACCOUNTING_SAVE_DRAFT])
                         }
                         IconButton(
                             onClick = {
@@ -141,7 +144,7 @@ fun JournalEntryDetailScreen(
                             },
                             enabled = state.isBalanced && !state.isSaving && !state.isPosting && state.entry != null,
                         ) {
-                            Icon(Icons.Default.Publish, contentDescription = "Post entry")
+                            Icon(Icons.Default.Publish, contentDescription = s[StringResource.ACCOUNTING_POST_ENTRY])
                         }
                     }
                     if (state.entry?.isPosted == true) {
@@ -152,7 +155,7 @@ fun JournalEntryDetailScreen(
                             },
                             enabled = !state.isReversing,
                         ) {
-                            Icon(Icons.Default.Undo, contentDescription = "Reverse entry")
+                            Icon(Icons.Default.Undo, contentDescription = s[StringResource.ACCOUNTING_REVERSE_ENTRY])
                         }
                     }
                 },
@@ -179,7 +182,7 @@ fun JournalEntryDetailScreen(
                         OutlinedTextField(
                             value = state.description,
                             onValueChange = { viewModel.dispatch(JournalEntryDetailIntent.UpdateDescription(it)) },
-                            label = { Text("Description") },
+                            label = { Text(s[StringResource.ACCOUNTING_DESCRIPTION]) },
                             singleLine = true,
                             enabled = state.entry?.isPosted != true,
                             modifier = Modifier.fillMaxWidth(),
@@ -188,7 +191,7 @@ fun JournalEntryDetailScreen(
                             OutlinedTextField(
                                 value = state.entryDate,
                                 onValueChange = { viewModel.dispatch(JournalEntryDetailIntent.UpdateDate(it)) },
-                                label = { Text("Date") },
+                                label = { Text(s[StringResource.COMMON_DATE]) },
                                 placeholder = { Text("YYYY-MM-DD") },
                                 singleLine = true,
                                 enabled = state.entry?.isPosted != true,
@@ -205,7 +208,7 @@ fun JournalEntryDetailScreen(
                                     value = state.referenceType.name,
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Reference Type") },
+                                    label = { Text(s[StringResource.ACCOUNTING_REFERENCE_TYPE]) },
                                     trailingIcon = {
                                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = refTypeDropdownExpanded)
                                     },
@@ -242,7 +245,7 @@ fun JournalEntryDetailScreen(
                     ) {
                         item {
                             Text(
-                                "Lines",
+                                s[StringResource.ACCOUNTING_LINES],
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )
@@ -272,7 +275,7 @@ fun JournalEntryDetailScreen(
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = null)
                                         Spacer(Modifier.width(ZyntaSpacing.sm))
-                                        Text("Add Line")
+                                        Text(s[StringResource.ACCOUNTING_ADD_LINE])
                                     }
                                 }
                             }
@@ -295,6 +298,7 @@ private fun JournalLineRow(
     line: JournalEntryLine,
     onDelete: (() -> Unit)?,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -340,7 +344,7 @@ private fun JournalLineRow(
                 IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Remove line",
+                        contentDescription = s[StringResource.ACCOUNTING_REMOVE_LINE],
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.error,
                     )
@@ -355,6 +359,7 @@ private fun AddLineForm(
     onAdd: (JournalEntryLine) -> Unit,
     onCancel: () -> Unit,
 ) {
+    val s = LocalStrings.current
     var accountCode by remember { mutableStateOf("") }
     var accountName by remember { mutableStateOf("") }
     var debitAmount by remember { mutableStateOf("") }
@@ -363,18 +368,18 @@ private fun AddLineForm(
 
     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md), verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-            Text("Add Line", style = MaterialTheme.typography.titleSmall)
+            Text(s[StringResource.ACCOUNTING_ADD_LINE], style = MaterialTheme.typography.titleSmall)
             OutlinedTextField(
                 value = accountCode,
                 onValueChange = { accountCode = it },
-                label = { Text("Account Code") },
+                label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_CODE]) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = accountName,
                 onValueChange = { accountName = it },
-                label = { Text("Account Name") },
+                label = { Text(s[StringResource.ACCOUNTING_ACCOUNT_NAME]) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -382,14 +387,14 @@ private fun AddLineForm(
                 OutlinedTextField(
                     value = debitAmount,
                     onValueChange = { debitAmount = it },
-                    label = { Text("Debit") },
+                    label = { Text(s[StringResource.ACCOUNTING_DEBIT]) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
                 OutlinedTextField(
                     value = creditAmount,
                     onValueChange = { creditAmount = it },
-                    label = { Text("Credit") },
+                    label = { Text(s[StringResource.ACCOUNTING_CREDIT]) },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                 )
@@ -397,12 +402,12 @@ private fun AddLineForm(
             OutlinedTextField(
                 value = lineDescription,
                 onValueChange = { lineDescription = it },
-                label = { Text("Description (optional)") },
+                label = { Text(s[StringResource.ACCOUNTING_DESCRIPTION_OPTIONAL]) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm), modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text(s[StringResource.COMMON_CANCEL]) }
                 Button(
                     onClick = {
                         val debit = debitAmount.toDoubleOrNull() ?: 0.0
@@ -426,7 +431,7 @@ private fun AddLineForm(
                     enabled = (debitAmount.isNotBlank() || creditAmount.isNotBlank()) &&
                         (accountCode.isNotBlank() || accountName.isNotBlank()),
                     modifier = Modifier.weight(1f),
-                ) { Text("Add") }
+                ) { Text(s[StringResource.ACCOUNTING_ADD]) }
             }
         }
     }
@@ -434,6 +439,7 @@ private fun AddLineForm(
 
 @Composable
 private fun BalanceStatusRow(state: JournalEntryDetailState) {
+    val s = LocalStrings.current
     val debitTotal = state.lines.sumOf { it.debitAmount }
     val creditTotal = state.lines.sumOf { it.creditAmount }
 
@@ -459,7 +465,7 @@ private fun BalanceStatusRow(state: JournalEntryDetailState) {
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
-                    text = if (state.isBalanced) "BALANCED" else "UNBALANCED",
+                    text = if (state.isBalanced) s[StringResource.ACCOUNTING_BALANCED] else s[StringResource.ACCOUNTING_UNBALANCED],
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (state.isBalanced) MaterialTheme.colorScheme.onTertiaryContainer
