@@ -155,13 +155,13 @@ fun BackupSettingsScreen(
                 SectionHeader(s[StringResource.SETTINGS_BACKUP_RESTORE_SECTION])
                 Spacer(Modifier.height(ZyntaSpacing.sm))
                 Text(
-                    text = "Select a database backup file (.db) to restore from.",
+                    text = s[StringResource.SETTINGS_BACKUP_SELECT_FILE],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = ZyntaSpacing.sm),
                 )
                 ZyntaButton(
-                    text = if (state.isRestoring) "Restoring…" else "Select Backup File",
+                    text = if (state.isRestoring) s[StringResource.SETTINGS_BACKUP_RESTORING] else s[StringResource.SETTINGS_BACKUP_SELECT_BACKUP],
                     onClick = { showFilePicker = true },
                     enabled = !state.isBackingUp && !state.isRestoring,
                     modifier = Modifier.fillMaxWidth(),

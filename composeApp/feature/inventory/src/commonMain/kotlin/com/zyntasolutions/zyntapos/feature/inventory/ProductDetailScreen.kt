@@ -332,6 +332,7 @@ private fun PricingSection(
     state: InventoryState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -340,20 +341,20 @@ private fun PricingSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Pricing", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_TAB_PRICING], style = MaterialTheme.typography.titleMedium)
 
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 ZyntaTextField(
                     value = form.price,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("price", it)) },
-                    label = "Selling Price *",
+                    label = s[StringResource.INVENTORY_SELLING_PRICE],
                     error = form.validationErrors["price"],
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = form.costPrice,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("costPrice", it)) },
-                    label = "Cost Price",
+                    label = s[StringResource.INVENTORY_COST_PRICE],
                     error = form.validationErrors["costPrice"],
                     modifier = Modifier.weight(1f),
                 )
@@ -372,7 +373,7 @@ private fun PricingSection(
                     )
                 }
                 TextButton(onClick = { onIntent(InventoryIntent.OpenTaxGroupManagement) }) {
-                    Text("Manage", style = MaterialTheme.typography.labelMedium)
+                    Text(s[StringResource.INVENTORY_MANAGE], style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -388,6 +389,7 @@ private fun StockSection(
     isNew: Boolean,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -396,7 +398,7 @@ private fun StockSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Stock", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_TAB_STOCK], style = MaterialTheme.typography.titleMedium)
 
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                 ZyntaTextField(
@@ -404,21 +406,21 @@ private fun StockSection(
                     onValueChange = {
                         if (isNew) onIntent(InventoryIntent.UpdateFormField("stockQty", it))
                     },
-                    label = if (isNew) "Initial Stock Qty" else "Stock Qty (read-only)",
+                    label = if (isNew) s[StringResource.INVENTORY_INITIAL_STOCK_QTY] else s[StringResource.INVENTORY_STOCK_QTY_READONLY],
                     enabled = isNew,
                     modifier = Modifier.weight(1f),
                 )
                 ZyntaTextField(
                     value = form.minStockQty,
                     onValueChange = { onIntent(InventoryIntent.UpdateFormField("minStockQty", it)) },
-                    label = "Low Stock Alert Threshold",
+                    label = s[StringResource.INVENTORY_LOW_STOCK_THRESHOLD],
                     modifier = Modifier.weight(1f),
                 )
             }
 
             if (!isNew) {
                 Text(
-                    "Stock adjustments are made via the Stock Adjustment dialog.",
+                    s[StringResource.INVENTORY_STOCK_ADJUSTMENT_HINT],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -436,6 +438,7 @@ private fun ImageSection(
     form: ProductFormState,
     onIntent: (InventoryIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     var showImagePicker by remember { mutableStateOf(false) }
 
     PlatformFilePicker(
@@ -457,12 +460,12 @@ private fun ImageSection(
             modifier = Modifier.padding(ZyntaSpacing.md),
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
         ) {
-            Text("Image", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_TAB_IMAGES], style = MaterialTheme.typography.titleMedium)
 
             ZyntaTextField(
                 value = form.imageUrl ?: "",
                 onValueChange = { onIntent(InventoryIntent.UpdateFormField("imageUrl", it)) },
-                label = "Image URL or file path",
+                label = s[StringResource.INVENTORY_IMAGE_URL],
                 modifier = Modifier.fillMaxWidth(),
             )
 

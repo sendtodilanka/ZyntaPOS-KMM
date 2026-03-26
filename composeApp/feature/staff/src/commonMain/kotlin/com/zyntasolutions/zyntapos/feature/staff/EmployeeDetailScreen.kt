@@ -185,7 +185,7 @@ fun EmployeeDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "Active",
+                    text = s[StringResource.STAFF_ACTIVE],
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -207,7 +207,7 @@ fun EmployeeDetailScreen(
                 ) {
                     Icon(Icons.Default.Store, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Manage Store Assignments")
+                    Text(s[StringResource.STAFF_MANAGE_STORE_ASSIGNMENTS])
                 }
                 Spacer(Modifier.height(ZyntaSpacing.sm))
             }
@@ -227,7 +227,7 @@ fun EmployeeDetailScreen(
                 } else {
                     Icon(Icons.Default.Save, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (isEditing) "Update Employee" else "Create Employee")
+                    Text(if (isEditing) s[StringResource.STAFF_UPDATE_EMPLOYEE] else s[StringResource.STAFF_CREATE_EMPLOYEE])
                 }
             }
 
@@ -239,8 +239,8 @@ fun EmployeeDetailScreen(
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
                 icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                title = { Text("Deactivate Employee?") },
-                text = { Text("This will deactivate the employee. Historical records are preserved.") },
+                title = { Text(s[StringResource.STAFF_DEACTIVATE_EMPLOYEE_TITLE]) },
+                text = { Text(s[StringResource.STAFF_DEACTIVATE_EMPLOYEE_MESSAGE]) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -250,11 +250,11 @@ fun EmployeeDetailScreen(
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
-                        Text("Deactivate")
+                        Text(s[StringResource.STAFF_DEACTIVATE])
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                    TextButton(onClick = { showDeleteConfirm = false }) { Text(s[StringResource.COMMON_CANCEL]) }
                 },
             )
         }

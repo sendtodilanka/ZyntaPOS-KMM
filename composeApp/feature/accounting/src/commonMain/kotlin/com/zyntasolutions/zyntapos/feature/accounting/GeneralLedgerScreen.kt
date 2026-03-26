@@ -160,7 +160,7 @@ fun GeneralLedgerScreen(
                 OutlinedTextField(
                     value = state.fromDate,
                     onValueChange = { viewModel.dispatch(GeneralLedgerIntent.SetDateRange(it, state.toDate)) },
-                    label = { Text("From") },
+                    label = { Text(s[StringResource.ACCOUNTING_FROM]) },
                     placeholder = { Text("YYYY-MM-DD") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -168,7 +168,7 @@ fun GeneralLedgerScreen(
                 OutlinedTextField(
                     value = state.toDate,
                     onValueChange = { viewModel.dispatch(GeneralLedgerIntent.SetDateRange(state.fromDate, it)) },
-                    label = { Text("To") },
+                    label = { Text(s[StringResource.ACCOUNTING_TO]) },
                     placeholder = { Text("YYYY-MM-DD") },
                     singleLine = true,
                     modifier = Modifier.weight(1f),
@@ -190,7 +190,7 @@ fun GeneralLedgerScreen(
                             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                         ) {
                             Text(
-                                "Select an account to view its ledger",
+                                s[StringResource.ACCOUNTING_SELECT_ACCOUNT_PROMPT],
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -203,7 +203,7 @@ fun GeneralLedgerScreen(
                             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm),
                         ) {
                             Text(
-                                "No ledger entries for this account in the selected period.",
+                                s[StringResource.ACCOUNTING_NO_LEDGER_ENTRIES],
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -218,31 +218,31 @@ fun GeneralLedgerScreen(
                                     .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.xs),
                             ) {
                                 Text(
-                                    "Date",
+                                    s[StringResource.COMMON_DATE],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md),
                                 )
                                 Text(
-                                    "Description",
+                                    s[StringResource.ACCOUNTING_DESCRIPTION],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.weight(1f),
                                 )
                                 Text(
-                                    "Debit",
+                                    s[StringResource.ACCOUNTING_DEBIT],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm),
                                 )
                                 Text(
-                                    "Credit",
+                                    s[StringResource.ACCOUNTING_CREDIT],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.sm),
                                 )
                                 Text(
-                                    "Balance",
+                                    s[StringResource.ACCOUNTING_BALANCE],
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(ZyntaSpacing.xxl + ZyntaSpacing.md),

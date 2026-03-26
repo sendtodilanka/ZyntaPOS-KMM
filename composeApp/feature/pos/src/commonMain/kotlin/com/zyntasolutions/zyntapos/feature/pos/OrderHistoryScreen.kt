@@ -13,7 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.SortDirection
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTable
@@ -75,6 +77,7 @@ fun OrderHistoryScreen(
     modifier: Modifier = Modifier,
     formatter: CurrencyFormatter = koinInject(),
 ) {
+    val s = LocalStrings.current
     // ── Local filter / sort state ─────────────────────────────────────────────
     var selectedStatus by remember { mutableStateOf<OrderStatus?>(null) }
     var sortColumn by remember { mutableStateOf<String?>(null) }
@@ -97,7 +100,7 @@ fun OrderHistoryScreen(
     }
 
     ZyntaPageScaffold(
-        title = "Order History",
+        title = s[StringResource.POS_ORDER_HISTORY_TITLE],
         modifier = modifier,
     ) { innerPadding ->
         Column(
@@ -115,7 +118,7 @@ fun OrderHistoryScreen(
                     FilterChip(
                         selected = selected,
                         onClick = { selectedStatus = status },
-                        label = { Text(status?.label() ?: "All") },
+                        label = { Text(status?.label() ?: s[StringResource.POS_FILTER_ALL]) },
                     )
                 }
             }
@@ -148,11 +151,11 @@ fun OrderHistoryScreen(
                 emptyContent = {
                     ZyntaEmptyState(
                         icon = Icons.Default.History,
-                        title = "No Orders",
+                        title = s[StringResource.POS_NO_ORDERS],
                         subtitle = if (selectedStatus != null)
-                            "No ${selectedStatus?.label() ?: "matching"} orders today."
+                            s[StringResource.POS_NO_FILTERED_ORDERS]
                         else
-                            "No orders have been processed today.",
+                            s[StringResource.POS_NO_ORDERS_PROCESSED_TODAY],
                         modifier = Modifier.fillMaxWidth().padding(ZyntaSpacing.xl),
                     )
                 },
@@ -202,7 +205,7 @@ fun OrderHistoryScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Print,
-                            contentDescription = "Reprint order ${order.orderNumber}",
+                            contentDescription = "${s[StringResource.POS_REPRINT_ORDER]} ${order.orderNumber}",
                             tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(18.dp),
                         )
