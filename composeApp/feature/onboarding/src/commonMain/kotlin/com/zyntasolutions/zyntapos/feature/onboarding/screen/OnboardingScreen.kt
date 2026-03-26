@@ -628,7 +628,7 @@ private fun ReceiptFormatStep(
                 fontWeight = FontWeight.Medium,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                listOf(58 to "58mm (Portable)", 80 to "80mm (Standard)").forEach { (widthMm, label) ->
+                listOf(58 to s[StringResource.ONBOARDING_PAPER_58MM], 80 to s[StringResource.ONBOARDING_PAPER_80MM]).forEach { (widthMm, label) ->
                     FilterChip(
                         selected = state.receiptPaperWidthMm == widthMm,
                         onClick = { onIntent(OnboardingIntent.ReceiptPaperWidthChanged(widthMm)) },

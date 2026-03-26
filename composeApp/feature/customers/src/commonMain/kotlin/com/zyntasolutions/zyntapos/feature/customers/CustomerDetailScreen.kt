@@ -236,7 +236,7 @@ fun CustomerDetailScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(s[StringResource.CUSTOMERS_DELETE]) },
-            text = { Text("Delete ${state.selectedCustomer.name}? This cannot be undone.") },
+            text = { Text(s[StringResource.CUSTOMERS_DELETE_BODY, state.selectedCustomer.name]) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -570,14 +570,14 @@ private fun MergeCustomerDialog(
                 // ── Step 1: Customer search ───────────────────────────────────
                 Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
                     Text(
-                        "Select a customer to merge into \"${targetCustomer.name}\":",
+                        s[StringResource.CUSTOMERS_MERGE_SELECT, targetCustomer.name],
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by name, phone, email…") },
+                        placeholder = { Text(s[StringResource.CUSTOMERS_SEARCH_PLACEHOLDER]) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,

@@ -289,7 +289,7 @@ fun CouponDetailScreen(
             if (form.scope == Coupon.CouponScope.PRODUCT.name ||
                 form.scope == Coupon.CouponScope.CUSTOMER.name
             ) {
-                val label = if (form.scope == Coupon.CouponScope.PRODUCT.name) "Product IDs" else "Customer IDs"
+                val scopeIdsLabel = if (form.scope == Coupon.CouponScope.PRODUCT.name) s[StringResource.COUPONS_PRODUCT_IDS_LABEL] else s[StringResource.COUPONS_CUSTOMER_IDS_LABEL]
                 OutlinedTextField(
                     value = form.scopeIds.joinToString(", "),
                     onValueChange = { text ->
@@ -298,7 +298,7 @@ fun CouponDetailScreen(
                         viewModel.dispatch(CouponIntent.UpdateScope(form.scope))
                         ids.forEach { id -> viewModel.dispatch(CouponIntent.ToggleScopeId(id)) }
                     },
-                    label = { Text("$label (comma-separated)") },
+                    label = { Text(scopeIdsLabel) },
                     isError = form.validationErrors.containsKey("scopeIds"),
                     supportingText = form.validationErrors["scopeIds"]?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
@@ -396,7 +396,7 @@ fun CouponDetailScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(s[StringResource.COUPONS_DELETE]) },
-            text = { Text("Delete \"${state.selectedCoupon?.name ?: couponId}\"? This cannot be undone.") },
+            text = { Text(s[StringResource.COUPONS_DELETE_BODY, state.selectedCoupon?.name ?: couponId]) },
             confirmButton = {
                 TextButton(
                     onClick = {

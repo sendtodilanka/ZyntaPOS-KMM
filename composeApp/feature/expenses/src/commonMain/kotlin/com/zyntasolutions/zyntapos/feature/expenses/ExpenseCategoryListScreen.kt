@@ -37,6 +37,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import org.koin.compose.viewmodel.koinViewModel
@@ -50,6 +52,7 @@ fun ExpenseCategoryListScreen(
     onNavigateUp: () -> Unit,
     viewModel: ExpenseViewModel = koinViewModel(),
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var pendingDeleteId by remember { mutableStateOf<String?>(null) }
@@ -57,25 +60,25 @@ fun ExpenseCategoryListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Expense Categories") },
+                title = { Text(s[StringResource.EXPENSES_CATEGORIES_TITLE]) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = s[StringResource.COMMON_BACK])
                     }
                 },
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.dispatch(ExpenseIntent.SelectCategory(null)) }) {
-                Icon(Icons.Default.Add, contentDescription = "New Category")
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.EXPENSES_NEW_CATEGORY_TITLE])
             }
         },
     ) { padding ->
         if (state.categories.isEmpty()) {
             ZyntaEmptyState(
-                title = "No categories yet",
+                title = s[StringResource.EXPENSES_CATEGORIES_EMPTY_TITLE],
                 icon = Icons.Default.Add,
-                subtitle = "Tap + to create a category.",
+                subtitle = s[StringResource.EXPENSES_CATEGORIES_EMPTY_SUBTITLE],
                 modifier = Modifier.fillMaxSize().padding(padding),
             )
         } else {
@@ -97,10 +100,10 @@ fun ExpenseCategoryListScreen(
                                 }
                             }
                             IconButton(onClick = { viewModel.dispatch(ExpenseIntent.SelectCategory(category.id)) }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                Icon(Icons.Default.Edit, contentDescription = s[StringResource.COMMON_EDIT])
                             }
                             IconButton(onClick = { pendingDeleteId = category.id }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete",
+                                Icon(Icons.Default.Delete, contentDescription = s[StringResource.COMMON_DELETE],
                                     tint = MaterialTheme.colorScheme.error)
                             }
                         }
@@ -122,14 +125,14 @@ fun ExpenseCategoryListScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = if (form.isEditing) "Edit Category" else "New Category",
+                    text = if (form.isEditing) s[StringResource.EXPENSES_EDIT_CATEGORY_TITLE] else s[StringResource.EXPENSES_NEW_CATEGORY_TITLE],
                     style = MaterialTheme.typography.titleMedium,
                 )
 
                 OutlinedTextField(
                     value = form.name,
                     onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateCategoryField("name", it)) },
-                    label = { Text("Name *") },
+                    label = { Text(s[StringResource.EXPENSES_CATEGORY_NAME_LABEL]) },
                     isError = form.validationErrors.containsKey("name"),
                     supportingText = form.validationErrors["name"]?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
@@ -139,7 +142,7 @@ fun ExpenseCategoryListScreen(
                 OutlinedTextField(
                     value = form.description,
                     onValueChange = { viewModel.dispatch(ExpenseIntent.UpdateCategoryField("description", it)) },
-                    label = { Text("Description") },
+                    label = { Text(s[StringResource.EXPENSES_CATEGORY_DESC_LABEL]) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -149,10 +152,10 @@ fun ExpenseCategoryListScreen(
                     horizontalArrangement = Arrangement.End,
                 ) {
                     TextButton(onClick = { viewModel.dispatch(ExpenseIntent.DismissCategoryDetail) }) {
-                        Text("Cancel")
+                        Text(s[StringResource.COMMON_CANCEL])
                     }
                     ZyntaButton(
-                        text = if (form.isEditing) "Update" else "Create",
+                        text = if (form.isEditing) s[StringResource.COMMON_UPDATE] else s[StringResource.COMMON_CREATE],
                         onClick = { viewModel.dispatch(ExpenseIntent.SaveCategory) },
                         modifier = Modifier.padding(start = 8.dp),
                     )
@@ -166,8 +169,8 @@ fun ExpenseCategoryListScreen(
         val categoryName = state.categories.find { it.id == id }?.name ?: id
         AlertDialog(
             onDismissRequest = { pendingDeleteId = null },
-            title = { Text("Delete Category") },
-            text = { Text("Delete \"$categoryName\"? Expenses in this category will become uncategorized.") },
+            title = { Text(s[StringResource.EXPENSES_DELETE_CATEGORY_TITLE]) },
+            text = { Text(s[StringResource.EXPENSES_DELETE_CATEGORY_BODY, categoryName]) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -175,10 +178,10 @@ fun ExpenseCategoryListScreen(
                         viewModel.dispatch(ExpenseIntent.DeleteCategory(id))
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Delete") }
+                ) { Text(s[StringResource.COMMON_DELETE]) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeleteId = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDeleteId = null }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         )
     }

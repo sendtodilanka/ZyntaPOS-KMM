@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.auth.guard
 
 import androidx.compose.runtime.Composable
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
 import com.zyntasolutions.zyntapos.domain.model.Permission
 import com.zyntasolutions.zyntapos.domain.usecase.auth.CheckPermissionUseCase
@@ -39,9 +41,10 @@ fun RoleGuard(
     permission: Permission,
     checkPermissionUseCase: CheckPermissionUseCase,
     unauthorizedContent: @Composable () -> Unit = {
+        val s = LocalStrings.current
         ZyntaEmptyState(
-            title = "Access Denied",
-            subtitle = "You don't have permission to view this screen. Contact your administrator.",
+            title = s[StringResource.AUTH_ACCESS_DENIED_TITLE],
+            subtitle = s[StringResource.AUTH_ACCESS_DENIED_SUBTITLE],
         )
     },
     content: @Composable () -> Unit,

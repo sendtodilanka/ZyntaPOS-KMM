@@ -61,7 +61,7 @@ fun LicenseActivationScreen(
                 value = state.licenseKey,
                 onValueChange = { viewModel.dispatch(LicenseIntent.LicenseKeyChanged(it.uppercase())) },
                 label = { Text(s[StringResource.AUTH_LICENSE_KEY_LABEL]) },
-                placeholder = { Text("XXXX-XXXX-XXXX-XXXX") },
+                placeholder = { Text(s[StringResource.AUTH_LICENSE_KEY_PLACEHOLDER]) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,

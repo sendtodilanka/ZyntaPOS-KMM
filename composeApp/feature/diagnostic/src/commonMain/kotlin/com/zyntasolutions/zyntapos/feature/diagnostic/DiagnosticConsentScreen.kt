@@ -7,6 +7,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticDataScope
 import com.zyntasolutions.zyntapos.domain.model.DiagnosticSession
 
@@ -23,6 +25,7 @@ fun DiagnosticConsentScreen(
     state: DiagnosticState,
     onIntent: (DiagnosticIntent) -> Unit,
 ) {
+    val s = LocalStrings.current
     val session = state.pendingSession
 
     if (session == null && !state.isLoading) {
@@ -32,7 +35,7 @@ fun DiagnosticConsentScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "No pending diagnostic session request.",
+                text = s[StringResource.DIAGNOSTIC_NO_PENDING],
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -54,7 +57,7 @@ fun DiagnosticConsentScreen(
 
         if (session != null) {
             Text(
-                text = "Remote Diagnostic Request",
+                text = s[StringResource.DIAGNOSTIC_REQUEST_TITLE],
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -68,13 +71,13 @@ fun DiagnosticConsentScreen(
                 ),
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    SessionDetailRow("Session ID", session.id.take(8) + "…")
-                    SessionDetailRow("Technician ID", session.technicianId.take(8) + "…")
+                    SessionDetailRow(s[StringResource.DIAGNOSTIC_SESSION_ID], session.id.take(8) + "\u2026")
+                    SessionDetailRow(s[StringResource.DIAGNOSTIC_TECHNICIAN_ID], session.technicianId.take(8) + "\u2026")
                     SessionDetailRow(
-                        "Access Scope",
+                        s[StringResource.DIAGNOSTIC_ACCESS_SCOPE],
                         when (session.dataScope) {
-                            DiagnosticDataScope.READ_ONLY_DIAGNOSTICS -> "Read-only diagnostics"
-                            DiagnosticDataScope.FULL_READ_ONLY        -> "Full read-only access"
+                            DiagnosticDataScope.READ_ONLY_DIAGNOSTICS -> s[StringResource.DIAGNOSTIC_SCOPE_READ_ONLY]
+                            DiagnosticDataScope.FULL_READ_ONLY        -> s[StringResource.DIAGNOSTIC_SCOPE_FULL_READ_ONLY]
                         }
                     )
                 }
@@ -83,8 +86,7 @@ fun DiagnosticConsentScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "A Zynta technician is requesting temporary read-only access to diagnose an issue. " +
-                       "This session expires in 15 minutes and can be revoked at any time.",
+                text = s[StringResource.DIAGNOSTIC_CONSENT_TEXT],
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -99,13 +101,13 @@ fun DiagnosticConsentScreen(
                     onClick = { onIntent(DiagnosticIntent.DenyConsent) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Deny")
+                    Text(s[StringResource.DIAGNOSTIC_DENY])
                 }
                 Button(
                     onClick = { onIntent(DiagnosticIntent.AcceptConsent) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("Accept")
+                    Text(s[StringResource.DIAGNOSTIC_ACCEPT])
                 }
             }
         }
