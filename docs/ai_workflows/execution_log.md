@@ -4251,3 +4251,27 @@ The OTA update management page remains deferred. It requires a device management
 - i18n Infrastructure — LocalizationManager, 350+ string resources, SupportedLocale enum ✅
 - DB Migrations: v5 (Staff), v6 (Media+Accounting+Racks), v7 (rack_id column) ✅
 - Version: 2.0.0 / BUILD=3 ✅
+
+---
+
+## Batch Session 2026-03-27 — Test Coverage Completion Pass
+
+### Domain + ViewModel Test Coverage (Sessions 1–3)
+- [x] Domain use case coverage: all 104+ domain use cases tested (auth, crm, coupons, einvoice, inventory, multistore, pos, rbac, register, reports, admin, staff, accounting, expenses, license, rack, enterprise reports)
+- [x] ViewModel coverage: all 35 ViewModels confirmed tested (no gaps found)
+- [x] Firebase code items: RemoteConfigService, CrashlyticsLogWriter, Firebase JS SDK — all implemented
+- [x] TODO-012 gaps: Task 4, Task 6, Bug fix — all verified implemented
+- [x] License use cases: ActivateLicenseUseCase, GetLicenseStatusUseCase, SendHeartbeatUseCase — added coverage
+- [x] Rack use cases: GetWarehouseRacksUseCase, GetRackProductsUseCase, SaveRackProductUseCase, DeleteRackProductUseCase — added coverage
+- [x] Enterprise report use cases (30): all covered in EnterpriseReportUseCasesTest
+
+### Data-Layer Integration Tests (Sessions 4–5)
+Added comprehensive jvmTest integration tests in `shared/data/src/jvmTest/` using real in-memory SQLite (`createTestDatabase()` with `foreign_keys = true`) and Turbine for Flow assertions.
+
+**Total: 66 test files covering 64 testable repositories (4 excluded — external deps)**
+
+Session 4 additions (19 files): SupplierRepositoryImpl, LabelTemplateRepositoryImpl, WarehouseStockRepositoryImpl, PurchaseOrderRepositoryImpl, MasterProductRepositoryImpl, UserRepositoryImpl, ReplenishmentRuleRepositoryImpl, TaxGroupRepositoryImpl, SettingsRepositoryImpl, LoyaltyRepositoryImpl, EInvoiceRepositoryImpl, StoreRepositoryImpl, CustomerGroupRepositoryImpl, WarehouseRepositoryImpl, NotificationRepositoryImpl, UnitGroupRepositoryImpl, PricingRuleRepositoryImpl, ConflictLogRepositoryImpl, TransitTrackingRepositoryImpl
+
+Session 5 additions (31 files): SystemRepositoryImpl, AttendanceRepositoryImpl, ShiftRepositoryImpl, LeaveRepositoryImpl, PayrollRepositoryImpl, CompoundTaxRepositoryImpl, CustomerSegmentRepositoryImpl, CustomerWalletRepositoryImpl, EmployeeStoreAssignmentRepositoryImpl, ExchangeRateRepositoryImpl, FeatureRegistryRepositoryImpl, OperationalLogRepositoryImpl, ProductVariantRepositoryImpl, RackProductRepositoryImpl, RegionalTaxOverrideRepositoryImpl, StoreProductOverrideRepositoryImpl, UserStoreAccessRepositoryImpl, WarehouseRackRepositoryImpl, PayrollEntryRepositoryImpl, ShiftSwapRepositoryImpl, AccountRepositoryImpl, JournalRepositoryImpl, AccountingPeriodRepositoryImpl, AuditRepositoryImpl, BudgetRepositoryImpl, FulfillmentRepositoryImpl, MediaRepositoryImpl, InstallmentRepositoryImpl, FinancialStatementRepositoryImpl, AccountingRepositoryImpl, ProductRepositoryImpl
+
+Excluded (4): BackupRepositoryImpl (BackupFileManager), DiagnosticConsentRepositoryImpl (ApiService), LicenseRepositoryImpl (ApiService), ReportRepositoryImpl (aggregations only)

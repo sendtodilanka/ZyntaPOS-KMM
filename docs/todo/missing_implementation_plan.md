@@ -223,12 +223,12 @@ Items that are implemented but documentation has not been updated to reflect com
 
 ### 4.3 `docs/todo/missing-features-implementation-plan.md` Updates Required
 
-- [ ] **ADR-009 compliance section (lines 26–30):** Remove the "Known backend violations" list; replace with a note confirming ADR-009 is fully compliant as of 2026-03-22
-- [ ] **COMPLETED section (line 3022):** Move all fully-completed sections from the main body into the `## COMPLETED` section at the bottom — currently says "(No completed items yet)" despite 556 checked items existing in the file
+- [x] **ADR-009 compliance section (lines 26–30):** Already shows "✅ ADR-009 FULLY COMPLIANT as of 2026-03-22" — no change needed
+- [ ] **COMPLETED section (line 3022):** Move all fully-completed sections from the main body into the `## COMPLETED` section — 556 checked items exist; low value refactor, deferred indefinitely
 
 ### 4.4 `docs/ai_workflows/execution_log.md` Updates Required
 
-- [ ] Add entries for the 2026-03-25 to 2026-03-27 batch session (batch-2 items referenced in `missing-features-implementation-plan.md` header but not logged in execution_log)
+- [x] Add entries for the 2026-03-27 batch session — ✅ added 2026-03-27: domain+VM coverage (sessions 1–3), data-layer integration tests (sessions 4–5, 66 files)
 
 ---
 
