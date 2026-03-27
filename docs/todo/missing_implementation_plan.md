@@ -281,6 +281,10 @@ All previously identified code priorities have been implemented:
 - `SaveRackProductUseCase` — untested → now covered (8 tests)
 - `DeleteRackProductUseCase` — untested → now covered (5 tests)
 - All 30 enterprise report use cases — untested → now covered (32 tests)
+- `EmployeeRoamingViewModel` — untested → now covered (15 tests) — 2026-03-27
+- `FulfillmentViewModel` (Click & Collect C4.4) — untested → now covered (14 tests) — 2026-03-27
+- `PricingRuleViewModel` (C2.1 Region-Based Pricing) — untested → now covered (23 tests) — 2026-03-27
+- `WarehouseViewModel` — already tested under `MultiStoreViewModelTest.kt` (17 tests) — confirmed 2026-03-27
 
 Remaining actionable items (in priority order):
 
