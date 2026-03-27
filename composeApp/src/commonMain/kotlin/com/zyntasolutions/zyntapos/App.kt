@@ -333,7 +333,7 @@ fun App() {
                                                 onClick = { authVm.dispatch(AuthIntent.QuickSwitchSelected(candidate.id)) },
                                                 modifier = Modifier.fillMaxWidth(),
                                             ) {
-                                                Text("${candidate.name} (${candidate.role.name})")
+                                                Text(s[StringResource.COMMON_NAME_PAREN_FORMAT, candidate.name, candidate.role.name])
                                             }
                                         }
                                     }

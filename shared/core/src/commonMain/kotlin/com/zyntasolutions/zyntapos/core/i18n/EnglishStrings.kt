@@ -47,6 +47,7 @@ internal object EnglishStrings {
         StringResource.COMMON_REFRESH to "Refresh",
         StringResource.COMMON_BULLET to "•",
         StringResource.COMMON_SEPARATOR_MIDDLE_DOT to " · ",
+        StringResource.COMMON_NAME_PAREN_FORMAT to "%1 (%2)",
         StringResource.COMMON_DATE_FORMAT_PLACEHOLDER to "YYYY-MM-DD",
         StringResource.COMMON_DISPLAY_ORDER_PLACEHOLDER to "0",
         StringResource.COMMON_IMAGE_URL_PLACEHOLDER to "https://…",

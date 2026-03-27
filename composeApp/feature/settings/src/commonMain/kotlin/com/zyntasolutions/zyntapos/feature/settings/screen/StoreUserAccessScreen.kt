@@ -405,7 +405,7 @@ private fun UserDropdown(
         ) {
             users.forEach { user ->
                 DropdownMenuItem(
-                    text = { Text("${user.name} (${user.role.name})") },
+                    text = { Text(s[StringResource.COMMON_NAME_PAREN_FORMAT, user.name, user.role.name]) },
                     onClick = {
                         onUserSelected(user.id)
                         expanded = false
