@@ -1,0 +1,267 @@
+# ZyntaPOS-KMM — Missing Implementation Plan
+
+**Created:** 2026-03-27
+**Last Updated:** 2026-03-27
+**Auditor:** Claude Code audit session
+**Scope:** Cross-reference of all `docs/` content against the actual codebase to find discrepancies, stale documentation, and genuinely unimplemented items.
+
+---
+
+## Audit Methodology
+
+1. Read all files under `docs/` (audit/, adr/, architecture/, todo/, ai_workflows/)
+2. Verified claims against actual source files in `composeApp/`, `shared/`, `backend/`, `admin-panel/`
+3. Counted real file/module/schema counts from the filesystem
+4. Checked `settings.gradle.kts` for actual module count
+5. Checked every `[ ]` item in `missing-features-implementation-plan.md`
+6. Cross-referenced `TODO-012` claimed tasks against actual route and service files
+
+---
+
+## 1. GENUINELY UNIMPLEMENTED CODE (Needs Development)
+
+### 1.1 Phase 3 Deferred Items (7 remaining `[ ]` in `missing-features-implementation-plan.md`)
+
+These are intentionally deferred and are not blockers for Phase 2 launch. They require external dependencies or are Phase 3 scope.
+
+| ID | Item | Blocker | Notes |
+|----|------|---------|-------|
+| D-1 | FCM push: transfer arrival at destination store | FCM project | `missing-features-implementation-plan.md` line 701 |
+| D-2 | Online ordering API integration | External platform | `missing-features-implementation-plan.md` line 1406 |
+| D-3 | FCM push: customer order ready for pickup | FCM project | `missing-features-implementation-plan.md` line 1407 |
+| D-4 | FCM push: store new pickup order received | FCM project | `missing-features-implementation-plan.md` line 1408 |
+| D-5 | IRD-specific XML invoice format | IRD sandbox access | Currently JSON — needs verification against actual IRD spec. `missing-features-implementation-plan.md` line 1713 |
+| D-6 | IRD tax calculation verification | IRD sandbox testing | `missing-features-implementation-plan.md` line 1715 |
+| D-7 | Blue-green deployment | Phase 3 | `missing-features-implementation-plan.md` line 1798 |
+
+**Recommended action:** No action needed until Phase 3 begins or IRD sandbox is provisioned. All 7 are correctly flagged as deferred.
+
+---
+
+### 1.2 TODO-012 Ticket System Enhancements — Partially Unimplemented
+
+`docs/todo/012-ticket-system-enhancements.md` documents 7 tasks + 1 bug fix. After cross-referencing actual files:
+
+| Task | Status | Evidence |
+|------|--------|---------|
+| Task 1: Email thread viewing + reply chain | ✅ IMPLEMENTED | `V18__email_threads.sql`, `V21__email_thread_chain.sql`, `EmailThreadRepository.kt`, `GET /admin/tickets/{id}/email-threads`, `TicketEmailThreadPanel.tsx` all exist |
+| Task 2: Bulk ticket operations | ✅ IMPLEMENTED | `BulkAssignModal.tsx`, `BulkResolveModal.tsx`, `POST /admin/tickets/bulk-assign`, `POST /admin/tickets/bulk-resolve` in `AdminTicketRoutes.kt` all exist |
+| Task 3: SLA breach email notifications | ✅ IMPLEMENTED | `AlertGenerationJob.kt` (line 45: "Check SLA breaches and send email notifications"), `sla_breach_notifications` column in `V25__email_retry_templates_preferences.sql` |
+| Task 4: Advanced ticket filtering | ⚠️ UNVERIFIED | No dedicated filter endpoint found in `AdminTicketRoutes.kt`; `GET /admin/tickets` exists but filter params not verified |
+| Task 5: Ticket metrics endpoint | ✅ IMPLEMENTED | `GET /admin/tickets/metrics` in `AdminTicketRoutes.kt`, `useTicketMetrics` hook in `admin-panel/src/api/tickets.ts` |
+| Task 6: Agent reply by email (outbound) | ❌ NOT IMPLEMENTED | No outbound agent email reply route found in `AdminTicketRoutes.kt` or `AdminTicketService.kt` |
+| Task 7: Customer portal (ticket status by token) | ✅ IMPLEMENTED | `admin-panel/src/routes/ticket-status/$token.tsx` exists |
+| Bug fix: InboundEmailProcessor SLA hardcode | ⚠️ UNVERIFIED | Need to check if `sla_hours` is read dynamically from `email_preferences` rather than hardcoded |
+
+**Action required for TODO-012:**
+- [ ] **Task 6 (Agent reply by email):** Implement `POST /admin/tickets/{id}/email-reply` endpoint in `AdminTicketRoutes.kt` + `AdminTicketService.sendAgentReply()` + admin panel compose UI in `TicketDetailPage`. See `012-ticket-system-enhancements.md` Task 6 for full spec.
+- [ ] **Task 4 (Advanced filtering):** Verify whether `GET /admin/tickets` supports `?tag=`, `?assignee=`, `?priority=`, `?category=` query params. If not, add to `AdminTicketService.getTickets()` and `AdminTicketRepository`.
+- [ ] **Bug fix:** Verify `InboundEmailProcessor.kt` reads SLA from `email_preferences` table rather than a hardcoded constant. Fix if hardcoded.
+
+---
+
+### 1.3 Firebase Analytics — Remaining External Steps
+
+`docs/todo/011-firebase-analytics-sentry-integration.md` (Status: ~95% code-complete) has these unchecked items requiring external console actions:
+
+| Item | Type | Action needed |
+|------|------|---------------|
+| Firebase project creation | External | Create project in Firebase Console, link GA4 property |
+| `google-services.json` linking | External | Download and add to repo via CI secret injection (already set up) |
+| Google Cloud OAuth client | External | Create in Google Cloud Console for admin panel SSO |
+| Firebase Remote Config | Code | Add `RemoteConfigService` expect/actual for edition feature flags — not yet implemented in codebase |
+| Firebase Crashlytics (Android) | Code | Dual crash reporting alongside Sentry — listed in TODO-011 but not implemented |
+| GA4 BigQuery export | External | Enable in Firebase Console |
+| Firebase JS SDK for admin panel | Code | `admin-panel` does not yet have Firebase JS SDK for web analytics |
+
+**Action required (code items):**
+- [ ] `FirebaseRemoteConfigService` expect/actual in `shared/data` — for runtime edition feature flags
+- [ ] Firebase Crashlytics integration in Android app (`androidApp/`) — dual crash reporting with Sentry
+- [ ] Firebase JS SDK initialization in `admin-panel/src/main.tsx` for GA4 web analytics
+
+---
+
+## 2. STALE DOCUMENTATION (Docs Claim Missing, But Actually Implemented)
+
+These items are documented as incomplete, but the actual codebase shows they are fully implemented. The docs have not been updated to reflect completion.
+
+### 2.1 `CLAUDE.md` Stale Module Count
+
+**Claim:** "Module Map (26 Modules)" (line 546 in CLAUDE.md)
+**Reality:** `settings.gradle.kts` includes **29 modules**:
+
+```
+androidApp (1) + composeApp root (1) +
+shared: core, domain, data, hal, security, seed (6) +
+composeApp infra: core, designsystem, navigation (3) +
+features: auth, pos, inventory, register, reports, settings, customers,
+          coupons, expenses, staff, multistore, admin, diagnostic, media,
+          dashboard, accounting, onboarding (17) +
+tools:debug (1)
+= 29 total
+```
+
+**Action:** Update CLAUDE.md heading "Module Map (26 Modules)" → "Module Map (29 Modules)". Also update the sentence "settings.gradle.kts — Module registry (26 modules)" in the Repository Layout table.
+
+---
+
+### 2.2 `CLAUDE.md` Stale Domain Model Count
+
+**Claim:** "Domain models (38+ files)" in the ADR-002 section
+**Reality:** `find shared/domain/src/commonMain -name "*.kt" -path "*/model/*" | wc -l` = **104 files**
+
+**Action:** Update CLAUDE.md domain model count from "38+" to "104+" in the ADR-002 section. The list of named models is also incomplete — it ends at `PurchaseOrderItem` but the actual directory has many more.
+
+---
+
+### 2.3 `CLAUDE.md` Stale Feature Module Status
+
+**Claim:** Three modules described as scaffolds/placeholders in Module Map:
+- `:composeApp:feature:accounting` → "E-Invoice creation and IRD submission pipeline"
+- `:composeApp:feature:staff` → implied scaffold
+- `:composeApp:feature:coupons` → implied scaffold
+
+**Reality (verified 2026-03-27):**
+
+| Module | Actual Status | File Count |
+|--------|--------------|------------|
+| `:feature:accounting` | ✅ FULLY IMPLEMENTED | 25+ .kt files: `EInvoiceViewModel`, `AccountingViewModel`, `ChartOfAccountsScreen`, `GeneralLedgerScreen`, `JournalEntryListScreen`, `FinancialStatementsScreen`, `AccountDetailScreen` + 8 test files |
+| `:feature:staff` | ✅ FULLY IMPLEMENTED | 18+ .kt files: `StaffViewModel`, `EmployeeListScreen`, `EmployeeDetailScreen`, `AttendanceScreen`, `ShiftSchedulerScreen`, `LeaveManagementScreen`, `PayrollScreen`, `CrossStoreAttendanceScreen` + test file |
+| `:feature:coupons` | ✅ SUBSTANTIALLY IMPLEMENTED | 7 .kt files: `CouponViewModel`, `CouponListScreen`, `CouponDetailScreen` + test |
+| `:feature:multistore` | ✅ FULLY IMPLEMENTED | 20+ .kt files: all C1.1–C1.5 screens, `WarehouseViewModel`, `StoreTransferDashboardScreen`, `TransitTrackerScreen`, dashboard sub-package |
+
+**Action:** Update CLAUDE.md Module Map table to accurately reflect the implemented status of these modules. Remove "Phase 3 placeholder" language.
+
+---
+
+### 2.4 `CLAUDE.md` Stale Backend Audit Status
+
+**Claim (CLAUDE.md "Backend Audit Status" section):**
+```
+Phase C: PARTIAL (S3-6 admin auth tests, S3-11 indexes, S3-14 pool tuning, S3-15 repository extraction)
+Phase D: Pending
+Phase E: PARTIAL (S4-5/S4-6/S4-7 backend docs, S4-10 GDPR export, S4-11 audit sync)
+Phase F: PARTIAL (S4-9 CSP nonce)
+```
+
+**Reality:** The execution log (last updated 2026-03-20) and `missing-features-implementation-plan.md` (last updated 2026-03-27) confirm substantial completion of these phases. Specifically:
+- **Phase C** (S3-6): `AdminAuthServiceTest` + `AdminAuthServiceC6Test` exist (791+ LOC across 2 files) — ✅ done
+- **Phase E** (S4-10 GDPR): `ExportRoutes.kt` exists — ✅ done
+- **Phase D/E/F**: Need individual verification per item
+
+**Action:** Cross-reference each Sn item in `docs/audit/backend-modules-audit-2026-03-12.md` against the actual backend source tree. Update the audit status table in CLAUDE.md to reflect current state.
+
+---
+
+### 2.5 `CLAUDE.md` Stale ADR-009 Violation List
+
+**Claim (CLAUDE.md and `missing-features-implementation-plan.md` lines 26–30):**
+> Known backend violations to migrate:
+> - `AdminTransferRoutes.kt` — POST/PUT for transfers → migrate to `/v1/transfers/*`
+> - `AdminReplenishmentRoutes.kt` — POST/DELETE for replenishment rules → migrate to `/v1/replenishment/*`
+
+**Reality:**
+- `AdminTransferRoutes.kt` contains **only GET endpoints** (verified 2026-03-27). Write ops were migrated to `/v1/transfers/*` (per execution log entry dated 2026-03-22: "Write endpoints removed from /admin/transfers; POS writes at /v1/transfers with RS256 JWT auth").
+- `AdminReplenishmentRoutes.kt` contains only `GET /admin/replenishment/rules` and `GET /admin/replenishment/suggestions` — read-only (verified 2026-03-27).
+
+**Action:** Remove the "Known backend violations" list from both CLAUDE.md and `missing-features-implementation-plan.md` ADR-009 compliance section. Replace with a confirmation that ADR-009 is now fully compliant.
+
+---
+
+### 2.6 `docs/audit/gap_analysis_2026-03-09.md` — Fully Superseded
+
+**Status:** This audit was performed on 2026-03-09. All blockers it identified have since been resolved:
+- TODO-007g (sync engine): ✅ fully implemented (SyncProcessor, EntityApplier, 17+ entity types)
+- TODO-006 (remote diagnostics): ✅ DiagnosticRelay.kt, DiagnosticWebSocketRoutes.kt, DiagnosticConsentRoutes.kt, AdminDiagnosticRoutes.kt all exist
+- TODO-008a (email): ✅ Stalwart live, EmailService, AdminTicketService email integration, settings/email.tsx route
+- TODO-011 (Firebase Analytics): ✅ ~95% code-complete (AnalyticsService expect/actual, Firebase BOM, Android + JVM actuals)
+- TODO-007e (API docs): ✅ 100% complete (all 4 OpenAPI specs, guides, build.js, Cloudflare Pages deploy)
+
+**Action:** Add a notice at the top of `gap_analysis_2026-03-09.md` marking it as superseded:
+```markdown
+> **⚠️ SUPERSEDED as of 2026-03-27.** All blockers identified in this document have been resolved.
+> See `missing-features-implementation-plan.md` for current implementation status.
+```
+
+---
+
+## 3. EXTERNAL / INFRASTRUCTURE GAPS (No Code — User Action Required)
+
+These cannot be resolved by code changes. They require access to external consoles.
+
+| Item | TODO | Action | Status |
+|------|------|--------|--------|
+| Firebase project creation + GA4 property | 011 | Firebase Console | ⬜ Pending |
+| Google Cloud OAuth2 client | 007f / 011 | Google Cloud Console | ⬜ Pending |
+| Cloudflare Zero Trust for `panel.zyntapos.com` | 010 | Cloudflare Dashboard | ⬜ Pending |
+| IRD sandbox access | D-5/D-6 | IRD registration | ⬜ Pending |
+| Play Store listing & ASO | 008 | Google Play Console | ⬜ Pending |
+| Google Search Console domain verification | 008 | GSC + DNS TXT record | ⬜ Pending |
+| VPS provisioning + DNS A records | 007 | Cloud provider + Cloudflare | ⬜ Pending (if not already done) |
+| CF Bot Fight Mode | 010 | Cloudflare Dashboard | ⬜ Pending |
+| GA4 BigQuery export activation | 011 | Firebase Console | ⬜ Pending |
+
+---
+
+## 4. DOCUMENTATION UPDATE CHECKLIST
+
+Items that are implemented but documentation has not been updated to reflect completion:
+
+### 4.1 CLAUDE.md Updates Required
+
+- [ ] **Module count:** Change "Module Map (26 Modules)" heading → "Module Map (29 Modules)"; update Repository Layout table row `settings.gradle.kts` count
+- [ ] **Domain model count:** Change "38+" → "104+" in ADR-002 section
+- [ ] **Feature module table:** Update `:feature:accounting`, `:feature:staff`, `:feature:coupons`, `:feature:multistore` descriptions from scaffold/Phase 3 placeholder language to reflect full implementation
+- [ ] **Backend audit status table:** Update Phase C/D/E/F rows to reflect current state (verify each Sn item)
+- [ ] **ADR-009 violations:** Remove the "Known backend violations" row from the backend common pitfalls section; add confirmation that all /admin/* routes are now read-only compliant
+- [ ] **Phase 3 status description:** Update "Phase 3 — Enterprise (~80% In Progress)" section in Development Phases table to reflect current actual completion level
+- [ ] **.sq schema file count:** CLAUDE.md says "73 .sq schema files" — verified correct (73 confirmed). No change needed.
+
+### 4.2 `docs/audit/gap_analysis_2026-03-09.md` Updates Required
+
+- [ ] Add superseded notice at top of file (see §2.6 above)
+
+### 4.3 `docs/todo/missing-features-implementation-plan.md` Updates Required
+
+- [ ] **ADR-009 compliance section (lines 26–30):** Remove the "Known backend violations" list; replace with a note confirming ADR-009 is fully compliant as of 2026-03-22
+- [ ] **COMPLETED section (line 3022):** Move all fully-completed sections from the main body into the `## COMPLETED` section at the bottom — currently says "(No completed items yet)" despite 556 checked items existing in the file
+
+### 4.4 `docs/ai_workflows/execution_log.md` Updates Required
+
+- [ ] Add entries for the 2026-03-25 to 2026-03-27 batch session (batch-2 items referenced in `missing-features-implementation-plan.md` header but not logged in execution_log)
+
+---
+
+## 5. SUMMARY SCORECARD
+
+| Category | Count | Priority |
+|----------|-------|----------|
+| Genuinely unimplemented (Phase 3 deferred) | 7 items | Low — Phase 3 scope |
+| TODO-012 gaps (agent email reply, advanced filter, SLA bug) | 3 items | Medium |
+| Firebase code gaps (RemoteConfig, Crashlytics, JS SDK) | 3 items | Low–Medium |
+| External/infrastructure (user action only) | 9 items | Varies |
+| Documentation staleness (CLAUDE.md, gap_analysis, plan) | ~10 items | Low — housekeeping |
+
+### Overall Phase Status (Verified 2026-03-27)
+
+| Phase | Code Status | Infrastructure |
+|-------|-------------|----------------|
+| Phase 1 — MVP | ✅ 100% Complete | ✅ N/A |
+| Phase 2 — Growth | ✅ 100% Complete (code) | 🟡 70% (DNS/VPS/external consoles pending) |
+| Phase 3 — Enterprise | ✅ ~90% Complete (code) | N/A — not yet deployed |
+
+> **Key finding:** The codebase is significantly further ahead than many documentation files indicate. The main `missing-features-implementation-plan.md` (last updated 2026-03-27) is the most current reference. Older docs (`gap_analysis_2026-03-09.md`, CLAUDE.md module/model counts) have not been updated to reflect the substantial implementation work completed between 2026-03-09 and 2026-03-27.
+
+---
+
+## 6. NEXT IMPLEMENTATION PRIORITIES
+
+In order of unblocking value:
+
+1. **TODO-012 Task 6** — Agent reply by email outbound. ~4h backend + ~3h admin panel UI.
+2. **TODO-012 Advanced filtering** — Verify + implement if missing. ~2h backend + ~2h frontend.
+3. **TODO-012 SLA bug fix** — Verify `InboundEmailProcessor` reads SLA dynamically. ~1h.
+4. **Firebase RemoteConfig** — Edition feature flags via remote config. ~4h KMP expect/actual.
+5. **Firebase Crashlytics** — Dual crash reporting. ~2h Android integration.
+6. **Firebase JS SDK for admin panel** — Web analytics. ~1h.
+7. **Documentation cleanup** — Update CLAUDE.md counts, mark gap_analysis superseded. ~1h.
