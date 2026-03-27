@@ -286,6 +286,23 @@ All previously identified code priorities have been implemented:
 - `PricingRuleViewModel` (C2.1 Region-Based Pricing) — untested → now covered (23 tests) — 2026-03-27
 - `WarehouseViewModel` — already tested under `MultiStoreViewModelTest.kt` (17 tests) — confirmed 2026-03-27
 
+**Second test coverage pass completed 2026-03-27 (session 2):**
+- `auth` domain: `GetUserAccessibleStoresUseCase`, `QuickSwitchUserUseCase` — now covered
+- `crm` domain: `EvaluateCustomerSegmentUseCase`, `WalletTopUpUseCase`, `GetCustomerPurchaseHistoryUseCase`, `ExportCustomerDataUseCase` — now covered
+- `multistore` domain: `GetAllStoresUseCase`, `GetInTransitCountUseCase`, `GetTransitHistoryUseCase`, `AddTransitEventUseCase`, `ApproveStockTransferUseCase`, `DispatchStockTransferUseCase`, `ReceiveStockTransferUseCase`, `LogWorkflowTransitEventUseCase` — now covered
+- `rbac` domain: `GetCustomRolesUseCase` — now covered
+
+**Third test coverage pass completed 2026-03-27 (session 3):**
+- `admin` domain: `GetConflictCountUseCase`, `GetUnresolvedConflictsUseCase`, `ResolveConflictUseCase`, `GetDatabaseStatsUseCase`, `RestoreBackupUseCase`, `VerifyAuditIntegrityUseCase` — now covered
+- `coupons` domain: `GetStorePromotionsUseCase` — now covered
+- `einvoice` domain: `GetEInvoiceByOrderUseCase`, `SubmitEInvoiceToIrdUseCase` — now covered
+- `inventory` domain: `GetLabelTemplatesUseCase`, `GetMasterProductCatalogUseCase`, `CreatePurchaseOrderUseCase`, `AutoReplenishmentUseCase` — now covered
+- `pos` domain: `PrintReceiptUseCase`, `OpenCashDrawerUseCase`, `ValidateStoreDiscountLimitUseCase`, `ResolveReturnStockDestinationUseCase`, `ResolvePromotionConflictsUseCase` — now covered
+- `register` domain: `PrintZReportUseCase` — now covered
+- `reports` domain: `PrintReportUseCase`, `PrintA4SalesReportUseCase` — now covered
+- **`PrintTestPageUseCase`** (settings domain): `fun interface` — pure abstract contract, no domain business logic. Implementation is in `:composeApp:feature:settings` — not testable at domain layer. **Domain test coverage is complete.**
+- All 35 ViewModels confirmed tested — no gaps found.
+
 Remaining actionable items (in priority order):
 
 1. **FCM push notifications** — FCM project required; implement once Firebase project is provisioned.
