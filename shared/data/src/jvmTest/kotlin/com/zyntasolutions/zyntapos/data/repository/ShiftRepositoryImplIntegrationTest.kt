@@ -52,7 +52,7 @@ class ShiftRepositoryImplIntegrationTest {
             date_of_birth = null, hire_date = "2024-01-01",
             department = null, position = "Cashier",
             salary = 50000.0, salary_type = "MONTHLY",
-            commission_rate = null, emergency_contact = null, documents = null,
+            commission_rate = 0.0, emergency_contact = null, documents = null,
             is_active = 1L, created_at = now, updated_at = now, deleted_at = null,
             sync_status = "PENDING",
         )
@@ -63,7 +63,7 @@ class ShiftRepositoryImplIntegrationTest {
             date_of_birth = null, hire_date = "2024-01-01",
             department = null, position = "Supervisor",
             salary = 70000.0, salary_type = "MONTHLY",
-            commission_rate = null, emergency_contact = null, documents = null,
+            commission_rate = 0.0, emergency_contact = null, documents = null,
             is_active = 1L, created_at = now, updated_at = now, deleted_at = null,
             sync_status = "PENDING",
         )

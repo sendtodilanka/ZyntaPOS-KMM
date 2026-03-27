@@ -76,7 +76,7 @@ class UserStoreAccessRepositoryImplIntegrationTest {
             id = "access-01",
             userId = "user-01",
             storeId = "store-01",
-            roleAtStore = Role.MANAGER,
+            roleAtStore = Role.STORE_MANAGER,
             grantedBy = "admin-01",
         )
         val grantResult = repo.grantAccess(access)
@@ -88,7 +88,7 @@ class UserStoreAccessRepositoryImplIntegrationTest {
         assertEquals("access-01", fetched.id)
         assertEquals("user-01", fetched.userId)
         assertEquals("store-01", fetched.storeId)
-        assertEquals(Role.MANAGER, fetched.roleAtStore)
+        assertEquals(Role.STORE_MANAGER, fetched.roleAtStore)
         assertTrue(fetched.isActive)
         assertEquals("admin-01", fetched.grantedBy)
     }
