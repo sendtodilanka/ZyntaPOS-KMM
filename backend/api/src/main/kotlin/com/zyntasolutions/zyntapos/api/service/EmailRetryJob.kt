@@ -13,10 +13,12 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -63,9 +65,11 @@ class EmailRetryJob(private val config: AppConfig) {
     fun start(intervalSeconds: Long = 60L) {
         scope.launch {
             log.info("EmailRetryJob started (interval: ${intervalSeconds}s, maxRetries: $MAX_RETRIES)")
-            while (true) {
+            while (isActive) {
                 try {
                     processRetries()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     log.warn("EmailRetryJob error: ${e.message}")
                 }
@@ -108,7 +112,7 @@ class EmailRetryJob(private val config: AppConfig) {
     }
 
     private suspend fun retryEmail(candidate: RetryCandidate) {
-        val result = runCatching {
+        val result = try {
             val response = client.post("https://api.resend.com/emails") {
                 bearerAuth(config.resendApiKey)
                 contentType(ContentType.Application.Json)
@@ -125,6 +129,11 @@ class EmailRetryJob(private val config: AppConfig) {
                 val body = response.bodyAsText()
                 throw RuntimeException("Resend API ${response.status}: $body")
             }
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
         }
 
         val now = OffsetDateTime.now(ZoneOffset.UTC)

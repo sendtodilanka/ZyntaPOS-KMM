@@ -8,10 +8,12 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -58,9 +60,11 @@ class ExchangeRateSyncJob(
         }
         scope.launch {
             log.info("ExchangeRateSyncJob started (interval: ${intervalSeconds}s)")
-            while (true) {
+            while (isActive) {
                 try {
                     syncRates()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     log.error("ExchangeRateSyncJob error: ${e.message}", e)
                 }

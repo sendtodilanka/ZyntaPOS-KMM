@@ -1,11 +1,13 @@
 package com.zyntasolutions.zyntapos.data.job
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Notification
 import com.zyntasolutions.zyntapos.domain.model.Notification.NotificationType
 import com.zyntasolutions.zyntapos.domain.model.Role
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -34,6 +36,7 @@ class SlaAlertJob(
     private val scope: CoroutineScope,
 ) {
 
+    private val log = ZyntaLogger.forModule("SlaAlertJob")
     private var lastAlertedPendingCount = 0
 
     /**
@@ -52,7 +55,7 @@ class SlaAlertJob(
      * Executes one SLA check pass. Exposed as `internal` for testing.
      */
     internal suspend fun runCheck() {
-        runCatching {
+        try {
             val pendingCount = syncStatusPort.pendingCount.value
             val lastSyncFailed = syncStatusPort.lastSyncFailed.value
             val isConnected = syncStatusPort.isNetworkConnected.value
@@ -82,6 +85,10 @@ class SlaAlertJob(
                         "Check server availability and review sync conflict logs.",
                 )
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("SlaAlertJob failed: ${e.message}", throwable = e)
         }
     }
 

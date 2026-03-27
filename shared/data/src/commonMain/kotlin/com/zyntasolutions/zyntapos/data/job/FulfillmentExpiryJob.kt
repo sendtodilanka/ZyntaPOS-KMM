@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.data.job
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -29,6 +31,8 @@ class FulfillmentExpiryJob(
     private val scope: CoroutineScope,
 ) {
 
+    private val log = ZyntaLogger.forModule("FulfillmentExpiryJob")
+
     /**
      * Starts the background expiry loop.
      *
@@ -48,9 +52,13 @@ class FulfillmentExpiryJob(
      * Executes one expiry pass. Exposed as `internal` for testing.
      */
     internal suspend fun runExpiry() {
-        runCatching {
+        try {
             val now = Clock.System.now().toEpochMilliseconds()
             fulfillmentRepository.expireOverdueOrders(storeId, now)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("FulfillmentExpiryJob failed: ${e.message}", throwable = e)
         }
     }
 }

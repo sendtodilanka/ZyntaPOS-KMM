@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.data.job
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.Notification
 import com.zyntasolutions.zyntapos.domain.model.Notification.NotificationType
@@ -8,6 +9,7 @@ import com.zyntasolutions.zyntapos.domain.model.WarehouseStock
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
 import com.zyntasolutions.zyntapos.domain.repository.NotificationRepository
 import com.zyntasolutions.zyntapos.domain.repository.WarehouseStockRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -36,6 +38,8 @@ class LowStockNotificationJob(
     private val scope: CoroutineScope,
 ) {
 
+    private val log = ZyntaLogger.forModule("LowStockNotificationJob")
+
     /**
      * Starts monitoring. Collects [SyncStatusPort.onSyncComplete] and runs
      * a low-stock check after each sync cycle.
@@ -52,7 +56,7 @@ class LowStockNotificationJob(
      * Executes one low-stock notification pass. Exposed as `internal` for testing.
      */
     internal suspend fun runCheck() {
-        runCatching {
+        try {
             val lowStockItems = warehouseStockRepository.getAllLowStock().first()
             if (lowStockItems.isEmpty()) return
 
@@ -66,6 +70,10 @@ class LowStockNotificationJob(
 
                 createLowStockNotification(warehouseName, criticalItems)
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("LowStockNotificationJob failed: ${e.message}", throwable = e)
         }
     }
 

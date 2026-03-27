@@ -1,7 +1,9 @@
 package com.zyntasolutions.zyntapos.data.job
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.domain.model.LogLevel
 import com.zyntasolutions.zyntapos.domain.repository.OperationalLogRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -43,6 +45,8 @@ class LogRetentionJob(
     private val scope: CoroutineScope,
 ) {
 
+    private val log = ZyntaLogger.forModule("LogRetentionJob")
+
     /**
      * Starts the background retention loop.
      *
@@ -65,7 +69,7 @@ class LogRetentionJob(
      * the 24-hour delay loop.
      */
     internal suspend fun runRetention() {
-        runCatching {
+        try {
             val now = Clock.System.now()
 
             // VERBOSE + DEBUG: keep 3 days
@@ -94,6 +98,10 @@ class LogRetentionJob(
                 level = LogLevel.FATAL,
                 olderThanEpochMillis = (now - 90.days).toEpochMilliseconds(),
             )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("LogRetentionJob failed: ${e.message}", throwable = e)
         }
     }
 }
