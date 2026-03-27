@@ -209,26 +209,26 @@ Items that are implemented but documentation has not been updated to reflect com
 
 ### 4.1 CLAUDE.md Updates Required
 
-- [ ] **Module count:** Change "Module Map (26 Modules)" heading → "Module Map (29 Modules)"; update Repository Layout table row `settings.gradle.kts` count
-- [ ] **Domain model count:** Change "38+" → "104+" in ADR-002 section
-- [ ] **Feature module table:** Update `:feature:accounting`, `:feature:staff`, `:feature:coupons`, `:feature:multistore` descriptions from scaffold/Phase 3 placeholder language to reflect full implementation
-- [ ] **Backend audit status table:** Update Phase C/D/E/F rows to reflect current state (verify each Sn item)
-- [ ] **ADR-009 violations:** Remove the "Known backend violations" row from the backend common pitfalls section; add confirmation that all /admin/* routes are now read-only compliant
-- [ ] **Phase 3 status description:** Update "Phase 3 — Enterprise (~80% In Progress)" section in Development Phases table to reflect current actual completion level
-- [ ] **.sq schema file count:** CLAUDE.md says "73 .sq schema files" — verified correct (73 confirmed). No change needed.
+- [x] **Module count:** "Module Map (29 Modules)" — ✅ already correct in CLAUDE.md
+- [x] **Domain model count:** "104+" — ✅ already correct in CLAUDE.md
+- [x] **Feature module table:** `:feature:accounting` expanded to include chart of accounts, general ledger, journal entries, financial statements — ✅ updated 2026-03-27
+- [x] **Backend audit status table:** Phase C/D/E/F — ✅ already reflects current state (SUBSTANTIALLY COMPLETE / PARTIAL)
+- [x] **ADR-009 violations:** No "Known backend violations" text in CLAUDE.md pitfalls — ✅ already clean
+- [x] **Phase 3 status description:** Updated to "~92% Complete (code)" with data-layer tests noted — ✅ updated 2026-03-27
+- [x] **.sq schema file count:** CLAUDE.md says "73 .sq schema files" — verified correct (73 confirmed). No change needed.
 
 ### 4.2 `docs/audit/gap_analysis_2026-03-09.md` Updates Required
 
-- [ ] Add superseded notice at top of file (see §2.6 above)
+- [x] Add superseded notice at top of file — ✅ already present in `gap_analysis_2026-03-09.md`
 
 ### 4.3 `docs/todo/missing-features-implementation-plan.md` Updates Required
 
-- [ ] **ADR-009 compliance section (lines 26–30):** Remove the "Known backend violations" list; replace with a note confirming ADR-009 is fully compliant as of 2026-03-22
-- [ ] **COMPLETED section (line 3022):** Move all fully-completed sections from the main body into the `## COMPLETED` section at the bottom — currently says "(No completed items yet)" despite 556 checked items existing in the file
+- [x] **ADR-009 compliance section (lines 26–30):** Already shows "✅ ADR-009 FULLY COMPLIANT as of 2026-03-22" — no change needed
+- [ ] **COMPLETED section (line 3022):** Move all fully-completed sections from the main body into the `## COMPLETED` section — 556 checked items exist; low value refactor, deferred indefinitely
 
 ### 4.4 `docs/ai_workflows/execution_log.md` Updates Required
 
-- [ ] Add entries for the 2026-03-25 to 2026-03-27 batch session (batch-2 items referenced in `missing-features-implementation-plan.md` header but not logged in execution_log)
+- [x] Add entries for the 2026-03-27 batch session — ✅ added 2026-03-27: domain+VM coverage (sessions 1–3), data-layer integration tests (sessions 4–5, 66 files)
 
 ---
 
@@ -309,3 +309,104 @@ Remaining actionable items (in priority order):
 2. **IRD XML invoice format** — IRD sandbox required; verify/adjust once sandbox access is granted.
 3. **Blue-green deployment** — Phase 3 infrastructure scope.
 4. **Online ordering API** — External platform dependency.
+
+---
+
+## 7. DATA LAYER INTEGRATION TEST COVERAGE
+
+**Section added 2026-03-27 (session 4 onward)**
+
+### 7.1 Integration Test Progress
+
+Comprehensive SQLDelight integration tests in `shared/data/src/jvmTest/` using real in-memory SQLite databases (`createTestDatabase()` with `foreign_keys = true`).
+
+**Total files as of last update: 66 test files**
+
+#### Previously completed (sessions 1–3):
+| Test File | Tests | Key Coverage |
+|-----------|-------|-------------|
+| `ProductRepositoryIntegrationTest.kt` | — | Products CRUD, FTS5 search |
+| `CategoryRepositoryImplIntegrationTest.kt` | — | Categories CRUD, soft-delete |
+| `CustomerRepositoryImplIntegrationTest.kt` | — | Customers, wallet, group assignment |
+| `OrderRepositoryImplIntegrationTest.kt` | — | Orders, line items, status transitions |
+| `RegisterRepositoryImplIntegrationTest.kt` | — | Cash register sessions |
+| `StockRepositoryImplIntegrationTest.kt` | — | Stock adjustments, history |
+| `StocktakeRepositoryImplIntegrationTest.kt` | — | Stocktake sessions and items |
+| `EmployeeRepositoryImplIntegrationTest.kt` | — | Employee CRUD |
+| `ExpenseRepositoryImplIntegrationTest.kt` | — | Expenses, categories |
+| `CouponRepositoryImplIntegrationTest.kt` | — | Coupons, usage tracking |
+| `AuthRepositoryImplIntegrationTest.kt` | — | Auth tokens |
+| `RoleRepositoryImplIntegrationTest.kt` | — | Roles, permissions |
+| `SyncRepositoryIntegrationTest.kt` | — | Sync queue, state |
+| `PrinterProfileRepositoryImplIntegrationTest.kt` | — | Printer profiles |
+| `LabelPrinterConfigRepositoryImplIntegrationTest.kt` | — | Printer configs |
+| `FeatureConfigRepositoryImplIntegrationTest.kt` | — | Feature flags |
+
+#### Added in session 4 (2026-03-27):
+| Test File | Tests | Key Coverage |
+|-----------|-------|-------------|
+| `SupplierRepositoryImplIntegrationTest.kt` | 8 | CRUD, soft-delete, getAll active |
+| `LabelTemplateRepositoryImplIntegrationTest.kt` | 8 | Save/getById, PaperType, isDefault, count |
+| `WarehouseStockRepositoryImplIntegrationTest.kt` | 10 | Upsert, adjustStock, transferStock, insufficient stock error |
+| `PurchaseOrderRepositoryImplIntegrationTest.kt` | 10 | Create, getByStatus, receiveItems PARTIAL/RECEIVED, cancel |
+| `MasterProductRepositoryImplIntegrationTest.kt` | 8 | Upsert, getAll active filter, getByBarcode, FTS5 search |
+| `UserRepositoryImplIntegrationTest.kt` | 8 | Create with fake PasswordHashPort, one-admin rule, deactivate |
+| `ReplenishmentRuleRepositoryImplIntegrationTest.kt` | 7 | JOIN-based queries, autoApprove filter |
+| `TaxGroupRepositoryImplIntegrationTest.kt` | 7 | Soft-delete, TAX_GROUP_IN_USE guard |
+| `SettingsRepositoryImplIntegrationTest.kt` | 6 | Set/get, upsert, observe Flow |
+| `LoyaltyRepositoryImplIntegrationTest.kt` | 5 | recordPoints, getBalance, expirePoints |
+| `EInvoiceRepositoryImplIntegrationTest.kt` | 8 | JSON deserialization, status transitions |
+| `StoreRepositoryImplIntegrationTest.kt` | 8 | upsertFromSync, getAllStores active filter, ReturnStockPolicy |
+| `CustomerGroupRepositoryImplIntegrationTest.kt` | 7 | Soft-delete, PriceType, null discountType |
+| `WarehouseRepositoryImplIntegrationTest.kt` | 10 | isDefault demotion, createTransfer, cancelTransfer |
+| `NotificationRepositoryImplIntegrationTest.kt` | 7 | markRead, markAllRead, pruneOld (read-only filter) |
+| `UnitGroupRepositoryImplIntegrationTest.kt` | 9 | isBaseUnit demotion, UNIT_IN_USE guard, conversionRate > 0 |
+| `PricingRuleRepositoryImplIntegrationTest.kt` | 7 | getEffectiveRule (priority+validity), global rules (storeId=null) |
+| `ConflictLogRepositoryImplIntegrationTest.kt` | 6 | resolve, getByEntity, pruneOld resolved-only, blank ID auto-gen |
+| `TransitTrackingRepositoryImplIntegrationTest.kt` | 5 | addEvent, getInTransitCount, warehouses+transfers FK seeding |
+
+#### Added in session 5 (2026-03-27):
+| Test File | Tests | Key Coverage |
+|-----------|-------|-------------|
+| `SystemRepositoryImplIntegrationTest.kt` | — | System-wide key-value settings |
+| `AttendanceRepositoryImplIntegrationTest.kt` | — | Clock-in/out, FK: employees |
+| `ShiftRepositoryImplIntegrationTest.kt` | — | Shift CRUD, FK: employees |
+| `LeaveRepositoryImplIntegrationTest.kt` | 7 | Insert/getById, getPendingForStore, updateStatus PENDING→APPROVED, getByEmployeeAndPeriod |
+| `PayrollRepositoryImplIntegrationTest.kt` | — | Payroll CRUD, status transitions, FK: employees |
+| `CompoundTaxRepositoryImplIntegrationTest.kt` | — | Compound tax groups, component rates |
+| `CustomerSegmentRepositoryImplIntegrationTest.kt` | — | Customer segment rules, evaluation |
+| `CustomerWalletRepositoryImplIntegrationTest.kt` | — | Wallet top-up, deduct, balance, transactions |
+| `EmployeeStoreAssignmentRepositoryImplIntegrationTest.kt` | — | Employee↔store multi-assignments, FK chain |
+| `ExchangeRateRepositoryImplIntegrationTest.kt` | — | Exchange rates, getLatest |
+| `FeatureRegistryRepositoryImplIntegrationTest.kt` | — | Feature registry flags, per-store overrides |
+| `OperationalLogRepositoryImplIntegrationTest.kt` | — | Append-only operational log, pruneOld |
+| `ProductVariantRepositoryImplIntegrationTest.kt` | — | Variants, FK: products |
+| `RackProductRepositoryImplIntegrationTest.kt` | — | Warehouse rack products, FK: racks |
+| `RegionalTaxOverrideRepositoryImplIntegrationTest.kt` | — | Regional tax overrides per store |
+| `StoreProductOverrideRepositoryImplIntegrationTest.kt` | — | Store-level price overrides |
+| `UserStoreAccessRepositoryImplIntegrationTest.kt` | — | User↔store RBAC access, Role.STORE_MANAGER |
+| `WarehouseRackRepositoryImplIntegrationTest.kt` | — | Warehouse rack CRUD, FK: warehouses |
+| `PayrollEntryRepositoryImplIntegrationTest.kt` | 7 | baseSalary/overtime/deductions, updateStatus DRAFT→APPROVED→PAID |
+| `ShiftSwapRepositoryImplIntegrationTest.kt` | 8 | Full FK chain (employees+shifts), updateStatus TARGET_ACCEPTED→MANAGER_APPROVED |
+| `AccountRepositoryImplIntegrationTest.kt` | 9 | AccountType, NormalBalance, isSystemAccount, isAccountCodeTaken, seedDefaultAccounts |
+| `JournalRepositoryImplIntegrationTest.kt` | 9 | Balanced entry validation, postEntry, reverseEntry, getNextEntryNumber |
+| `AccountingPeriodRepositoryImplIntegrationTest.kt` | 8 | getPeriodForDate, closePeriod, lockPeriod, reopenPeriod |
+| `AuditRepositoryImplIntegrationTest.kt` | 6 | kotlinx.datetime.Instant, getLatestHash, getRecentLoginFailureCount |
+| `BudgetRepositoryImplIntegrationTest.kt` | 7 | getByStoreAndPeriod overlap, updateSpent, null categoryId |
+| `FulfillmentRepositoryImplIntegrationTest.kt` | 6 | getPendingPickups, updateStatus lifecycle, expireOverdueOrders |
+| `MediaRepositoryImplIntegrationTest.kt` | 8 | Soft-delete, getPrimaryForEntity, getPendingUpload, updateUploadStatus, setPrimary |
+| `InstallmentRepositoryImplIntegrationTest.kt` | 7 | createPlan, recordPayment auto-complete, getDuePayments, updatePlanStatus |
+| `FinancialStatementRepositoryImplIntegrationTest.kt` | 6 | getTrialBalance (isBalanced), getProfitAndLoss, getBalanceSheet, upsertBalance |
+| `AccountingRepositoryImplIntegrationTest.kt` | 6 | insertEntries balanced check, getByReference, getSummaryForPeriodRange |
+| `ProductRepositoryImplIntegrationTest.kt` | 10 | getAll active-only, getByBarcode, getPage(PageRequest), getCount |
+
+### 7.2 Still Untested Repositories
+
+Repositories excluded from jvmTest integration tests due to external dependencies that cannot be mocked in an in-memory SQLite test:
+
+| Repository | Reason Excluded |
+|------------|----------------|
+| `BackupRepositoryImpl` | Requires `BackupFileManager` — platform-specific file I/O (not injectable in jvmTest) |
+| `DiagnosticConsentRepositoryImpl` | Requires `ApiService` (live network calls) |
+| `LicenseRepositoryImpl` | Requires `ApiService` (live network calls) |
+| `ReportRepositoryImpl` | Complex multi-table aggregation queries only; no writable state to assert against |
