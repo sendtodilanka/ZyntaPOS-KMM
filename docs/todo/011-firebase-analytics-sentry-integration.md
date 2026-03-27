@@ -1,7 +1,7 @@
 # 011 — Firebase Analytics, Crash Reporting & Google SSO Integration
 
 **Decision Date:** 2026-03-08
-**Status:** ✅ ~95% COMPLETE — Firebase BOM deps + google-services plugin + ZyntaApplication init (Analytics + Crashlytics) implemented. Sentry SDK in all 3 backend services + Android + Desktop JVM. AnalyticsService KMP expect/actual complete: commonMain expect class, androidMain Firebase SDK actual (FirebaseAnalytics.logEvent), jvmMain GA4 Measurement Protocol actual. Koin wiring complete in androidDataModule + desktopDataModule (bound as both AnalyticsService and AnalyticsTracker interface). ViewModel event wiring complete in PosViewModel, AuthViewModel, DashboardViewModel. Remaining: GA4 property creation (external Firebase Console), Google Cloud Console OAuth setup (external). Verified 2026-03-13.
+**Status:** ✅ ~98% COMPLETE (code) — Phase 2 code items completed 2026-03-27. Firebase BOM deps + google-services plugin + ZyntaApplication init (Analytics + Crashlytics) implemented. Sentry SDK in all 3 backend services + Android + Desktop JVM. AnalyticsService KMP expect/actual complete. RemoteConfigService KMP expect/actual complete (androidMain Firebase RC SDK, jvmMain stub). Firebase JS SDK added to admin-panel (src/lib/firebase.ts). RemoteConfigProvider interface in shared:core with RemoteConfigKeys constants. Koin wiring complete in androidDataModule + desktopDataModule. ViewModel event wiring complete (16 VMs). Remaining (external only): GA4 property + Firebase project creation (Firebase Console), google-services.json (CI secret), Google Cloud Console OAuth setup. Verified 2026-03-27.
 **Phases:** Phase 1 (partial) → Phase 2 → Phase 3
 
 ---
@@ -110,11 +110,11 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 - [x] Add `SENTRY_DSN` to `local.properties.template` (Android) + `docker-compose.yml` env vars (`SENTRY_DSN_API`, `SENTRY_DSN_LICENSE`, `SENTRY_DSN_SYNC`)
 
 ### Phase 2
-- [ ] Add Firebase JS SDK to Web Admin Panel (React)
-- [ ] Add Firebase Remote Config (edition feature flags)
-- [ ] Implement FCM push notifications (low-stock, shift alerts)
-- [ ] Implement Google OAuth2 PKCE SSO for owner/admin
-- [ ] Add GA4 Measurement Protocol calls from Desktop JVM
+- [x] Add Firebase JS SDK to Web Admin Panel (React) — `admin-panel/src/lib/firebase.ts`, `firebase ^11.6.0` dep, `initFirebase()` in main.tsx | 2026-03-27
+- [x] Add Firebase Remote Config (edition feature flags) — `RemoteConfigProvider` interface in shared:core, `RemoteConfigService` expect/actual in shared:data (androidMain Firebase RC actual, jvmMain stub), Koin wiring in both platform modules | 2026-03-27
+- [ ] Implement FCM push notifications (low-stock, shift alerts) — Phase 3, requires FCM project setup
+- [ ] Implement Google OAuth2 PKCE SSO for owner/admin — Phase 3, requires Google Cloud Console OAuth client
+- [x] Add GA4 Measurement Protocol calls from Desktop JVM — implemented in jvmMain AnalyticsService | 2026-03-13
 
 ### Phase 3
 - [ ] Add Firebase Crashlytics to Android (dual with Sentry)

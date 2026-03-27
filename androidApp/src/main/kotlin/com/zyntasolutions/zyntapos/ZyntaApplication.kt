@@ -37,7 +37,9 @@ import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
 import co.touchlab.kermit.Logger
+import co.touchlab.kermit.crashlytics.CrashlyticsLogWriter
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
+import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityWorker
 import com.zyntasolutions.zyntapos.data.job.FulfillmentExpiryWorker
@@ -130,19 +132,19 @@ class ZyntaApplication : Application() {
                 posModule,           // Cart use cases, PosViewModel
                 inventoryModule,              // Product/Category/Stock use cases, InventoryViewModel
                 androidInventoryLabelModule,  // AndroidLabelPdfRenderer (Android-only)
-                adminModule,         // (placeholder — bindings added per sprint)
-                customersModule,     // (placeholder — bindings added per sprint)
-                couponsModule,       // (placeholder — bindings added per sprint)
-                expensesModule,      // (placeholder — bindings added per sprint)
-                mediaModule,         // (placeholder — bindings added per sprint)
-                multistoreModule,    // (placeholder — bindings added per sprint)
+                adminModule,         // System health, audit-log viewer, DB maintenance
+                customersModule,     // Customer directory, loyalty accounts, GDPR export
+                couponsModule,       // Coupon CRUD, promotion rule engine (BOGO / % / threshold)
+                expensesModule,      // Expense log, P&L statement, cash-flow view
+                mediaModule,         // Product image picker, crop, compression pipeline
+                multistoreModule,    // Store selector, central KPI dashboard, inter-store transfers
                 registerModule,      // Register session use cases, RegisterViewModel
                 reportsModule,       // Sales/Stock report use cases, ReportsViewModel
                 androidReportsModule(this@ZyntaApplication), // AndroidReportExporter
                 settingsModule,      // SettingsViewModel
                 androidSettingsModule(this@ZyntaApplication), // AndroidBackupService
                 staffModule,         // Employee HR, attendance, payroll
-                accountingModule,    // E-Invoice / IRD submission (Sprint 18-24)
+                accountingModule,    // E-Invoice / IRD submission pipeline
                 diagnosticModule,    // Remote diagnostic consent (ENTERPRISE, TODO-006)
             )
         }
@@ -177,6 +179,23 @@ class ZyntaApplication : Application() {
         // Routes all Kermit log events to the operational_logs table for diagnostic
         // queries via the Admin debug console. Must run after dataModule is loaded.
         Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
+
+        // ── Kermit → Crashlytics bridge (TODO-011 Phase 2) ──────────────────────
+        // Routes Kermit ERROR/ASSERT severity events to Firebase Crashlytics as
+        // non-fatal breadcrumb exceptions, enriching crash reports with structured
+        // logs alongside Sentry context. Only active in non-debug builds where
+        // Crashlytics collection is enabled (isCrashlyticsCollectionEnabled = !DEBUG).
+        if (!BuildConfig.DEBUG) {
+            Logger.addLogWriter(CrashlyticsLogWriter())
+        }
+
+        // ── Firebase Remote Config fetch (TODO-011 Phase 2) ─────────────────────
+        // Fetches and activates latest feature flag values from Firebase console.
+        // Runs on IO to avoid blocking the main thread. No-op if Firebase project
+        // is not configured (google-services.json absent in local dev builds).
+        CoroutineScope(Dispatchers.IO).launch {
+            koin.koin.get<RemoteConfigService>().fetchAndActivate()
+        }
 
         // ── Background jobs (WorkManager — battery-efficient, survives process death) ──
         // LogRetentionWorker: daily purge of expired operational_logs (3/14/30/90-day policy)

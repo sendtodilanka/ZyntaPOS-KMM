@@ -175,6 +175,12 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics.ktx)
     implementation(libs.firebase.crashlytics.ktx)
+
+    // ── Kermit → Crashlytics log bridge (TODO-011 Phase 2) ─────────────────
+    // Routes Kermit ERROR/ASSERT log events to Firebase Crashlytics as non-fatal
+    // breadcrumbs, giving richer context alongside Sentry crash reports.
+    // Only active in non-debug builds (isCrashlyticsCollectionEnabled = !DEBUG).
+    implementation(libs.kermit.crashlytics)
 }
 
 // ── Secrets Gradle Plugin ────────────────────────────────────

@@ -1,5 +1,11 @@
 # ZyntaPOS-KMM Gap Analysis — 2026-03-09
 
+> **⚠️ SUPERSEDED as of 2026-03-27.** All blockers identified in this document have been resolved.
+> See `docs/todo/missing_implementation_plan.md` for the current implementation status.
+>
+> Resolved items include: TODO-007g sync engine ✅, TODO-006 remote diagnostics ✅,
+> TODO-008a email/Stalwart ✅, TODO-011 Firebase Analytics ~95% ✅, TODO-007e API docs ✅.
+
 **Scope:** Actual codebase implementation vs. `docs/todo/` documentation (TODO-000 through TODO-011 + sub-tasks).
 **Branch:** `claude/audit-todo-docs-gap-UnJU4`
 **Analyst:** Claude Code (automated codebase audit)

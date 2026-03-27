@@ -19,6 +19,7 @@ import com.zyntasolutions.zyntapos.data.job.SlaAlertJob
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
+import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
 import com.zyntasolutions.zyntapos.feature.onboarding.onboardingModule
@@ -106,19 +107,19 @@ fun main() {
             posModule,           // Cart use cases, PosViewModel
             inventoryModule,          // Product/Category/Stock use cases, InventoryViewModel
             jvmInventoryLabelModule,  // JvmLabelPdfRenderer (JVM-only)
-            adminModule,         // (placeholder — bindings added per sprint)
-            customersModule,     // (placeholder — bindings added per sprint)
-            couponsModule,       // (placeholder — bindings added per sprint)
-            expensesModule,      // (placeholder — bindings added per sprint)
-            mediaModule,         // (placeholder — bindings added per sprint)
-            multistoreModule,    // (placeholder — bindings added per sprint)
+            adminModule,         // System health, audit-log viewer, DB maintenance
+            customersModule,     // Customer directory, loyalty accounts, GDPR export
+            couponsModule,       // Coupon CRUD, promotion rule engine (BOGO / % / threshold)
+            expensesModule,      // Expense log, P&L statement, cash-flow view
+            mediaModule,         // Product image picker, crop, compression pipeline
+            multistoreModule,    // Store selector, central KPI dashboard, inter-store transfers
             registerModule,      // Register session use cases, RegisterViewModel
             reportsModule,       // Sales/Stock report use cases, ReportsViewModel
             jvmReportsModule,    // JvmReportExporter (JVM-only)
             settingsModule,      // SettingsViewModel
             jvmSettingsModule,   // JvmBackupService (JVM-only)
-            staffModule,         // (placeholder — bindings added per sprint)
-            accountingModule,    // E-Invoice / IRD submission (Sprint 18-24)
+            staffModule,         // Employee HR, attendance, payroll
+            accountingModule,    // E-Invoice / IRD submission pipeline
             diagnosticModule,    // Remote diagnostic consent (ENTERPRISE, TODO-006)
         )
     }
@@ -142,6 +143,13 @@ fun main() {
     // Routes all Kermit log events to the operational_logs table for diagnostic
     // queries via the Admin debug console. Must run after dataModule is loaded.
     Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
+
+    // ── Firebase Remote Config fetch (TODO-011 Phase 2) ─────────────────────
+    // JVM stub — fetchAndActivate() is a no-op that returns false immediately.
+    // Included for symmetry with Android; Desktop edition gating uses license server.
+    CoroutineScope(Dispatchers.IO).launch {
+        koin.koin.get<RemoteConfigService>().fetchAndActivate()
+    }
 
     // ── Background jobs ──────────────────────────────────────────────────────
     // LogRetentionJob: daily purge of expired operational_logs (3/14/30/90-day policy)

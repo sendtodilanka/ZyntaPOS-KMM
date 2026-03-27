@@ -2,10 +2,10 @@
 > **Doc ID:** ZENTA-EXEC-LOG-v1.1
 > **Architecture:** KMP — Desktop (JVM) + Android
 > **Strategy:** Clean Architecture · MVI · Koin · SQLDelight · Compose Multiplatform
-> **Log Created:** 2026-02-20 | **Last Updated:** 2026-03-20 (Phase 2 100% — sync pipeline + admin panel replenishment fully integrated)
+> **Log Created:** 2026-02-20 | **Last Updated:** 2026-03-27 (Firebase JS SDK + RemoteConfigService + documentation cleanup)
 > **Reference Plan:** `docs/plans/PLAN_PHASE1.md`
-> **Status:** ✅ PHASE 3 IN PROGRESS — Phase 1 and Phase 2 fully implemented; Phase 3 ~80% complete
-> **Last Synced with Codebase:** 2026-03-20
+> **Status:** ✅ PHASE 3 IN PROGRESS — Phase 1 and Phase 2 fully implemented; Phase 3 ~90% complete
+> **Last Synced with Codebase:** 2026-03-27
 >
 > ---
 > **📌 CANONICAL NAMESPACE (FIX-14.01):**
@@ -15,6 +15,42 @@
 > **📌 SESSION NOTE (FIX-14.02):**
 > `composeHotReload = "1.0.0"` is present in `libs.versions.toml` as an undocumented
 > addition (not in the original plan). It is retained for desktop hot-reload DX support.
+
+---
+
+## ✅ TODO-011 Phase 2 — Firebase JS SDK + RemoteConfigService + Documentation Cleanup (2026-03-27)
+
+> **Scope:** Execute next priorities from `docs/todo/missing_implementation_plan.md`.
+> **Result:** Phase 3 code completion advanced to ~90%. Firebase Phase 2 analytics complete.
+> **Branch:** `claude/execute-next-priorities-58otU`
+
+### New Files Created
+
+- [x] `admin-panel/src/lib/firebase.ts` — Firebase JS SDK initialisation; `initFirebase()`, `logAnalyticsEvent()`, `setAnalyticsUserId()`, `setAnalyticsUserProperties()`; graceful no-op when `VITE_FIREBASE_*` env vars absent | 2026-03-27
+- [x] `shared/core/src/commonMain/.../core/config/RemoteConfigProvider.kt` — `RemoteConfigProvider` interface + `RemoteEdition` enum + `RemoteConfigKeys` constants; feature modules depend on this interface from `:shared:core` | 2026-03-27
+- [x] `shared/data/src/commonMain/.../data/remoteconfig/RemoteConfigService.kt` — expect class implementing `RemoteConfigProvider` | 2026-03-27
+- [x] `shared/data/src/androidMain/.../data/remoteconfig/RemoteConfigService.kt` — Firebase Remote Config SDK actual; in-code defaults for all `RemoteConfigKeys`; `fetchAndActivate()` via `CompletableDeferred` | 2026-03-27
+- [x] `shared/data/src/jvmMain/.../data/remoteconfig/RemoteConfigService.kt` — JVM no-op stub (no Firebase RC JVM SDK); returns all defaults | 2026-03-27
+
+### Modified Files
+
+- [x] `admin-panel/package.json` — added `firebase ^11.6.0` dependency | 2026-03-27
+- [x] `admin-panel/src/main.tsx` — added `initFirebase()` call after Sentry init | 2026-03-27
+- [x] `admin-panel/.env.example` — added `VITE_FIREBASE_*` env var documentation | 2026-03-27
+- [x] `gradle/libs.versions.toml` — added `firebase-config = "22.0.1"` version + `firebase-config-ktx-versioned` library entry | 2026-03-27
+- [x] `shared/data/build.gradle.kts` — added `firebase.config.ktx.versioned` to androidMain deps | 2026-03-27
+- [x] `shared/data/src/androidMain/.../di/AndroidDataModule.kt` — added `RemoteConfigService` + `RemoteConfigProvider` bindings | 2026-03-27
+- [x] `shared/data/src/jvmMain/.../di/DesktopDataModule.kt` — added `RemoteConfigService` + `RemoteConfigProvider` bindings | 2026-03-27
+- [x] `CLAUDE.md` — module count 26→29, feature modules 16→17, domain models 38+→104+, Phase 3 ~80%→~90%, backend audit Phase C/E updated | 2026-03-27
+- [x] `docs/audit/gap_analysis_2026-03-09.md` — added SUPERSEDED notice (all blockers resolved) | 2026-03-27
+- [x] `docs/todo/missing-features-implementation-plan.md` — ADR-009 section: replaced stale violations list with compliance confirmation | 2026-03-27
+
+### Verified (No Code Change Needed)
+
+- [x] TODO-012 Task 6 (agent email reply): implemented via `POST /admin/tickets/{id}/comments` with `replyToCustomer` flag in `AdminTicketService.addComment()` | verified 2026-03-27
+- [x] TODO-012 Advanced filtering: `GET /admin/tickets` supports `tag`, `assignee`, `priority`, `category`, `search`, `searchBody`, `createdAfter`, `createdBefore` params | verified 2026-03-27
+- [x] TODO-012 SLA bug fix: `InboundEmailProcessor` delegates SLA to `AdminTicketService.createTicket()` — not hardcoded | verified 2026-03-27
+- [x] Firebase Crashlytics Android: dep declared + `FirebaseCrashlytics.getInstance()` initialized in `ZyntaApplication` | verified 2026-03-27
 
 ---
 

@@ -43,6 +43,7 @@ import com.zyntasolutions.zyntapos.domain.usecase.pos.RemoveItemFromCartUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.RetrieveHeldOrderUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.UpdateCartItemQuantityUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.SendReceiptByEmailUseCase
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
@@ -157,6 +158,7 @@ class PosViewModel(
     private val currencyFormatter: CurrencyFormatter,
     private val auditLogger: SecurityAuditLogger,
     private val analytics: AnalyticsTracker,
+    private val sendReceiptByEmailUseCase: SendReceiptByEmailUseCase,
 ) : BaseViewModel<PosState, PosIntent, PosEffect>(PosState()) {
 
     private var cashierId: String = "unknown"
@@ -965,15 +967,23 @@ class PosViewModel(
         }
     }
 
-    private suspend fun onEmailReceipt(_orderId: String, emailAddress: String) {
+    private suspend fun onEmailReceipt(orderId: String, emailAddress: String) {
         if (emailAddress.isBlank()) {
             sendEffect(PosEffect.ShowError("Please enter an email address"))
             return
         }
         updateState { copy(isEmailingReceipt = true, emailDialogOpen = false, emailDialogOrderId = null) }
-        // Phase 1: show confirmation without actual email sending (Phase 2: SendReceiptByEmailUseCase)
-        updateState { copy(isEmailingReceipt = false) }
-        sendEffect(PosEffect.ReceiptEmailSent)
+        when (val result = sendReceiptByEmailUseCase.execute(orderId, emailAddress)) {
+            is Result.Success -> {
+                updateState { copy(isEmailingReceipt = false) }
+                sendEffect(PosEffect.ReceiptEmailSent)
+            }
+            is Result.Error -> {
+                updateState { copy(isEmailingReceipt = false) }
+                sendEffect(PosEffect.ShowError(result.exception.message ?: "Failed to send email"))
+            }
+            is Result.Loading -> Unit
+        }
     }
 
     private suspend fun onPrintA4Invoice(orderId: String) {

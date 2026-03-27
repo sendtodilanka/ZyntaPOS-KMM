@@ -2,12 +2,16 @@ package com.zyntasolutions.zyntapos.data.di
 
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.config.AppConfig
+import com.zyntasolutions.zyntapos.core.config.RemoteConfigProvider
 import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
+import com.zyntasolutions.zyntapos.data.email.EmailPortImpl
+import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
 import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
+import com.zyntasolutions.zyntapos.domain.port.EmailPort
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.io.File
@@ -114,6 +118,16 @@ val desktopDataModule = module {
     // modules can depend on the interface from :shared:core.
     single { AnalyticsService() }
     single<AnalyticsTracker> { get<AnalyticsService>() }
+
+    // ── Remote Config (platform expect/actual) ───────────────────────────
+    // Desktop JVM stub — always returns defaults (no Firebase RC SDK for JVM).
+    // Edition gating on Desktop is handled by the license server.
+    single { RemoteConfigService() }
+    single<RemoteConfigProvider> { get<RemoteConfigService>() }
+
+    // ── Email port (platform expect/actual) ───────────────────────────────────
+    // Desktop actual opens the OS default email client via Desktop.mail().
+    single<EmailPort> { EmailPortImpl() }
 
     // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
     // Adapter class DesktopAesSecurePreferences removed — MERGED-D3 (2026-02-21).

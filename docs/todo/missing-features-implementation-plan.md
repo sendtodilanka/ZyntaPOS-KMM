@@ -23,11 +23,11 @@
 > store-specific product overrides, promotions/discounts, inventory writes, customer data writes,
 > any store-level business operation.
 >
-> **Known backend violations to migrate (write endpoints under /admin/ that should be under /v1/):**
-> - `AdminTransferRoutes.kt` — POST/PUT for transfers → migrate to `/v1/transfers/*`
-> - `AdminReplenishmentRoutes.kt` — POST/DELETE for replenishment rules → migrate to `/v1/replenishment/*`
-> - `AdminPricingRoutes.kt` — POST/DELETE for pricing rules → migrate to `/v1/pricing/*`
-> - `AdminMasterProductRoutes.kt` — PUT store overrides → migrate to `/v1/store-products/*`
+> **✅ ADR-009 FULLY COMPLIANT as of 2026-03-22.** All write endpoints that were previously under
+> `/admin/*` have been migrated:
+> - `AdminTransferRoutes.kt` → GET-only (write ops at `/v1/transfers/*` with POS RS256 JWT) ✅
+> - `AdminReplenishmentRoutes.kt` → GET-only (`GET /admin/replenishment/rules`, `GET /admin/replenishment/suggestions`) ✅
+> - All store-level write operations confirmed under `/v1/*` with RS256 JWT auth ✅
 
 ---
 

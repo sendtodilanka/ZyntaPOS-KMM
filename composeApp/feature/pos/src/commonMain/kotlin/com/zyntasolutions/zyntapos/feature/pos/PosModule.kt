@@ -1,9 +1,11 @@
 package com.zyntasolutions.zyntapos.feature.pos
 
 import com.zyntasolutions.zyntapos.domain.formatter.ReceiptFormatter
+import com.zyntasolutions.zyntapos.domain.port.EmailPort
 import com.zyntasolutions.zyntapos.domain.printer.A4InvoicePrinterPort
 import com.zyntasolutions.zyntapos.domain.printer.ReceiptPrinterPort
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.PostSaleJournalEntryUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.SendReceiptByEmailUseCase
 import com.zyntasolutions.zyntapos.feature.pos.fulfillment.FulfillmentViewModel
 import com.zyntasolutions.zyntapos.domain.usecase.pos.LookupOrderForReturnUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.pos.PrintA4TaxInvoiceUseCase
@@ -236,6 +238,15 @@ val posModule = module {
         )
     }
 
+    /** Sends the receipt for a completed order to a customer via email. */
+    factory {
+        SendReceiptByEmailUseCase(
+            orderRepository = get(),
+            settingsRepository = get(),
+            emailPort = get<EmailPort>(),
+        )
+    }
+
     // ── Click & Collect ViewModel (C4.4) ─────────────────────────────────────
 
     viewModel {
@@ -285,6 +296,7 @@ val posModule = module {
             currencyFormatter = get(),
             auditLogger = get(),
             analytics = get(),
+            sendReceiptByEmailUseCase = get(),
         )
     }
 }
