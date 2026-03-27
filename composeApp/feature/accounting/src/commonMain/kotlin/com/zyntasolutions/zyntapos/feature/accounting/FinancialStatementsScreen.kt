@@ -55,8 +55,8 @@ fun FinancialStatementsScreen(
         viewModel.dispatch(FinancialStatementsIntent.SwitchTab(initialTab))
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is FinancialStatementsEffect.ShowError ->
                     snackbarHostState.showSnackbar(effect.message, duration = SnackbarDuration.Short)

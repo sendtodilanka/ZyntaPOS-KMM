@@ -82,8 +82,8 @@ fun PosScreen(
     }
 
     // Collect one-shot effects
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is PosEffect.OpenPaymentSheet   -> isPaymentScreenVisible = true
                 is PosEffect.OpenCustomerPicker -> isCustomerPickerVisible = true

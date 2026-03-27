@@ -241,8 +241,8 @@ fun RegionalTaxOverrideScreen(
         onIntent(RegionalTaxOverrideIntent.LoadOverrides(storeId))
     }
 
-    LaunchedEffect(Unit) {
-        effects.collectLatest { effect ->
+    LaunchedEffect(effects) {
+        effects.collect { effect ->
             when (effect) {
                 is RegionalTaxOverrideEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)
                 is RegionalTaxOverrideEffect.ShowSuccess -> snackbarHostState.showSnackbar(effect.message)

@@ -123,7 +123,7 @@ fun GeneralSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadGeneral) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 SettingsEffect.GeneralSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_GENERAL_SAVED])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)

@@ -92,7 +92,7 @@ fun UserManagementScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadUsers) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 SettingsEffect.UserSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_USER_SAVED])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)

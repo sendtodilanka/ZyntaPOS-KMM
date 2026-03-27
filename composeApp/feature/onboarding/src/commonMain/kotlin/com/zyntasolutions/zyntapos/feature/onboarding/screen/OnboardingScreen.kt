@@ -91,8 +91,8 @@ fun OnboardingScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is OnboardingEffect.NavigateToLogin -> onOnboardingComplete()
                 is OnboardingEffect.ShowError -> snackbarHostState.showSnackbar(effect.message)

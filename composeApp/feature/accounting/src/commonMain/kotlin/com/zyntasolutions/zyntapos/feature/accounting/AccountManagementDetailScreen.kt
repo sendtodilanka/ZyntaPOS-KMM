@@ -48,8 +48,8 @@ fun AccountManagementDetailScreen(
     }
 
     // ── Effect collection ──────────────────────────────────────────────────
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is AccountDetailEffect.ShowError ->
                     snackbarHostState.showSnackbar(effect.message, duration = SnackbarDuration.Short)

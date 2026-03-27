@@ -47,8 +47,8 @@ fun ChartOfAccountsScreen(
     var showDeactivateDialog by remember { mutableStateOf<String?>(null) }
 
     // ── Effect collection ──────────────────────────────────────────────────
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is ChartOfAccountsEffect.ShowError ->
                     snackbarHostState.showSnackbar(effect.message, duration = SnackbarDuration.Short)

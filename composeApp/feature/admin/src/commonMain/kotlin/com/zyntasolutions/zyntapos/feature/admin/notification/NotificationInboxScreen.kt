@@ -81,8 +81,8 @@ fun NotificationInboxScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is NotificationEffect.ShowSnackbar ->
                     snackbarHostState.showSnackbar(effect.message)

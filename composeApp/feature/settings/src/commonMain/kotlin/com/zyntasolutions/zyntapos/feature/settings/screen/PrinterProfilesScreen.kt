@@ -75,7 +75,7 @@ fun PrinterProfilesScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadPrinterProfiles) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 SettingsEffect.PrinterProfileSaved   -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_PROFILE_SAVED])
                 SettingsEffect.PrinterProfileDeleted -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_PROFILE_DELETED])

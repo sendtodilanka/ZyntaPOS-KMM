@@ -69,7 +69,7 @@ fun BackupSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadBackupInfo) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 is SettingsEffect.BackupComplete ->
                     snackbarHostState.showSnackbar(s[StringResource.SETTINGS_BACKUP_COMPLETE, effect.filePath])

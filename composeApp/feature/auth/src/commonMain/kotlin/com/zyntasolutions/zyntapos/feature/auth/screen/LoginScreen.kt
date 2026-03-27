@@ -68,8 +68,8 @@ fun LoginScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // ── Effect collection ─────────────────────────────────────────────────────
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is AuthEffect.NavigateToDashboard    -> onNavigateToDashboard()
                 is AuthEffect.NavigateToRegisterGuard -> onNavigateToRegisterGuard()

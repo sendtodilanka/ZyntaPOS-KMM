@@ -77,7 +77,7 @@ fun AppearanceSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadAppearance) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 is SettingsEffect.ThemeModeChanged ->
                     snackbarHostState.showSnackbar(s[StringResource.SETTINGS_APPEARANCE_THEME_SET, effect.mode.name.lowercase()])

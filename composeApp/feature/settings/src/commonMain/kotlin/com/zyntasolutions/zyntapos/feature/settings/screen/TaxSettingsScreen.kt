@@ -80,7 +80,7 @@ fun TaxSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadTaxGroups) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
                 else -> Unit

@@ -65,8 +65,8 @@ fun EditionManagementScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     // ── Collect one-shot effects ──────────────────────────────────────────────
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is EditionManagementEffect.ShowError   -> snackbarHostState.showSnackbar(effect.message)
                 is EditionManagementEffect.ShowSuccess -> snackbarHostState.showSnackbar(effect.message)
