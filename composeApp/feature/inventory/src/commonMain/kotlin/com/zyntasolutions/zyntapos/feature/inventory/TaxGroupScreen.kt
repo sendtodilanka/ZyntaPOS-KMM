@@ -172,7 +172,7 @@ private fun TaxGroupCard(
                     // Rate chip
                     AssistChip(
                         onClick = {},
-                        label = { Text("${"%.2f".format(group.rate)}%", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text(s[StringResource.COMMON_PERCENT_FORMAT, "%.2f".format(group.rate)], style = MaterialTheme.typography.labelSmall) },
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                         ),
