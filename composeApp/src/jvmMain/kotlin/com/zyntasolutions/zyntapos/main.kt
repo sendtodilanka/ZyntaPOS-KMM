@@ -19,6 +19,7 @@ import com.zyntasolutions.zyntapos.data.job.SlaAlertJob
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.data.sync.SyncEngine
 import com.zyntasolutions.zyntapos.data.logging.KermitSqliteAdapter
+import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 import com.zyntasolutions.zyntapos.feature.dashboard.dashboardModule
 import com.zyntasolutions.zyntapos.feature.onboarding.onboardingModule
@@ -142,6 +143,13 @@ fun main() {
     // Routes all Kermit log events to the operational_logs table for diagnostic
     // queries via the Admin debug console. Must run after dataModule is loaded.
     Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
+
+    // ── Firebase Remote Config fetch (TODO-011 Phase 2) ─────────────────────
+    // JVM stub — fetchAndActivate() is a no-op that returns false immediately.
+    // Included for symmetry with Android; Desktop edition gating uses license server.
+    CoroutineScope(Dispatchers.IO).launch {
+        koin.koin.get<RemoteConfigService>().fetchAndActivate()
+    }
 
     // ── Background jobs ──────────────────────────────────────────────────────
     // LogRetentionJob: daily purge of expired operational_logs (3/14/30/90-day policy)

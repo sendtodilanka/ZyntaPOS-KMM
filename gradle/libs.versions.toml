@@ -185,7 +185,7 @@ coil-network-ktor                      = { module = "io.coil-kt.coil3:coil-netwo
 
 # ── Kermit ────────────────────────────────────────────────────
 kermit                                 = { module = "co.touchlab:kermit",                        version.ref = "kermit" }
-kermit-crashlytics                     = { module = "co.touchlab:kermit-crashlytics",            version.ref = "kermit" }  # RESERVED: Phase 2 — Crashlytics log sink for production
+kermit-crashlytics                     = { module = "co.touchlab:kermit-crashlytics",            version.ref = "kermit" }  # TODO-011 Phase 2 — Crashlytics log sink (wired in ZyntaApplication)
 
 # ── Testing ───────────────────────────────────────────────────
 junit                                  = { module = "junit:junit",                               version.ref = "junit" }
