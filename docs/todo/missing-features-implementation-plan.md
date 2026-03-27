@@ -1496,7 +1496,7 @@ Backend Tests:
 - [x] `CurrencyFormatter` used for all currency display (DRY compliance)
 
 **What's REMAINING (deferred):**
-- [ ] Backend: Profit/margin comparison (not just revenue/orders)
+- [x] Backend: Profit/margin comparison — join Products.costPrice for best-effort margin calculation (not just revenue/orders)
 - [x] Backend: Growth trend calculation (currently `growth=0.0` hardcoded)
 - [x] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
 - [x] Trend analysis: Growth % per store over time — ✅ DONE (2026-03-26): StoreSalesData extended with revenueGrowthPercent/orderGrowthPercent; GenerateMultiStoreComparisonReportUseCase computes growth by comparing current vs previous period of equal duration; StoreComparisonReportScreen shows colored growth arrows per metric

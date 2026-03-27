@@ -227,6 +227,10 @@ class AdminMetricsService {
         val storeMap = Stores.selectAll().associate { it[Stores.id] to it[Stores.name] }
         val allRows = query.toList()
 
+        // Build cost price map from Products table for best-effort margin calculation
+        val productCostMap: Map<String, Double> = Products.selectAll()
+            .associate { it[Products.id] to it[Products.costPrice].toDouble() }
+
         // Group by productId from payload
         val byProduct = allRows.groupBy { row ->
             extractField(row[SyncQueue.payload], "productId") ?: row[SyncQueue.entityId]
@@ -240,13 +244,16 @@ class AdminMetricsService {
                 val unitsSold = rows.sumOf {
                     extractField(it[SyncQueue.payload], "quantity")?.toDoubleOrNull()?.toInt() ?: 1
                 }
+                val costPrice = productCostMap[productId] ?: 0.0
+                val costTotal = costPrice * unitsSold
+                val marginPercent = if (revenue > 0.0) ((revenue - costTotal) / revenue) * 100.0 else 0.0
                 ProductPerformanceRow(
                     productId    = productId,
                     productName  = extractField(rows.first()[SyncQueue.payload], "productName") ?: productId,
                     category     = extractField(rows.first()[SyncQueue.payload], "category") ?: "",
                     unitsSold    = unitsSold,
                     revenue      = revenue,
-                    marginPercent = 0.0,
+                    marginPercent = marginPercent,
                     storeId      = rows.first()[SyncQueue.storeId],
                     storeName    = storeMap[rows.first()[SyncQueue.storeId]]
                 )
