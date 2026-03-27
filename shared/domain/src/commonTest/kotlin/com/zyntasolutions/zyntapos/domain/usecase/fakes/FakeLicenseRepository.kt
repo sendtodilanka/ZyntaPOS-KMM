@@ -4,7 +4,7 @@ import com.zyntasolutions.zyntapos.domain.model.Edition
 import com.zyntasolutions.zyntapos.domain.model.License
 import com.zyntasolutions.zyntapos.domain.model.LicenseStatus
 import com.zyntasolutions.zyntapos.domain.repository.LicenseRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * In-memory fake for [LicenseRepository].
