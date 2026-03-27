@@ -3,10 +3,16 @@ package com.zyntasolutions.zyntapos.api.repository
 import com.zyntasolutions.zyntapos.api.db.PromotionsTable
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.sql.upsert
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import java.util.UUID
 
 /**
  * Read-only repository for the `promotions` table (C2.4).
@@ -40,6 +46,55 @@ class PromotionRepository {
             .map { it.toRow() }
             .filter { row -> row.isApplicableTo(storeId) }
             .sortedByDescending { it.priority }
+    }
+
+    fun upsert(
+        id: String?,
+        storeId: String,
+        name: String,
+        type: String,
+        config: String,
+        validFrom: Long?,
+        validTo: Long?,
+        priority: Int,
+        isActive: Boolean,
+        storeIds: String,
+    ): PromotionRow = transaction {
+        val now = OffsetDateTime.now(ZoneOffset.UTC)
+        val recordId = id ?: UUID.randomUUID().toString()
+
+        PromotionsTable.upsert(PromotionsTable.id) {
+            it[PromotionsTable.id]          = recordId
+            it[PromotionsTable.storeId]     = storeId
+            it[PromotionsTable.name]        = name
+            it[PromotionsTable.description] = null
+            it[PromotionsTable.type]        = type
+            it[PromotionsTable.value]       = java.math.BigDecimal.ZERO
+            it[PromotionsTable.minimumPurchase] = java.math.BigDecimal.ZERO
+            it[PromotionsTable.scope]       = "ORDER"
+            it[PromotionsTable.scopeIds]    = null
+            it[PromotionsTable.validFrom]   = validFrom
+            it[PromotionsTable.validTo]     = validTo
+            it[PromotionsTable.priority]    = priority
+            it[PromotionsTable.isStackable] = false
+            it[PromotionsTable.isActive]    = isActive
+            it[PromotionsTable.syncVersion] = now.toInstant().toEpochMilli()
+            it[PromotionsTable.config]      = config
+            it[PromotionsTable.storeIds]    = storeIds
+            it[PromotionsTable.createdAt]   = now
+            it[PromotionsTable.updatedAt]   = now
+        }
+
+        PromotionsTable.selectAll()
+            .where { PromotionsTable.id eq recordId }
+            .single()
+            .toRow()
+    }
+
+    fun delete(id: String, storeId: String): Boolean = transaction {
+        PromotionsTable.deleteWhere {
+            (PromotionsTable.id eq id) and (PromotionsTable.storeId eq storeId)
+        } > 0
     }
 
     private fun PromotionRow.isApplicableTo(storeId: String): Boolean {
