@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.api.plugins
 import com.zyntasolutions.zyntapos.api.routes.adminAlertsRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminExchangeRateRoutes
 import com.zyntasolutions.zyntapos.api.routes.storeAccessRoutes
+import com.zyntasolutions.zyntapos.api.routes.taxOverrideRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminDiagnosticRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuditRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminCustomersRoutes
@@ -126,6 +127,7 @@ fun Application.configureRouting() {
                     pricingRoutes()
                     storeAccessRoutes()
                     loyaltyRoutes()
+                    taxOverrideRoutes()
                 }
                 // Sync push is write-heavy — use sync tier (60 req/min)
                 rateLimit(RateLimitName("sync")) {
