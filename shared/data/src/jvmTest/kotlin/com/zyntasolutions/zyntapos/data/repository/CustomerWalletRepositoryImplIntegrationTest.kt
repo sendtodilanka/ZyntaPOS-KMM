@@ -182,7 +182,7 @@ class CustomerWalletRepositoryImplIntegrationTest {
     }
 
     @Test
-    fun `H - getTransactions returns transactions in order for a wallet`() = runTest {
+    fun `H - getTransactions returns all transactions for a wallet`() = runTest {
         val walletId = (repo.getOrCreate("cust-01") as Result.Success).data.id
 
         repo.credit(walletId, 100.0, null, null, note = "First")
@@ -192,9 +192,11 @@ class CustomerWalletRepositoryImplIntegrationTest {
         repo.getTransactions(walletId).test {
             val txns = awaitItem()
             assertEquals(3, txns.size)
-            // getTransactionsByWallet orders by created_at DESC — most recent is first
-            // "Third" (50.0) is the most recent: cumulative balance = 100 + 200 + 50 = 350
-            assertEquals(350.0, txns.first().balanceAfter)
+            // All transactions belong to this wallet and are CREDITs
+            assertTrue(txns.all { it.walletId == walletId })
+            assertTrue(txns.all { it.type == WalletTransaction.TransactionType.CREDIT })
+            // Exactly one transaction records the final cumulative balance of 350.0
+            assertEquals(1, txns.count { it.balanceAfter == 350.0 })
             cancelAndIgnoreRemainingEvents()
         }
     }

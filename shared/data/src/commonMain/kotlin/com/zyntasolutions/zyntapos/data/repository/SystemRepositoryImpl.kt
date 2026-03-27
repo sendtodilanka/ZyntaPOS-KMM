@@ -75,7 +75,7 @@ class SystemRepositoryImpl(
                 add(TableStats("orders", countTable("orders")))
                 add(TableStats("customers", countTable("customers")))
                 add(TableStats("categories", countTable("categories")))
-                add(TableStats("sync_queue", countTable("sync_queue")))
+                add(TableStats("pending_operations", countTable("pending_operations")))
                 add(TableStats("audit_entries", countTable("audit_entries")))
             }
             val totalRows = tableStats.sumOf { it.rowCount }
