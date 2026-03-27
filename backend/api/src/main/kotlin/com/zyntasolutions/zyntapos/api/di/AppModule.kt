@@ -34,6 +34,7 @@ import com.zyntasolutions.zyntapos.api.service.AdminMetricsService
 import com.zyntasolutions.zyntapos.api.service.AdminStoresService
 import com.zyntasolutions.zyntapos.api.service.AdminTicketService
 import com.zyntasolutions.zyntapos.api.service.AlertGenerationJob
+import com.zyntasolutions.zyntapos.api.service.AutoReplenishmentJob
 import com.zyntasolutions.zyntapos.api.service.ExchangeRateSyncJob
 import com.zyntasolutions.zyntapos.api.service.DiagnosticSessionService
 import com.zyntasolutions.zyntapos.api.service.ChatwootService
@@ -179,5 +180,6 @@ val appModule = module {
     single { AdminTicketService(ticketRepo = get(), commentRepo = get(), emailThreadRepo = get(), emailService = get()) }
     single { AlertGenerationJob(alertsService = get(), ticketService = get()) }
     single { ExchangeRateSyncJob(exchangeRateRepo = get()) }
+    single { AutoReplenishmentJob(replenishmentRepo = get()) }
     single { ForceSyncNotifier(redisPool = get()) }
 }
