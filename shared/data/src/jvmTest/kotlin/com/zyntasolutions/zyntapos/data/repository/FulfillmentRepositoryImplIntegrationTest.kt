@@ -3,7 +3,6 @@ package com.zyntasolutions.zyntapos.data.repository
 import app.cash.turbine.test
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.data.createTestDatabase
-import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.FulfillmentStatus
 import com.zyntasolutions.zyntapos.domain.repository.FulfillmentOrder
@@ -37,7 +36,7 @@ class FulfillmentRepositoryImplIntegrationTest {
     @BeforeTest
     fun setup() {
         db = createTestDatabase()
-        repo = FulfillmentRepositoryImpl(db, SyncEnqueuer(db))
+        repo = FulfillmentRepositoryImpl(db)
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

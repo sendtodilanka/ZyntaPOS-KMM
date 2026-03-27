@@ -140,7 +140,7 @@ class FinancialStatementRepositoryImplIntegrationTest {
         postCashSaleEntry("je-01", "2026-04-01", amount = 10000.0)
 
         val result = repo.getProfitAndLoss("store-01", "2026-01-01", "2026-12-31")
-        assertIs<Result.Success<FinancialStatement.ProfitAndLoss>>(result)
+        assertIs<Result.Success<FinancialStatement.PAndL>>(result)
         val pl = result.data
         assertNotNull(pl)
         // Sales Revenue (CREDIT) → revenue = 10000

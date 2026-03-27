@@ -46,20 +46,24 @@ class InstallmentRepositoryImplIntegrationTest {
         // Seed customers required by customer_id FK constraint
         db.customersQueries.insertCustomer(
             id = "cust-01", store_id = "store-01",
-            first_name = "Alice", last_name = "Smith",
+            name = "Alice Smith",
             email = null, phone = null, address = null,
-            date_of_birth = null, loyalty_points = 0L,
-            loyalty_tier = "BRONZE", notes = null, is_active = 1L,
-            created_at = now, updated_at = now, deleted_at = null,
+            group_id = null, loyalty_points = 0L,
+            notes = null, is_active = 1L,
+            credit_limit = 0.0, credit_enabled = 0L,
+            gender = null, birthday = null, is_walk_in = 0L,
+            created_at = now, updated_at = now,
             sync_status = "PENDING",
         )
         db.customersQueries.insertCustomer(
             id = "cust-02", store_id = "store-01",
-            first_name = "Bob", last_name = "Jones",
+            name = "Bob Jones",
             email = null, phone = null, address = null,
-            date_of_birth = null, loyalty_points = 0L,
-            loyalty_tier = "BRONZE", notes = null, is_active = 1L,
-            created_at = now, updated_at = now, deleted_at = null,
+            group_id = null, loyalty_points = 0L,
+            notes = null, is_active = 1L,
+            credit_limit = 0.0, credit_enabled = 0L,
+            gender = null, birthday = null, is_walk_in = 0L,
+            created_at = now, updated_at = now,
             sync_status = "PENDING",
         )
     }
