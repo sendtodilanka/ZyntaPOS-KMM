@@ -23,6 +23,7 @@ import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.domain.model.PurchaseOrder
 import com.zyntasolutions.zyntapos.domain.model.ReplenishmentRule
 import com.zyntasolutions.zyntapos.domain.model.report.StockReorderData
@@ -86,7 +87,7 @@ fun ReplenishmentScreen(
                     Tab(
                         selected  = state.activeTab == tab,
                         onClick   = { viewModel.dispatch(ReplenishmentIntent.SelectTab(tab)) },
-                        text      = { Text(tab.label()) },
+                        text      = { val s = LocalStrings.current; Text(tab.label(s)) },
                     )
                 }
             }
@@ -121,10 +122,10 @@ fun ReplenishmentScreen(
     )
 }
 
-private fun ReplenishmentTab.label(): String = when (this) {
-    ReplenishmentTab.REORDER_ALERTS      -> "Reorder Alerts"
-    ReplenishmentTab.PURCHASE_ORDERS     -> "Purchase Orders"
-    ReplenishmentTab.REPLENISHMENT_RULES -> "Rules"
+private fun ReplenishmentTab.label(s: StringResolver): String = when (this) {
+    ReplenishmentTab.REORDER_ALERTS      -> s[StringResource.INVENTORY_REPLENISHMENT_TAB_ALERTS]
+    ReplenishmentTab.PURCHASE_ORDERS     -> s[StringResource.INVENTORY_REPLENISHMENT_TAB_ORDERS]
+    ReplenishmentTab.REPLENISHMENT_RULES -> s[StringResource.INVENTORY_REPLENISHMENT_TAB_RULES]
 }
 
 // ── Reorder Alerts tab ────────────────────────────────────────────────────────
@@ -173,7 +174,7 @@ private fun ReorderAlertCard(alert: StockReorderData, onCreate: () -> Unit) {
                 Text(alert.productName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Stock: ${alert.currentStock}  |  Reorder at: ${alert.reorderPoint}  |  Suggest: ${alert.suggestedReorderQty}",
+                    s[StringResource.INVENTORY_REORDER_INFO_FORMAT, "${alert.currentStock}", "${alert.reorderPoint}", "${alert.suggestedReorderQty}"],
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -283,11 +284,11 @@ private fun PurchaseOrderDetailSheet(
     val s = LocalStrings.current
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(ZyntaSpacing.md)) {
-            Text("Purchase Order: ${order.orderNumber}", style = MaterialTheme.typography.titleMedium)
+            Text(s[StringResource.INVENTORY_PO_ORDER_FORMAT, order.orderNumber], style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(ZyntaSpacing.sm))
-            Text("Status: ${order.status.name}")
-            Text("Items: ${order.items.size}")
-            if (order.notes != null) Text("Notes: ${order.notes}")
+            Text(s[StringResource.INVENTORY_PO_STATUS_FORMAT, order.status.name])
+            Text(s[StringResource.INVENTORY_PO_ITEMS_FORMAT, "${order.items.size}"])
+            if (order.notes != null) Text(s[StringResource.INVENTORY_PO_NOTES_FORMAT, order.notes])
             Spacer(Modifier.height(ZyntaSpacing.md))
 
             if (order.items.isNotEmpty()) {
@@ -299,7 +300,7 @@ private fun PurchaseOrderDetailSheet(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(item.productId, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("Ord: ${item.quantityOrdered.toInt()}  Rcv: ${item.quantityReceived.toInt()}")
+                        Text(s[StringResource.INVENTORY_PO_QTY_FORMAT, "${item.quantityOrdered.toInt()}", "${item.quantityReceived.toInt()}"])
                     }
                     HorizontalDivider()
                 }
@@ -418,7 +419,7 @@ private fun CreatePoDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                 state.createPoSourceAlert?.let { alert ->
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                         Text(
-                            "Product: ${alert.productName}\nSuggest: ${alert.suggestedReorderQty} units",
+                            s[StringResource.INVENTORY_PO_PRODUCT_SUGGEST_FORMAT, alert.productName, "${alert.suggestedReorderQty}"],
                             modifier = Modifier.padding(ZyntaSpacing.sm),
                             style    = MaterialTheme.typography.bodySmall,
                         )
@@ -430,10 +431,10 @@ private fun CreatePoDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     val selected = state.suppliers.firstOrNull { it.id == state.createPoSupplierId }
                     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
-                            value         = selected?.name ?: "Select Supplier",
+                            value         = selected?.name ?: s[StringResource.INVENTORY_PO_SELECT_SUPPLIER],
                             onValueChange = {},
                             readOnly      = true,
-                            label         = { Text("Supplier *") },
+                            label         = { Text(s[StringResource.INVENTORY_PO_SUPPLIER_LABEL]) },
                             trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                             modifier      = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                         )
@@ -453,19 +454,19 @@ private fun CreatePoDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     ZyntaTextField(
                         value         = state.createPoSupplierId,
                         onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateCreatePoField(CreatePoField.SUPPLIER_ID, it)) },
-                        label         = "Supplier ID *",
+                        label         = s[StringResource.INVENTORY_PO_SUPPLIER_ID_LABEL],
                     )
                 }
 
                 ZyntaTextField(
                     value         = state.createPoOrderNumber,
                     onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateCreatePoField(CreatePoField.ORDER_NUMBER, it)) },
-                    label         = "Order Number (auto if blank)",
+                    label         = s[StringResource.INVENTORY_PO_ORDER_NUMBER_LABEL],
                 )
                 ZyntaTextField(
                     value         = state.createPoNotes,
                     onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateCreatePoField(CreatePoField.NOTES, it)) },
-                    label         = "Notes",
+                    label         = s[StringResource.INVENTORY_PO_NOTES_LABEL],
                     singleLine    = false,
                     maxLines      = 3,
                 )
@@ -498,7 +499,7 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                 ZyntaTextField(
                     value         = state.ruleFormProductId,
                     onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateRuleField(RuleField.PRODUCT_ID, it)) },
-                    label         = "Product ID *",
+                    label         = s[StringResource.INVENTORY_PO_PRODUCT_ID_LABEL],
                     enabled       = !isEdit,
                 )
 
@@ -507,10 +508,10 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     val selected = state.warehouses.firstOrNull { it.id == state.ruleFormWarehouseId }
                     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
-                            value         = selected?.name ?: "Select Warehouse",
+                            value         = selected?.name ?: s[StringResource.INVENTORY_PO_SELECT_WAREHOUSE],
                             onValueChange = {},
                             readOnly      = true,
-                            label         = { Text("Warehouse *") },
+                            label         = { Text(s[StringResource.INVENTORY_PO_WAREHOUSE_LABEL]) },
                             trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                             modifier      = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                         )
@@ -530,7 +531,7 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     ZyntaTextField(
                         value         = state.ruleFormWarehouseId,
                         onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateRuleField(RuleField.WAREHOUSE_ID, it)) },
-                        label         = "Warehouse ID *",
+                        label         = s[StringResource.INVENTORY_PO_WAREHOUSE_ID_LABEL],
                         enabled       = !isEdit,
                     )
                 }
@@ -540,10 +541,10 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     val selected = state.suppliers.firstOrNull { it.id == state.ruleFormSupplierId }
                     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
-                            value         = selected?.name ?: "Select Supplier",
+                            value         = selected?.name ?: s[StringResource.INVENTORY_PO_SELECT_SUPPLIER],
                             onValueChange = {},
                             readOnly      = true,
-                            label         = { Text("Supplier *") },
+                            label         = { Text(s[StringResource.INVENTORY_PO_SUPPLIER_LABEL]) },
                             trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
                             modifier      = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                         )
@@ -563,7 +564,7 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     ZyntaTextField(
                         value         = state.ruleFormSupplierId,
                         onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateRuleField(RuleField.SUPPLIER_ID, it)) },
-                        label         = "Supplier ID *",
+                        label         = s[StringResource.INVENTORY_PO_SUPPLIER_ID_LABEL],
                     )
                 }
 
@@ -571,13 +572,13 @@ private fun RuleEditDialog(state: ReplenishmentState, viewModel: ReplenishmentVi
                     ZyntaTextField(
                         value         = state.ruleFormReorderPoint,
                         onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateRuleField(RuleField.REORDER_POINT, it)) },
-                        label         = "Reorder Point *",
+                        label         = s[StringResource.INVENTORY_PO_REORDER_POINT_LABEL],
                         modifier      = Modifier.weight(1f),
                     )
                     ZyntaTextField(
                         value         = state.ruleFormReorderQty,
                         onValueChange = { viewModel.dispatch(ReplenishmentIntent.UpdateRuleField(RuleField.REORDER_QTY, it)) },
-                        label         = "Reorder Qty *",
+                        label         = s[StringResource.INVENTORY_PO_REORDER_QTY_LABEL],
                         modifier      = Modifier.weight(1f),
                     )
                 }
@@ -638,16 +639,16 @@ private fun AutoReplenishmentResultDialog(
         title  = { Text(s[StringResource.INVENTORY_AUTO_REPLENISHMENT_COMPLETE]) },
         text   = {
             Column {
-                Text("Rules evaluated: ${result.rulesEvaluated}")
-                Text("Purchase orders created: ${result.ordersCreated}")
-                Text("Skipped: ${result.rulesSkipped}")
+                Text(s[StringResource.INVENTORY_AUTO_RULES_EVALUATED_FORMAT, "${result.rulesEvaluated}"])
+                Text(s[StringResource.INVENTORY_AUTO_ORDERS_CREATED_FORMAT, "${result.ordersCreated}"])
+                Text(s[StringResource.INVENTORY_AUTO_SKIPPED_FORMAT, "${result.rulesSkipped}"])
                 if (result.errors.isNotEmpty()) {
                     Spacer(Modifier.height(ZyntaSpacing.sm))
-                    Text("Errors:", style = MaterialTheme.typography.labelMedium)
-                    result.errors.forEach { Text("• $it", style = MaterialTheme.typography.bodySmall) }
+                    Text(s[StringResource.INVENTORY_AUTO_ERRORS_LABEL], style = MaterialTheme.typography.labelMedium)
+                    result.errors.forEach { Text(s[StringResource.INVENTORY_AUTO_ERROR_ITEM_FORMAT, it], style = MaterialTheme.typography.bodySmall) }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_OK]) } },
     )
 }

@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,6 +77,7 @@ fun ZyntaCurrencyPicker(
     currencies: List<CurrencyOption> = ZYNTA_SUPPORTED_CURRENCIES,
     label: String? = null,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selected = currencies.find { it.code == selectedCode }
 
@@ -120,7 +122,7 @@ fun ZyntaCurrencyPicker(
                 }
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Select currency",
+                    contentDescription = s[StringResource.DESIGNSYSTEM_SELECT_CURRENCY_CD],
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
@@ -164,7 +166,7 @@ fun ZyntaCurrencyPicker(
                         {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "Selected",
+                                contentDescription = s[StringResource.DESIGNSYSTEM_SELECTED_CD],
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp),
                             )

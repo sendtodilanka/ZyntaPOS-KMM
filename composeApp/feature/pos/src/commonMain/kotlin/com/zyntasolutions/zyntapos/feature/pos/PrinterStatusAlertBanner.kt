@@ -96,7 +96,7 @@ internal fun PrinterStatusAlertBannerContent(
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = warnings.joinToString(" · "),
+                text = warnings.joinToString(s[StringResource.COMMON_SEPARATOR_MIDDLE_DOT]),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )

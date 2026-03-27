@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,6 +90,7 @@ fun ZyntaTimezonePicker(
     timezones: List<TimezoneEntry> = ZYNTA_COMMON_TIMEZONES,
     label: String? = null,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selected = timezones.find { it.id == selectedTimezoneId }
 
@@ -134,7 +136,7 @@ fun ZyntaTimezonePicker(
                 }
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Select timezone",
+                    contentDescription = s[StringResource.DESIGNSYSTEM_SELECT_TIMEZONE_CD],
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
@@ -171,7 +173,7 @@ fun ZyntaTimezonePicker(
                         {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "Selected",
+                                contentDescription = s[StringResource.DESIGNSYSTEM_SELECTED_CD],
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp),
                             )

@@ -574,7 +574,7 @@ private fun VariantRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Variant ${index + 1}", style = MaterialTheme.typography.labelLarge)
+                Text(s[StringResource.INVENTORY_VARIANT_FORMAT, "${index + 1}"], style = MaterialTheme.typography.labelLarge)
                 IconButton(onClick = onRemove) {
                     Icon(Icons.Default.Delete, contentDescription = s[StringResource.INVENTORY_REMOVE_VARIANT],
                         tint = MaterialTheme.colorScheme.error)

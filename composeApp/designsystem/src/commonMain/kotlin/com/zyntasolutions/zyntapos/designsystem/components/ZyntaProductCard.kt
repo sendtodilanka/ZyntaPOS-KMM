@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -123,7 +124,7 @@ private fun GridCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Selected",
+                            contentDescription = LocalStrings.current[StringResource.DESIGNSYSTEM_SELECTED_CD],
                             tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(16.dp),
                         )
@@ -222,10 +223,11 @@ private fun CompactCard(
 // ── Stock badge ────────────────────────────────────────────────────────────────
 @Composable
 private fun StockBadge(stock: StockIndicator, modifier: Modifier = Modifier) {
+    val s = LocalStrings.current
     val (label, color, icon) = when (stock) {
-        StockIndicator.InStock -> Triple("In Stock", MaterialTheme.colorScheme.tertiary, Icons.Default.CheckCircle)
-        StockIndicator.LowStock -> Triple("Low Stock", MaterialTheme.colorScheme.secondary, Icons.Default.Warning)
-        StockIndicator.OutOfStock -> Triple("Out", MaterialTheme.colorScheme.error, Icons.Default.Error)
+        StockIndicator.InStock -> Triple(s[StringResource.DESIGNSYSTEM_IN_STOCK], MaterialTheme.colorScheme.tertiary, Icons.Default.CheckCircle)
+        StockIndicator.LowStock -> Triple(s[StringResource.DESIGNSYSTEM_LOW_STOCK], MaterialTheme.colorScheme.secondary, Icons.Default.Warning)
+        StockIndicator.OutOfStock -> Triple(s[StringResource.DESIGNSYSTEM_OUT_OF_STOCK], MaterialTheme.colorScheme.error, Icons.Default.Error)
     }
     Surface(
         modifier = modifier,
