@@ -779,7 +779,7 @@ class MyFeatureViewModel(...) : ViewModel() { ... }
 
 **SQLDelight 2.0.2 on SQLite, encrypted with SQLCipher 4.5 (AES-256)**
 
-**61 `.sq` schema files** as of Phase 2 (actual count via `find shared/data/src/commonMain/sqldelight -name "*.sq" | wc -l`). Core tables include: `products`, `orders`, `order_items`, `categories`, `customers`, `suppliers`, `registers`, `settings`, `stock`, `audit_log`, `sync_queue` (outbox), `sync_state`, `version_vectors`, `conflict_log`, `e_invoices`, `employees`, `expenses`, `coupons`, `accounting_entries`, `master_products`, `store_products`, `warehouse_stock`, `stock_transfers`, `transit_tracking`, `replenishment_rules`, `purchase_orders`, and more.
+**73 `.sq` schema files** as of Phase 2/3 (actual count via `find shared/data/src/commonMain/sqldelight -name "*.sq" | wc -l`). Core tables include: `products`, `orders`, `order_items`, `categories`, `customers`, `suppliers`, `registers`, `settings`, `stock`, `audit_log`, `sync_queue` (outbox), `sync_state`, `version_vectors`, `conflict_log`, `e_invoices`, `employees`, `expenses`, `coupons`, `accounting_entries`, `master_products`, `store_products`, `warehouse_stock`, `stock_transfers`, `transit_tracking`, `replenishment_rules`, `purchase_orders`, and more.
 
 **Key patterns:**
 - Products table has `products_fts` (FTS5) with `AFTER INSERT/UPDATE/DELETE` triggers for full-text search
@@ -789,7 +789,7 @@ class MyFeatureViewModel(...) : ViewModel() { ... }
 
 **Code generation:** Run `./gradlew generateSqlDelightInterface` after modifying `.sq` files.
 
-**Schema files:** `shared/data/src/commonMain/sqldelight/` — 61 `.sq` files (actual count; grew from 36 in Phase 1 to 61 in Phase 2 with multi-store features)
+**Schema files:** `shared/data/src/commonMain/sqldelight/` — 73 `.sq` files (actual count; grew from 36 in Phase 1 to 61 in Phase 2, to 73 in Phase 3 with multi-store and enterprise features)
 
 ---
 

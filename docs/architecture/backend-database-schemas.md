@@ -1,13 +1,13 @@
 # Backend Database Schemas
 
-**Last updated:** 2026-03-18 (V17–V26: Google SSO removal, email threads, extended normalized tables)
+**Last updated:** 2026-03-27 (V27–V39: master products, IST workflow, warehouse stock, replenishment, pricing rules, multi-currency, regional tax, user-store access, employee assignments, promotions config, global customers, fulfillment status)
 
 This document catalogs all PostgreSQL tables across the two backend databases.
 For the KMM client-side SQLDelight schema, see `shared/data/src/commonMain/sqldelight/`.
 
 ---
 
-## Database: `zyntapos_api` (26 Migrations)
+## Database: `zyntapos_api` (39 Migrations)
 
 ### V1 — Initial Schema
 
@@ -203,6 +203,104 @@ Added to `email_preferences`: `sla_breach_notifications BOOLEAN`, `daily_digest 
 ### V26 — Admin Password Rotation
 
 Added `password_changed_at BIGINT` to `admin_users`. Epoch-ms timestamp of last password change; used by the `ADMIN_PASSWORD_MAX_AGE_DAYS` policy (0 = disabled). Backfilled from `created_at` for existing users.
+
+### V27 — Master Products (C1.1)
+
+Two-tier global product catalog.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **master_products** | id, sku, barcode, name, description, category_id, base_price, cost_price, tax_group_id, unit_of_measure, is_active, sync_version | Global catalog managed by platform ADMIN |
+| **store_products** | id, master_product_id, store_id, price_override, is_available, stock_qty, sync_version | Per-store overrides; inherits from master_products |
+
+### V28 — Inter-Store Stock Transfer (IST) Workflow (C1.3)
+
+Multi-step approval workflow for stock movement between stores.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **stock_transfers** | id, from_store_id, to_store_id, status, requested_by, approved_by, shipped_at, received_at | Statuses: PENDING → APPROVED → IN_TRANSIT → RECEIVED; exception: CANCELLED, REJECTED |
+| **stock_transfer_items** | id, transfer_id, product_id, requested_qty, approved_qty, shipped_qty, received_qty | Per-item line in a transfer |
+| **transit_tracking** | id, transfer_id, event_type, event_at, actor_id, notes | Audit trail for each status transition |
+
+### V29 — Warehouse Stock (C1.2)
+
+Per-warehouse product stock levels (mirrors `warehouse_stock.sq` on KMM client).
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **warehouses** | id, name, store_id, address, is_active | Physical warehouse locations |
+| **warehouse_stock** | id, warehouse_id, product_id, qty_on_hand, qty_reserved, qty_available, updated_at | Real-time stock per warehouse per product |
+
+### V30 — Warehouse Stock Unique Constraint Fix (C1.2)
+
+Fixes the `UNIQUE(warehouse_id, product_id)` constraint from V29 to use a partial index that correctly handles multi-store deployments.
+
+### V31 — Replenishment Rules (C1.5)
+
+Warehouse-to-store auto-PO generation thresholds.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **replenishment_rules** | id, warehouse_id, store_id, product_id, min_stock_level, reorder_qty, auto_approve, is_active | Triggers PO generation when `warehouse_stock.qty_available` drops below `min_stock_level` |
+
+### V32 — Pricing Rules (C2.1)
+
+Region-based and time-bounded product price overrides.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **pricing_rules** | id, store_id, product_id, price, currency, valid_from, valid_until, priority, is_active | Synced to POS devices for offline-first price resolution |
+
+### V33 — Exchange Rates (C2.2)
+
+Multi-currency conversion table.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **exchange_rates** | id, from_currency, to_currency, rate, effective_at, source | Maintained by platform; referenced during multi-currency checkout |
+
+### V34 — Regional Tax Overrides (C2.3)
+
+Per-store tax rate overrides for multi-region compliance.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **regional_tax_overrides** | id, store_id, tax_group_id, rate_override, effective_at, reason | Overrides global `tax_groups.rate` for stores in different jurisdictions |
+
+Also adds `tax_registration_number VARCHAR` to `stores` table.
+
+### V35 — User-Store Access (C3.2)
+
+Junction table for multi-store user permissions.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **user_store_access** | id, user_id, store_id, role_override, granted_by, granted_at | Optional per-store role override; NULL role_override means user inherits their global role |
+
+### V36 — Employee Store Assignments (C3.4)
+
+Tracks roaming employees assigned to multiple stores beyond their primary store.
+
+| Table | Key Columns | Notes |
+|-------|------------|-------|
+| **employee_store_assignments** | id, employee_id, store_id, assigned_at, assigned_by, is_active | N:M between employees and stores (primary store remains in `employees.store_id`) |
+
+### V37 — Promotions Config & Store IDs (C2.4)
+
+Extends the V24 `promotions` table for richer promotion types.
+
+Columns added to `promotions`: `config JSONB` (sealed `PromotionConfig`: BUY_X_GET_Y, BUNDLE, FLASH_SALE, SCHEDULED), `store_ids UUID[]` (NULL = all stores).
+
+### V38 — Customers Store ID Nullable
+
+Makes `customers.store_id` nullable to support global (cross-store) customers. NULL `store_id` means the customer belongs to the tenant account and is accessible from any store.
+
+### V39 — Orders Fulfillment Status
+
+Adds BOPIS (click-and-collect) fulfillment lifecycle to `orders`.
+
+Column added to `orders`: `fulfillment_status VARCHAR` — lifecycle: `RECEIVED → PREPARING → READY_FOR_PICKUP → PICKED_UP`; exception paths: any state → `EXPIRED`; `RECEIVED/PREPARING` → `CANCELLED`.
 
 ---
 
