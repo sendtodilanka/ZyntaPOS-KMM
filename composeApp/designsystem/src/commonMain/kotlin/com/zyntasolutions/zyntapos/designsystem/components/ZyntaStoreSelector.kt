@@ -208,7 +208,7 @@ fun ZyntaStoreSelectorCompact(
             Spacer(Modifier.width(ZyntaSpacing.xs))
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Switch store",
+                contentDescription = s[StringResource.DESIGNSYSTEM_SWITCH_STORE_CD],
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(16.dp),
             )
