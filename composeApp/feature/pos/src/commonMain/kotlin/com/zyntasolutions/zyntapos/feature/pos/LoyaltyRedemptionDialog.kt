@@ -89,7 +89,7 @@ internal fun LoyaltyRedemptionDialog(
                         FilterChip(
                             selected = selectedPoints == amount,
                             onClick = { selectedPoints = amount },
-                            label = { Text("$pct%") },
+                            label = { Text(s[StringResource.COMMON_PERCENT_FORMAT, "$pct"]) },
                             modifier = Modifier.weight(1f),
                         )
                     }

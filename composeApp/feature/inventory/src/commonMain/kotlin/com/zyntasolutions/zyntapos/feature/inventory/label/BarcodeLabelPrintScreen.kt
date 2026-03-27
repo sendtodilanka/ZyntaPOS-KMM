@@ -247,9 +247,9 @@ private fun TemplateSelectorPanel(
                         overflow = TextOverflow.Ellipsis,
                     )
                     val subtitle = if (template.paperType == LabelTemplate.PaperType.CONTINUOUS_ROLL)
-                        "Roll ${template.paperWidthMm.toInt()}mm × ${template.labelHeightMm.toInt()}mm"
+                        s[StringResource.INVENTORY_LABEL_ROLL_FORMAT, "${template.paperWidthMm.toInt()}", "${template.labelHeightMm.toInt()}"]
                     else
-                        "A4 ${template.columns}×${template.rows}"
+                        s[StringResource.INVENTORY_LABEL_A4_FORMAT, "${template.columns}", "${template.rows}"]
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.labelSmall,

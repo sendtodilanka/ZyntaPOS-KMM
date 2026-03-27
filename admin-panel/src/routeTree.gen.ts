@@ -33,6 +33,7 @@ import { Route as SettingsExchangeRatesRouteImport } from './routes/settings/exc
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
 import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
+import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as DiagnosticIndexRouteImport } from './routes/diagnostic/index'
 import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
 import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
@@ -118,6 +119,11 @@ const InventoryIndexRoute = InventoryIndexRouteImport.update({
   path: '/inventory/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/customers/',
+  path: '/customers/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DiagnosticIndexRoute = DiagnosticIndexRouteImport.update({
   id: '/diagnostic/',
   path: '/diagnostic/',
@@ -199,6 +205,7 @@ export interface FileRoutesByFullPath {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/health': typeof HealthIndexRoute
   '/licenses': typeof LicensesIndexRoute
   '/inventory': typeof InventoryIndexRoute
+  '/customers': typeof CustomersIndexRoute
   '/master-products': typeof MasterProductsIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/security': typeof SecurityIndexRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/health/': typeof HealthIndexRoute
   '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -291,6 +300,7 @@ export interface FileRouteTypes {
     | '/diagnostic/'
     | '/health/'
     | '/inventory/'
+    | '/customers/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/diagnostic'
     | '/health'
     | '/inventory'
+    | '/customers'
     | '/licenses'
     | '/master-products'
     | '/reports'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/diagnostic/'
     | '/health/'
     | '/inventory/'
+    | '/customers/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -367,6 +379,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
   DiagnosticIndexRoute: typeof DiagnosticIndexRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
   MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
@@ -507,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/customers/': {
+      id: '/customers/'
+      path: '/customers'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/diagnostic/': {
       id: '/diagnostic/'
       path: '/diagnostic'
@@ -599,6 +619,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
   InventoryIndexRoute: InventoryIndexRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
   DiagnosticIndexRoute: DiagnosticIndexRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
   MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,

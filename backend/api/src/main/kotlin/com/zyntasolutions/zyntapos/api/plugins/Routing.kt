@@ -3,9 +3,14 @@ package com.zyntasolutions.zyntapos.api.plugins
 import com.zyntasolutions.zyntapos.api.routes.adminAlertsRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminExchangeRateRoutes
 import com.zyntasolutions.zyntapos.api.routes.storeAccessRoutes
+import com.zyntasolutions.zyntapos.api.routes.fulfillmentRoutes
+import com.zyntasolutions.zyntapos.api.routes.orderRoutes
+import com.zyntasolutions.zyntapos.api.routes.taxOverrideRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminDiagnosticRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuditRoutes
+import com.zyntasolutions.zyntapos.api.routes.adminCustomersRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminInventoryRoutes
+import com.zyntasolutions.zyntapos.api.routes.loyaltyRoutes
 import com.zyntasolutions.zyntapos.api.routes.pricingRoutes
 import com.zyntasolutions.zyntapos.api.routes.replenishmentRoutes
 import com.zyntasolutions.zyntapos.api.routes.adminAuthRoutes
@@ -100,6 +105,7 @@ fun Application.configureRouting() {
                 adminEmailPreferencesRoutes()
                 adminMasterProductRoutes()
                 adminInventoryRoutes()
+                adminCustomersRoutes()
                 adminExchangeRateRoutes()
             }
         }
@@ -122,6 +128,10 @@ fun Application.configureRouting() {
                     replenishmentRoutes()
                     pricingRoutes()
                     storeAccessRoutes()
+                    loyaltyRoutes()
+                    taxOverrideRoutes()
+                    orderRoutes()
+                    fulfillmentRoutes()
                 }
                 // Sync push is write-heavy — use sync tier (60 req/min)
                 rateLimit(RateLimitName("sync")) {

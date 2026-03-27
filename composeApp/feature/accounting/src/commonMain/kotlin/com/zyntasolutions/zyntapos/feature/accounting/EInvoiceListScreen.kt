@@ -58,7 +58,7 @@ fun EInvoiceListScreen(
                 FilterChip(
                     selected = state.statusFilter == null,
                     onClick = { onIntent(EInvoiceIntent.FilterByStatus(null)) },
-                    label = { Text("${s[StringResource.COMMON_ALL]} (${state.invoices.size})") },
+                    label = { Text(s[StringResource.COMMON_NAME_PAREN_FORMAT, s[StringResource.COMMON_ALL], "${state.invoices.size}"]) },
                 )
             }
             items(EInvoiceStatus.values()) { status ->
@@ -66,7 +66,7 @@ fun EInvoiceListScreen(
                 FilterChip(
                     selected = state.statusFilter == status,
                     onClick = { onIntent(EInvoiceIntent.FilterByStatus(status)) },
-                    label = { Text("${status.label(s)} ($count)") },
+                    label = { Text(s[StringResource.COMMON_NAME_PAREN_FORMAT, status.label(s), "$count"]) },
                 )
             }
         }

@@ -11,6 +11,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.LocalDate
@@ -26,10 +27,14 @@ class AdminMetricsService {
         val activeStores = Stores.selectAll().where { Stores.isActive eq true }.count().toInt()
 
         val now = OffsetDateTime.now(ZoneOffset.UTC)
-        val since = when (period) {
-            "today" -> now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
-            "week"  -> now.minusDays(7)
-            else    -> now.minusDays(30)
+        // Current window
+        val (since, prevSince, prevUntil) = when (period) {
+            "today" -> {
+                val todayStart = now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
+                Triple(todayStart, todayStart.minusDays(1), todayStart)
+            }
+            "week"  -> Triple(now.minusDays(7), now.minusDays(14), now.minusDays(7))
+            else    -> Triple(now.minusDays(30), now.minusDays(60), now.minusDays(30))
         }
 
         val totalPending = SyncQueue.selectAll()
@@ -44,17 +49,29 @@ class AdminMetricsService {
             ((totalStores - storesWithPendingIssues) * 100.0) / totalStores
         }
 
+        // Revenue trend: compare current window to previous window
+        val currentRevenue = estimateRevenue(since, now)
+        val prevRevenue    = estimateRevenue(prevSince, prevUntil)
+        val revenueTrend   = if (prevRevenue > 0.0) ((currentRevenue - prevRevenue) / prevRevenue) * 100.0 else 0.0
+
+        // Stores trend: new stores added in current vs previous window
+        val storesInCurrent = Stores.selectAll()
+            .where { Stores.createdAt greaterEq since }.count().toInt()
+        val storesInPrev    = Stores.selectAll()
+            .where { (Stores.createdAt greaterEq prevSince) and (Stores.createdAt less prevUntil) }.count().toInt()
+        val storesTrend = if (storesInPrev > 0) ((storesInCurrent - storesInPrev) * 100.0) / storesInPrev else 0.0
+
         val activeAlerts = AlertInstances.selectAll()
             .where { AlertInstances.status eq "active" }
             .count().toInt()
 
         DashboardKPIs(
             totalStores          = totalStores,
-            totalStoresTrend     = 0.0,
+            totalStoresTrend     = storesTrend,
             activeLicenses       = activeStores,
-            activeLicensesTrend  = 0.0,
-            revenueToday         = estimateRevenue(since, now),
-            revenueTodayTrend    = 0.0,
+            activeLicensesTrend  = 0.0,   // license trend requires license-service query (cross-DB — omit for now)
+            revenueToday         = currentRevenue,
+            revenueTodayTrend    = revenueTrend,
             syncHealthPercent    = syncHealthPct,
             syncHealthTrend      = 0.0,
             currency             = "LKR"
@@ -102,28 +119,41 @@ class AdminMetricsService {
     suspend fun getStoreComparison(period: String): List<StoreComparisonData> =
         newSuspendedTransaction {
             val now = OffsetDateTime.now(ZoneOffset.UTC)
-            val since = when (period) {
-                "today" -> now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
-                "week"  -> now.minusDays(7)
-                else    -> now.minusDays(30)
+            val (since, prevSince, prevUntil) = when (period) {
+                "today" -> {
+                    val todayStart = now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
+                    val yesterdayStart = todayStart.minusDays(1)
+                    Triple(todayStart, yesterdayStart, todayStart)
+                }
+                "week" -> Triple(now.minusDays(7), now.minusDays(14), now.minusDays(7))
+                else   -> Triple(now.minusDays(30), now.minusDays(60), now.minusDays(30))
             }
 
             val storeMap = Stores.selectAll().associate { it[Stores.id] to it[Stores.name] }
 
-            val ordersByStore = SyncQueue.selectAll().where {
+            val currentRows = SyncQueue.selectAll().where {
                 (SyncQueue.entityType eq "ORDER") and
                 (SyncQueue.isProcessed eq true) and
                 (SyncQueue.serverTs greaterEq since)
             }.groupBy { it[SyncQueue.storeId] }
 
-            ordersByStore.map { (storeId, rows) ->
+            val prevRows = SyncQueue.selectAll().where {
+                (SyncQueue.entityType eq "ORDER") and
+                (SyncQueue.isProcessed eq true) and
+                (SyncQueue.serverTs greaterEq prevSince) and
+                (SyncQueue.serverTs less prevUntil)
+            }.groupBy { it[SyncQueue.storeId] }
+
+            currentRows.map { (storeId, rows) ->
                 val revenue = rows.sumOf { extractTotal(it[SyncQueue.payload]) }
+                val prevRevenue = prevRows[storeId]?.sumOf { extractTotal(it[SyncQueue.payload]) } ?: 0.0
+                val growth = if (prevRevenue > 0.0) ((revenue - prevRevenue) / prevRevenue) * 100.0 else 0.0
                 StoreComparisonData(
                     storeId   = storeId,
                     storeName = storeMap[storeId] ?: storeId,
                     revenue   = revenue,
                     orders    = rows.size,
-                    growth    = 0.0
+                    growth    = growth
                 )
             }.sortedByDescending { it.revenue }
         }
@@ -197,6 +227,10 @@ class AdminMetricsService {
         val storeMap = Stores.selectAll().associate { it[Stores.id] to it[Stores.name] }
         val allRows = query.toList()
 
+        // Build cost price map from Products table for best-effort margin calculation
+        val productCostMap: Map<String, Double> = Products.selectAll()
+            .associate { it[Products.id] to it[Products.costPrice].toDouble() }
+
         // Group by productId from payload
         val byProduct = allRows.groupBy { row ->
             extractField(row[SyncQueue.payload], "productId") ?: row[SyncQueue.entityId]
@@ -210,13 +244,16 @@ class AdminMetricsService {
                 val unitsSold = rows.sumOf {
                     extractField(it[SyncQueue.payload], "quantity")?.toDoubleOrNull()?.toInt() ?: 1
                 }
+                val costPrice = productCostMap[productId] ?: 0.0
+                val costTotal = costPrice * unitsSold
+                val marginPercent = if (revenue > 0.0) ((revenue - costTotal) / revenue) * 100.0 else 0.0
                 ProductPerformanceRow(
                     productId    = productId,
                     productName  = extractField(rows.first()[SyncQueue.payload], "productName") ?: productId,
                     category     = extractField(rows.first()[SyncQueue.payload], "category") ?: "",
                     unitsSold    = unitsSold,
                     revenue      = revenue,
-                    marginPercent = 0.0,
+                    marginPercent = marginPercent,
                     storeId      = rows.first()[SyncQueue.storeId],
                     storeName    = storeMap[rows.first()[SyncQueue.storeId]]
                 )

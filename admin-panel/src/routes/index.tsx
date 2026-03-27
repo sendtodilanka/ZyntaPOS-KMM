@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
-  Store, Key, DollarSign, RefreshCw, TrendingUp, AlertTriangle,
+  Store, Key, DollarSign, RefreshCw, TrendingUp, AlertTriangle, RotateCw,
 } from 'lucide-react';
-import { subDays, format } from 'date-fns';
+import { subDays, format, formatDistanceToNow } from 'date-fns';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { SalesChart } from '@/components/charts/SalesChart';
 import { StoreComparisonChart } from '@/components/charts/StoreComparisonChart';
@@ -28,19 +28,36 @@ const PERIOD_OPTIONS: { label: string; value: TimePeriod }[] = [
 
 function DashboardPage() {
   const [period, setPeriod] = useState<TimePeriod>('today');
+  const [storeFilter, setStoreFilter] = useState('');
 
-  const { data: kpis, isLoading: kpisLoading } = useDashboardKPIs(period);
-  const { data: salesData, isLoading: salesLoading } = useSalesChart({
+  const { data: kpis, isLoading: kpisLoading, refetch: refetchKpis, dataUpdatedAt } = useDashboardKPIs(period);
+  const { data: salesData, isLoading: salesLoading, refetch: refetchSales } = useSalesChart({
     from: format(subDays(new Date(), period === 'today' ? 1 : period === 'week' ? 7 : 30), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd'),
     granularity: period === 'today' ? 'hour' : period === 'week' ? 'day' : 'day',
   });
-  const { data: storeData, isLoading: storeLoading } = useStoreComparison(period);
+  const { data: storeData, isLoading: storeLoading, refetch: refetchStores } = useStoreComparison(period);
   const { data: alertsPage, isLoading: alertsLoading } = useAlerts({ status: 'active', pageSize: 5 });
   const { data: healthData, isLoading: healthLoading } = useSystemHealth();
 
   const recentAlerts = alertsPage?.items ?? [];
   const uptimeData = healthData?.services.map((s) => ({ service: s.name, uptimePercent: s.uptime })) ?? [];
+
+  // Client-side store filter for comparison chart
+  const filteredStoreData = storeFilter.trim()
+    ? (storeData ?? []).filter((s) =>
+        s.storeName.toLowerCase().includes(storeFilter.toLowerCase()) ||
+        s.storeId.toLowerCase().includes(storeFilter.toLowerCase())
+      )
+    : storeData;
+
+  const handleRefresh = useCallback(() => {
+    void refetchKpis();
+    void refetchSales();
+    void refetchStores();
+  }, [refetchKpis, refetchSales, refetchStores]);
+
+  const lastUpdated = dataUpdatedAt ? formatDistanceToNow(new Date(dataUpdatedAt), { addSuffix: true }) : null;
 
   return (
     <div className="space-y-6">
@@ -48,23 +65,45 @@ function DashboardPage() {
       <div className="panel-header flex-wrap gap-3">
         <div>
           <h1 className="panel-title">Dashboard</h1>
-          <p className="panel-subtitle">Overview of all ZyntaPOS deployments</p>
+          <p className="panel-subtitle">
+            Overview of all ZyntaPOS deployments
+            {lastUpdated && <span className="ml-2 text-slate-500">· updated {lastUpdated}</span>}
+          </p>
         </div>
-        {/* Period selector */}
-        <div className="flex items-center gap-1 bg-surface-elevated rounded-lg p-1">
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setPeriod(opt.value)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px] ${
-                period === opt.value
-                  ? 'bg-brand-700 text-white'
-                  : 'text-slate-400 hover:text-slate-100'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          {/* Live indicator — auto-refreshes every 30s via React Query */}
+          <div className="flex items-center gap-1.5 h-9 px-3 text-xs text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 rounded-lg">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="hidden sm:inline">Live</span>
+          </div>
+          {/* Refresh button */}
+          <button
+            onClick={handleRefresh}
+            aria-label="Refresh dashboard"
+            className="flex items-center gap-1.5 h-9 px-3 text-xs text-slate-400 hover:text-slate-100 border border-surface-border rounded-lg hover:bg-surface-elevated transition-colors"
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+          {/* Period selector */}
+          <div className="flex items-center gap-1 bg-surface-elevated rounded-lg p-1">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setPeriod(opt.value)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px] ${
+                  period === opt.value
+                    ? 'bg-brand-700 text-white'
+                    : 'text-slate-400 hover:text-slate-100'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -124,14 +163,21 @@ function DashboardPage() {
 
         {/* Store comparison */}
         <div className="panel-card">
-          <div className="panel-header mb-4">
+          <div className="panel-header mb-3">
             <div>
               <h2 className="panel-title text-base">Store Comparison</h2>
               <p className="panel-subtitle text-xs">Revenue by store</p>
             </div>
             <Store className="w-4 h-4 text-slate-500" />
           </div>
-          <StoreComparisonChart data={storeData} isLoading={storeLoading} />
+          <input
+            type="text"
+            value={storeFilter}
+            onChange={(e) => setStoreFilter(e.target.value)}
+            placeholder="Filter by store name or ID…"
+            className="w-full h-8 mb-3 bg-surface-elevated border border-surface-border rounded-lg px-3 text-xs text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+          <StoreComparisonChart data={filteredStoreData} isLoading={storeLoading} />
         </div>
       </div>
 

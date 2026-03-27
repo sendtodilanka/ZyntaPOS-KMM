@@ -732,7 +732,7 @@ private fun UnitDropdown(
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             units.forEach { unit ->
                 DropdownMenuItem(
-                    text = { Text("${unit.name} (${unit.abbreviation})") },
+                    text = { Text(s[StringResource.COMMON_NAME_PAREN_FORMAT, unit.name, unit.abbreviation]) },
                     onClick = {
                         onSelect(unit.id)
                         expanded = false
@@ -776,7 +776,7 @@ private fun TaxGroupDropdown(
             )
             taxGroups.filter { it.isActive }.forEach { tg ->
                 DropdownMenuItem(
-                    text = { Text("${tg.name} (${tg.rate}%)") },
+                    text = { Text(s[StringResource.COMMON_NAME_PAREN_FORMAT, tg.name, "${tg.rate}%"]) },
                     onClick = { onSelect(tg.id); expanded = false },
                 )
             }

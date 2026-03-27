@@ -17,6 +17,7 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'system:settings', 'system:health', 'system:backup',
     'email:settings', 'email:logs',
     'inventory:read', 'inventory:write', 'transfers:read',
+    'customers:read',
   ],
   OPERATOR: [
     'dashboard:ops', 'dashboard:support',
@@ -30,6 +31,7 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'system:health',
     'email:logs',
     'inventory:read', 'transfers:read',
+    'customers:read',
   ],
   FINANCE: [
     'dashboard:financial',
@@ -50,6 +52,7 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'reports:support', 'reports:read',
     'tickets:read', 'tickets:create', 'tickets:update', 'tickets:assign',
     'tickets:close', 'tickets:comment',
+    'customers:read',
   ],
 };
 

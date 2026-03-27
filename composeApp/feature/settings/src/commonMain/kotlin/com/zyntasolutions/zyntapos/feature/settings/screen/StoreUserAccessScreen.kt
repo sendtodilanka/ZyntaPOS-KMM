@@ -382,6 +382,7 @@ private fun UserDropdown(
     users: List<User>,
     onUserSelected: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selectedName = users.find { it.id == selectedUserId }?.name ?: ""
 
@@ -405,7 +406,7 @@ private fun UserDropdown(
         ) {
             users.forEach { user ->
                 DropdownMenuItem(
-                    text = { Text("${user.name} (${user.role.name})") },
+                    text = { Text(s[StringResource.COMMON_NAME_PAREN_FORMAT, user.name, user.role.name]) },
                     onClick = {
                         onUserSelected(user.id)
                         expanded = false

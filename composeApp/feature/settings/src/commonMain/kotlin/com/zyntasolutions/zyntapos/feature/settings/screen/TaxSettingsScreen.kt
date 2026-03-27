@@ -155,7 +155,7 @@ fun TaxSettingsScreen(
                             Text(tg.name, modifier = Modifier.weight(2f),
                                 style = MaterialTheme.typography.bodyMedium)
                             // Rate
-                            Text("${"%.2f".format(tg.rate)}%", modifier = Modifier.weight(1f),
+                            Text(s[StringResource.COMMON_PERCENT_FORMAT, "%.2f".format(tg.rate)], modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.bodyMedium)
                             // Inclusive
                             Text(if (tg.isInclusive) s[StringResource.COMMON_YES] else s[StringResource.COMMON_NO], modifier = Modifier.weight(1f),
