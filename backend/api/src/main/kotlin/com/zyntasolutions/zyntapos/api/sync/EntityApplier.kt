@@ -44,7 +44,7 @@ object Categories : Table("categories") {
 
 object Customers : Table("customers") {
     val id            = text("id")
-    val storeId       = text("store_id")
+    val storeId       = text("store_id").nullable()
     val name          = text("name")
     val email         = text("email").nullable()
     val phone         = text("phone").nullable()

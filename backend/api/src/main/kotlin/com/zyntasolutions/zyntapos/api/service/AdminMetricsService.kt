@@ -11,6 +11,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.greaterEq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.lessEq
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.time.LocalDate
@@ -102,28 +103,41 @@ class AdminMetricsService {
     suspend fun getStoreComparison(period: String): List<StoreComparisonData> =
         newSuspendedTransaction {
             val now = OffsetDateTime.now(ZoneOffset.UTC)
-            val since = when (period) {
-                "today" -> now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
-                "week"  -> now.minusDays(7)
-                else    -> now.minusDays(30)
+            val (since, prevSince, prevUntil) = when (period) {
+                "today" -> {
+                    val todayStart = now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
+                    val yesterdayStart = todayStart.minusDays(1)
+                    Triple(todayStart, yesterdayStart, todayStart)
+                }
+                "week" -> Triple(now.minusDays(7), now.minusDays(14), now.minusDays(7))
+                else   -> Triple(now.minusDays(30), now.minusDays(60), now.minusDays(30))
             }
 
             val storeMap = Stores.selectAll().associate { it[Stores.id] to it[Stores.name] }
 
-            val ordersByStore = SyncQueue.selectAll().where {
+            val currentRows = SyncQueue.selectAll().where {
                 (SyncQueue.entityType eq "ORDER") and
                 (SyncQueue.isProcessed eq true) and
                 (SyncQueue.serverTs greaterEq since)
             }.groupBy { it[SyncQueue.storeId] }
 
-            ordersByStore.map { (storeId, rows) ->
+            val prevRows = SyncQueue.selectAll().where {
+                (SyncQueue.entityType eq "ORDER") and
+                (SyncQueue.isProcessed eq true) and
+                (SyncQueue.serverTs greaterEq prevSince) and
+                (SyncQueue.serverTs less prevUntil)
+            }.groupBy { it[SyncQueue.storeId] }
+
+            currentRows.map { (storeId, rows) ->
                 val revenue = rows.sumOf { extractTotal(it[SyncQueue.payload]) }
+                val prevRevenue = prevRows[storeId]?.sumOf { extractTotal(it[SyncQueue.payload]) } ?: 0.0
+                val growth = if (prevRevenue > 0.0) ((revenue - prevRevenue) / prevRevenue) * 100.0 else 0.0
                 StoreComparisonData(
                     storeId   = storeId,
                     storeName = storeMap[storeId] ?: storeId,
                     revenue   = revenue,
                     orders    = rows.size,
-                    growth    = 0.0
+                    growth    = growth
                 )
             }.sortedByDescending { it.revenue }
         }
