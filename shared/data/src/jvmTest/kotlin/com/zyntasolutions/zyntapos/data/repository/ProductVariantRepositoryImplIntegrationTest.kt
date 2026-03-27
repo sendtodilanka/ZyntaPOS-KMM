@@ -48,7 +48,7 @@ class ProductVariantRepositoryImplIntegrationTest {
         // Seed products required by product_id FK
         db.productsQueries.insertProduct(
             id = "prod-01", name = "T-Shirt", barcode = null, sku = "TSH-01",
-            category_id = null, unit_id = null, price = 500.0, cost_price = 300.0,
+            category_id = null, unit_id = "pcs", price = 500.0, cost_price = 300.0,
             tax_group_id = null, stock_qty = 0.0, min_stock_qty = 5.0,
             image_url = null, description = null, is_active = 1L,
             created_at = now, updated_at = now, sync_status = "PENDING",
@@ -56,7 +56,7 @@ class ProductVariantRepositoryImplIntegrationTest {
         )
         db.productsQueries.insertProduct(
             id = "prod-02", name = "Hoodie", barcode = null, sku = "HOD-01",
-            category_id = null, unit_id = null, price = 1000.0, cost_price = 600.0,
+            category_id = null, unit_id = "pcs", price = 1000.0, cost_price = 600.0,
             tax_group_id = null, stock_qty = 0.0, min_stock_qty = 5.0,
             image_url = null, description = null, is_active = 1L,
             created_at = now, updated_at = now, sync_status = "PENDING",

@@ -48,7 +48,7 @@ class ExchangeRateRepositoryImplIntegrationTest {
         sourceCurrency: String = "USD",
         targetCurrency: String = "LKR",
         rate: Double = 325.0,
-        effectiveDate: Long? = null,
+        effectiveDate: Long = 0L,
         expiresAt: Long? = null,
         source: String = "manual",
         createdAt: Long = 0L,

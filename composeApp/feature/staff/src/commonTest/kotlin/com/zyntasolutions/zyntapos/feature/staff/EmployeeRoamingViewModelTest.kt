@@ -263,8 +263,11 @@ class EmployeeRoamingViewModelTest {
 
     @Test
     fun `ConfirmAssignment rejects duplicate active assignment`() = runTest {
-        viewModel.dispatch(EmployeeRoamingIntent.LoadAssignments("emp-01", "Jane"))
+        // Seed the duplicate BEFORE loading so the flow emits it on first collection
         fakeRepo.assignments.add(buildAssignment(employeeId = "emp-01", storeId = "store-02", isActive = true))
+
+        viewModel.dispatch(EmployeeRoamingIntent.LoadAssignments("emp-01", "Jane"))
+        testDispatcher.scheduler.advanceUntilIdle()  // let flatMapLatest populate state.assignments
 
         viewModel.dispatch(EmployeeRoamingIntent.UpdateField("storeId", "store-02"))
         viewModel.dispatch(EmployeeRoamingIntent.UpdateField("startDate", "2026-04-01"))
