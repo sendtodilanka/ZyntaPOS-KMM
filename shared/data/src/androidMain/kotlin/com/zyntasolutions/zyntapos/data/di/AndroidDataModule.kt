@@ -6,12 +6,14 @@ import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.config.AppConfig
 import com.zyntasolutions.zyntapos.core.config.RemoteConfigProvider
 import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
+import com.zyntasolutions.zyntapos.data.email.EmailPortImpl
 import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
 import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
+import com.zyntasolutions.zyntapos.domain.port.EmailPort
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -98,6 +100,11 @@ val androidDataModule = module {
     // Bound as both concrete type and RemoteConfigProvider interface.
     single { RemoteConfigService() }
     single<RemoteConfigProvider> { get<RemoteConfigService>() }
+
+    // ── Email port (platform expect/actual) ───────────────────────────────────
+    // Android actual opens the system email chooser via Intent.ACTION_SENDTO.
+    // Application context is sufficient — FLAG_ACTIVITY_NEW_TASK is set by the impl.
+    single<EmailPort> { EmailPortImpl(context = androidContext()) }
 
     // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
     // Adapter class AndroidEncryptedSecurePreferences removed — MERGED-D3 (2026-02-21).
