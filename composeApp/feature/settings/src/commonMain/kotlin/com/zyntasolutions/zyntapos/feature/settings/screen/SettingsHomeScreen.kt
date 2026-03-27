@@ -87,7 +87,7 @@ fun SettingsHomeScreen(
             verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.md),
         ) {
             groups.forEach { group ->
-                item {
+                item(key = group.title) {
                     SettingsCategoryCard(
                         group = group,
                         onItemClick = { onNavigate(it.route) },

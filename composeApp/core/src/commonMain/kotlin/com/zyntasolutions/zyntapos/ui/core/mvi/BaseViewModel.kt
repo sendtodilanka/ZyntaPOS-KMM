@@ -117,9 +117,13 @@ abstract class BaseViewModel<S, I, E>(initialState: S) : ViewModel() {
     /**
      * UI entry-point for all user interactions.
      *
-     * Launches [handleIntent] inside [viewModelScope]. All intents are processed
-     * sequentially within their coroutine — concurrent intent handling is safe
-     * because state mutations go through atomic [updateState].
+     * Launches [handleIntent] inside [viewModelScope] for each intent. Multiple
+     * concurrent dispatches launch independent coroutines — individual state
+     * updates are always atomic via [updateState], but multi-step handlers that
+     * perform several sequential [updateState] calls may interleave with other
+     * concurrently dispatched intents. For operations requiring exclusive access
+     * across multiple steps, protect the critical section with a `Mutex` inside
+     * [handleIntent].
      *
      * @param intent The [I] subtype originating from a UI event.
      */

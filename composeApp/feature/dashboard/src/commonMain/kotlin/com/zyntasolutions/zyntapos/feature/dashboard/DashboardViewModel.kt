@@ -20,6 +20,7 @@ import com.zyntasolutions.zyntapos.ui.core.mvi.BaseViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -74,107 +75,27 @@ class DashboardViewModel(
         }
     }
 
-    @Suppress("LongMethod")
     private suspend fun performLoad(showLoadingSpinner: Boolean) {
         if (showLoadingSpinner) {
             updateState { copy(isLoading = true) }
             analytics.logScreenView("Dashboard", "DashboardViewModel")
         }
-
         try {
             val user = authRepository.getSession().first()
             val activeStoreId = user?.storeId ?: ""
-            val storeName = if (activeStoreId.isNotEmpty()) {
-                storeRepository.getStoreName(activeStoreId) ?: ""
-            } else {
-                ""
-            }
+            val storeName = if (activeStoreId.isNotEmpty()) storeRepository.getStoreName(activeStoreId) ?: "" else ""
             val tz = TimeZone.currentSystemDefault()
             val now = Clock.System.now()
             val todayStart = now.toLocalDateTime(tz).date.atStartOfDayIn(tz)
 
-            // Today's orders
-            val todayOrders = orderRepository.getByDateRange(todayStart, now).first()
-            val completedToday = todayOrders.filter { it.status == OrderStatus.COMPLETED }
-            val sales = completedToday.sumOf { it.total }
-            val orderCount = completedToday.size.toLong()
+            val (sales, orderCount, sparkline, weeklyPoints) = loadTodayMetrics(tz, now, todayStart)
+            val (yesterdaySalesTotal, yesterdayOrderCount, lastWeekSales,
+                salesVsYesterday, ordersVsYesterday, salesVsLastWeek) =
+                loadPeriodComparison(tz, now, todayStart, sales, orderCount)
+            val recent = loadRecentOrders(tz)
 
-            // Hourly sparkline
-            val hourlyBuckets = FloatArray(24)
-            completedToday.forEach { order ->
-                val hour = order.createdAt.toLocalDateTime(tz).hour
-                hourlyBuckets[hour] += order.total.toFloat()
-            }
-            val currentHour = now.toLocalDateTime(tz).hour
-            val sparkline = hourlyBuckets.take(currentHour + 1).map { it }
-
-            // Weekly sales (last 7 days)
-            val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-            val weeklyPoints = mutableListOf<ChartDataPoint>()
-            for (i in 6 downTo 0) {
-                val dayDate = now.toLocalDateTime(tz).date.minus(i.toLong(), DateTimeUnit.DAY)
-                val dayStart = dayDate.atStartOfDayIn(tz)
-                val dayEnd = if (i == 0) {
-                    now
-                } else {
-                    now.toLocalDateTime(tz).date.minus((i - 1).toLong(), DateTimeUnit.DAY)
-                        .atStartOfDayIn(tz)
-                }
-                val dayOrders = orderRepository.getByDateRange(dayStart, dayEnd).first()
-                val daySales = dayOrders
-                    .filter { it.status == OrderStatus.COMPLETED }
-                    .sumOf { it.total }
-                val dayOfWeek = dayDate.dayOfWeek.ordinal
-                weeklyPoints.add(ChartDataPoint(label = dayNames[dayOfWeek], value = daySales.toFloat()))
-            }
-
-            // ── Period comparison (G7) — yesterday & last-week-same-day ──────
-            val yesterdayDate = now.toLocalDateTime(tz).date.minus(1L, DateTimeUnit.DAY)
-            val yesterdayStart = yesterdayDate.atStartOfDayIn(tz)
-            val yesterdayEnd = todayStart
-            val yesterdayOrders = orderRepository.getByDateRange(yesterdayStart, yesterdayEnd).first()
-            val yesterdayCompleted = yesterdayOrders.filter { it.status == OrderStatus.COMPLETED }
-            val yesterdaySalesTotal = yesterdayCompleted.sumOf { it.total }
-            val yesterdayOrderCount = yesterdayCompleted.size.toLong()
-
-            val lastWeekDate = now.toLocalDateTime(tz).date.minus(7L, DateTimeUnit.DAY)
-            val lastWeekStart = lastWeekDate.atStartOfDayIn(tz)
-            val lastWeekEnd = lastWeekDate.minus((-1).toLong(), DateTimeUnit.DAY).atStartOfDayIn(tz)
-            val lastWeekOrders = orderRepository.getByDateRange(lastWeekStart, lastWeekEnd).first()
-            val lastWeekSales = lastWeekOrders.filter { it.status == OrderStatus.COMPLETED }.sumOf { it.total }
-
-            fun changePercent(current: Double, previous: Double): Double =
-                if (previous > 0) ((current - previous) / previous) * 100.0 else 0.0
-
-            val salesVsYesterday = changePercent(sales, yesterdaySalesTotal)
-            val ordersVsYesterday = changePercent(orderCount.toDouble(), yesterdayOrderCount.toDouble())
-            val salesVsLastWeek = changePercent(sales, lastWeekSales)
-
-            // Low stock
-            val allProducts = productRepository.getAll().first()
-            val lowStockProducts = allProducts.filter { it.stockQty <= it.minStockQty }
-
-            // Active registers
+            val lowStockProducts = productRepository.getAll().first().filter { it.stockQty <= it.minStockQty }
             val activeSession = registerRepository.getActive().first()
-
-            // Recent completed orders (last 10) — formattedTime pre-computed here, not in composable
-            val allOrders = orderRepository.getAll().first()
-            val recent = allOrders
-                .filter { it.status == OrderStatus.COMPLETED }
-                .sortedByDescending { it.createdAt }
-                .take(10)
-                .map { order ->
-                    val orderTime = order.createdAt.toLocalDateTime(tz)
-                    RecentOrderItem(
-                        orderNumber = order.orderNumber,
-                        total = order.total,
-                        method = order.paymentMethod.name,
-                        timestamp = order.createdAt.toEpochMilliseconds(),
-                        formattedTime = "${orderTime.hour.toString().padStart(2, '0')}:${
-                            orderTime.minute.toString().padStart(2, '0')
-                        }",
-                    )
-                }
 
             val nowLocal = now.toLocalDateTime(tz)
             val greeting = when {
@@ -182,17 +103,13 @@ class DashboardViewModel(
                 nowLocal.hour < 17 -> "Good afternoon,"
                 else -> "Good evening,"
             }
-
             val target = settingsRepository.get("pos.daily_sales_target")?.toDoubleOrNull()
                 ?: currentState.dailySalesTarget
             val computedSalesProgress = if (target > 0) (sales / target).toFloat().coerceIn(0f, 1f) else 0f
             val computedInitials = user?.name
-                ?.split(" ")
-                ?.take(2)
+                ?.split(" ")?.take(2)
                 ?.mapNotNull { it.firstOrNull()?.uppercaseChar()?.toString() }
-                ?.joinToString("")
-                ?.takeIf { it.isNotEmpty() }
-                ?: "M"
+                ?.joinToString("")?.takeIf { it.isNotEmpty() } ?: "M"
 
             updateState {
                 copy(
@@ -226,6 +143,106 @@ class DashboardViewModel(
             sendEffect(DashboardEffect.ShowError(e.message ?: "Failed to load dashboard"))
         }
     }
+
+    /** Loads today's sales KPIs: completed orders total, count, hourly sparkline, and 7-day chart. */
+    private suspend fun loadTodayMetrics(
+        tz: TimeZone,
+        now: Instant,
+        todayStart: Instant,
+    ): TodayMetrics {
+        val todayOrders = orderRepository.getByDateRange(todayStart, now).first()
+        val completedToday = todayOrders.filter { it.status == OrderStatus.COMPLETED }
+        val sales = completedToday.sumOf { it.total }
+        val orderCount = completedToday.size.toLong()
+
+        val hourlyBuckets = FloatArray(24)
+        completedToday.forEach { order ->
+            val hour = order.createdAt.toLocalDateTime(tz).hour
+            hourlyBuckets[hour] += order.total.toFloat()
+        }
+        val sparkline = hourlyBuckets.take(now.toLocalDateTime(tz).hour + 1).map { it }
+
+        val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        val weeklyPoints = mutableListOf<ChartDataPoint>()
+        for (i in 6 downTo 0) {
+            val dayDate = now.toLocalDateTime(tz).date.minus(i.toLong(), DateTimeUnit.DAY)
+            val dayStart = dayDate.atStartOfDayIn(tz)
+            val dayEnd = if (i == 0) now
+            else now.toLocalDateTime(tz).date.minus((i - 1).toLong(), DateTimeUnit.DAY).atStartOfDayIn(tz)
+            val daySales = orderRepository.getByDateRange(dayStart, dayEnd).first()
+                .filter { it.status == OrderStatus.COMPLETED }.sumOf { it.total }
+            weeklyPoints.add(ChartDataPoint(label = dayNames[dayDate.dayOfWeek.ordinal], value = daySales.toFloat()))
+        }
+        return TodayMetrics(sales, orderCount, sparkline, weeklyPoints)
+    }
+
+    /** Loads period-comparison figures: yesterday and last-week-same-day, and change percentages. */
+    private suspend fun loadPeriodComparison(
+        tz: TimeZone,
+        now: Instant,
+        todayStart: Instant,
+        currentSales: Double,
+        currentOrderCount: Long,
+    ): PeriodComparison {
+        val yesterdayDate = now.toLocalDateTime(tz).date.minus(1L, DateTimeUnit.DAY)
+        val yesterdayCompleted = orderRepository
+            .getByDateRange(yesterdayDate.atStartOfDayIn(tz), todayStart).first()
+            .filter { it.status == OrderStatus.COMPLETED }
+        val yesterdaySales = yesterdayCompleted.sumOf { it.total }
+        val yesterdayOrders = yesterdayCompleted.size.toLong()
+
+        val lastWeekDate = now.toLocalDateTime(tz).date.minus(7L, DateTimeUnit.DAY)
+        val lastWeekSales = orderRepository
+            .getByDateRange(
+                lastWeekDate.atStartOfDayIn(tz),
+                lastWeekDate.minus((-1).toLong(), DateTimeUnit.DAY).atStartOfDayIn(tz),
+            ).first()
+            .filter { it.status == OrderStatus.COMPLETED }.sumOf { it.total }
+
+        fun changePercent(current: Double, previous: Double) =
+            if (previous > 0) ((current - previous) / previous) * 100.0 else 0.0
+
+        return PeriodComparison(
+            yesterdaySales, yesterdayOrders, lastWeekSales,
+            changePercent(currentSales, yesterdaySales),
+            changePercent(currentOrderCount.toDouble(), yesterdayOrders.toDouble()),
+            changePercent(currentSales, lastWeekSales),
+        )
+    }
+
+    /** Loads the 10 most recent completed orders with pre-formatted timestamps. */
+    private suspend fun loadRecentOrders(tz: TimeZone): List<RecentOrderItem> {
+        return orderRepository.getAll().first()
+            .filter { it.status == OrderStatus.COMPLETED }
+            .sortedByDescending { it.createdAt }
+            .take(10)
+            .map { order ->
+                val t = order.createdAt.toLocalDateTime(tz)
+                RecentOrderItem(
+                    orderNumber = order.orderNumber,
+                    total = order.total,
+                    method = order.paymentMethod.name,
+                    timestamp = order.createdAt.toEpochMilliseconds(),
+                    formattedTime = "${t.hour.toString().padStart(2, '0')}:${t.minute.toString().padStart(2, '0')}",
+                )
+            }
+    }
+
+    private data class TodayMetrics(
+        val sales: Double,
+        val orderCount: Long,
+        val sparkline: List<Float>,
+        val weeklyPoints: List<ChartDataPoint>,
+    )
+
+    private data class PeriodComparison(
+        val yesterdaySales: Double,
+        val yesterdayOrders: Long,
+        val lastWeekSales: Double,
+        val salesVsYesterday: Double,
+        val ordersVsYesterday: Double,
+        val salesVsLastWeek: Double,
+    )
 
     private suspend fun onLogout() {
         analytics.logEvent(AnalyticsEvents.LOGOUT)
