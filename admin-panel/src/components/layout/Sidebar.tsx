@@ -37,6 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Users', icon: Users, href: '/users', permission: 'users:read' },
       { label: 'Tickets', icon: Ticket, href: '/tickets', permission: 'tickets:read' },
       { label: 'Inventory', icon: Package, href: '/inventory', permission: 'inventory:read' },
+      { label: 'Customers', icon: Users, href: '/customers', permission: 'customers:read' },
     ],
   },
   {
