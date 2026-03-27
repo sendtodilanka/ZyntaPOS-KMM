@@ -13,10 +13,15 @@ import com.zyntasolutions.zyntapos.domain.model.PayrollRecord
 import com.zyntasolutions.zyntapos.domain.model.PayrollStatus
 import com.zyntasolutions.zyntapos.domain.model.PayrollSummary
 import com.zyntasolutions.zyntapos.domain.model.SalaryType
+import com.zyntasolutions.zyntapos.domain.model.ShiftSchedule
+import com.zyntasolutions.zyntapos.domain.model.ShiftSwapRequest
+import com.zyntasolutions.zyntapos.domain.model.ShiftSwapStatus
 import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
 import com.zyntasolutions.zyntapos.domain.repository.LeaveRepository
 import com.zyntasolutions.zyntapos.domain.repository.PayrollRepository
+import com.zyntasolutions.zyntapos.domain.repository.ShiftRepository
+import com.zyntasolutions.zyntapos.domain.repository.ShiftSwapRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -544,5 +549,217 @@ class FakePayrollRepository : PayrollRepository {
             paidCount = records.count { it.status == PayrollStatus.PAID },
         )
         return Result.Success(summary)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional Fixture Builders
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Builds a [PayrollRecord] with sensible defaults. */
+fun buildPayrollRecord(
+    id: String = "pay-01",
+    employeeId: String = "emp-01",
+    periodStart: String = "2026-03-01",
+    periodEnd: String = "2026-03-31",
+    baseSalary: Double = 1000.0,
+    overtimePay: Double = 0.0,
+    commission: Double = 0.0,
+    deductions: Double = 0.0,
+    netPay: Double = 1000.0,
+    status: PayrollStatus = PayrollStatus.PENDING,
+    createdAt: Long = 1_000_000L,
+    updatedAt: Long = 1_000_000L,
+) = PayrollRecord(
+    id = id,
+    employeeId = employeeId,
+    periodStart = periodStart,
+    periodEnd = periodEnd,
+    baseSalary = baseSalary,
+    overtimePay = overtimePay,
+    commission = commission,
+    deductions = deductions,
+    netPay = netPay,
+    status = status,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+)
+
+/** Builds a [ShiftSchedule] with sensible defaults. */
+fun buildShiftSchedule(
+    id: String = "shift-01",
+    employeeId: String = "emp-01",
+    storeId: String = "store-01",
+    shiftDate: String = "2026-03-10",
+    startTime: String = "09:00",
+    endTime: String = "17:00",
+    notes: String? = null,
+    createdAt: Long = 1_000_000L,
+    updatedAt: Long = 1_000_000L,
+) = ShiftSchedule(
+    id = id,
+    employeeId = employeeId,
+    storeId = storeId,
+    shiftDate = shiftDate,
+    startTime = startTime,
+    endTime = endTime,
+    notes = notes,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+)
+
+/** Builds a [ShiftSwapRequest] with sensible defaults. */
+fun buildShiftSwapRequest(
+    id: String = "swap-01",
+    requestingEmployeeId: String = "emp-01",
+    targetEmployeeId: String = "emp-02",
+    requestingShiftId: String = "shift-01",
+    targetShiftId: String = "shift-02",
+    status: ShiftSwapStatus = ShiftSwapStatus.PENDING,
+    reason: String = "Doctor appointment",
+    managerNotes: String? = null,
+    createdAt: Long = 1_000_000L,
+    updatedAt: Long = 1_000_000L,
+) = ShiftSwapRequest(
+    id = id,
+    requestingEmployeeId = requestingEmployeeId,
+    targetEmployeeId = targetEmployeeId,
+    requestingShiftId = requestingShiftId,
+    targetShiftId = targetShiftId,
+    status = status,
+    reason = reason,
+    managerNotes = managerNotes,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FakeShiftRepository
+// ─────────────────────────────────────────────────────────────────────────────
+
+class FakeShiftRepository : ShiftRepository {
+
+    val shifts = mutableListOf<ShiftSchedule>()
+    var shouldFailUpsert: Boolean = false
+    var shouldFailDelete: Boolean = false
+    var shouldFailGetAll: Boolean = false
+    var shouldFailUpdate: Boolean = false
+
+    override fun getWeeklySchedule(
+        storeId: String,
+        weekStart: String,
+        weekEnd: String,
+    ): Flow<List<ShiftSchedule>> =
+        flowOf(shifts.filter { it.storeId == storeId && it.shiftDate >= weekStart && it.shiftDate <= weekEnd })
+
+    override fun getByEmployee(employeeId: String): Flow<List<ShiftSchedule>> =
+        flowOf(shifts.filter { it.employeeId == employeeId })
+
+    override suspend fun getByEmployeeAndDate(
+        employeeId: String,
+        date: String,
+    ): Result<ShiftSchedule?> =
+        Result.Success(shifts.firstOrNull { it.employeeId == employeeId && it.shiftDate == date })
+
+    override suspend fun getAllShiftsByEmployeeAndDate(
+        employeeId: String,
+        date: String,
+    ): Result<List<ShiftSchedule>> {
+        if (shouldFailGetAll) return Result.Error(DatabaseException("Get all failed"))
+        return Result.Success(shifts.filter { it.employeeId == employeeId && it.shiftDate == date })
+    }
+
+    override suspend fun getByStoreAndDate(storeId: String, date: String): Result<List<ShiftSchedule>> =
+        Result.Success(shifts.filter { it.storeId == storeId && it.shiftDate == date })
+
+    override suspend fun getById(id: String): Result<ShiftSchedule?> =
+        Result.Success(shifts.firstOrNull { it.id == id })
+
+    override suspend fun insert(shift: ShiftSchedule): Result<Unit> {
+        if (shouldFailUpsert) return Result.Error(DatabaseException("Insert failed"))
+        shifts.add(shift)
+        return Result.Success(Unit)
+    }
+
+    override suspend fun update(shift: ShiftSchedule): Result<Unit> {
+        if (shouldFailUpdate) return Result.Error(DatabaseException("Update failed"))
+        val index = shifts.indexOfFirst { it.id == shift.id }
+        if (index == -1) return Result.Error(DatabaseException("Shift not found"))
+        shifts[index] = shift
+        return Result.Success(Unit)
+    }
+
+    override suspend fun upsert(shift: ShiftSchedule): Result<Unit> {
+        if (shouldFailUpsert) return Result.Error(DatabaseException("Upsert failed"))
+        val index = shifts.indexOfFirst { it.id == shift.id }
+        if (index >= 0) shifts[index] = shift else shifts.add(shift)
+        return Result.Success(Unit)
+    }
+
+    override suspend fun deleteById(id: String): Result<Unit> {
+        if (shouldFailDelete) return Result.Error(DatabaseException("Delete failed"))
+        shifts.removeAll { it.id == id }
+        return Result.Success(Unit)
+    }
+
+    override suspend fun deleteByEmployeeAndDate(employeeId: String, date: String): Result<Unit> {
+        shifts.removeAll { it.employeeId == employeeId && it.shiftDate == date }
+        return Result.Success(Unit)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FakeShiftSwapRepository
+// ─────────────────────────────────────────────────────────────────────────────
+
+class FakeShiftSwapRepository : ShiftSwapRepository {
+
+    val requests = mutableListOf<ShiftSwapRequest>()
+    var shouldFailInsert: Boolean = false
+    var shouldFailUpdate: Boolean = false
+    var lastUpdatedId: String? = null
+    var lastUpdatedStatus: ShiftSwapStatus? = null
+
+    override suspend fun getById(id: String): Result<ShiftSwapRequest?> =
+        Result.Success(requests.firstOrNull { it.id == id })
+
+    override fun getPendingForEmployee(employeeId: String): Flow<List<ShiftSwapRequest>> =
+        flowOf(
+            requests.filter {
+                (it.requestingEmployeeId == employeeId || it.targetEmployeeId == employeeId) &&
+                    (it.status == ShiftSwapStatus.PENDING || it.status == ShiftSwapStatus.TARGET_ACCEPTED)
+            },
+        )
+
+    override fun getPendingForManager(): Flow<List<ShiftSwapRequest>> =
+        flowOf(requests.filter { it.status == ShiftSwapStatus.TARGET_ACCEPTED })
+
+    override fun getByRequestingEmployee(employeeId: String): Flow<List<ShiftSwapRequest>> =
+        flowOf(requests.filter { it.requestingEmployeeId == employeeId })
+
+    override suspend fun insert(request: ShiftSwapRequest): Result<Unit> {
+        if (shouldFailInsert) return Result.Error(DatabaseException("Insert failed"))
+        requests.add(request)
+        return Result.Success(Unit)
+    }
+
+    override suspend fun updateStatus(
+        id: String,
+        status: ShiftSwapStatus,
+        managerNotes: String?,
+        updatedAt: Long,
+    ): Result<Unit> {
+        if (shouldFailUpdate) return Result.Error(DatabaseException("Update failed"))
+        lastUpdatedId = id
+        lastUpdatedStatus = status
+        val index = requests.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            requests[index] = requests[index].copy(
+                status = status,
+                managerNotes = managerNotes,
+                updatedAt = updatedAt,
+            )
+        }
+        return Result.Success(Unit)
     }
 }
