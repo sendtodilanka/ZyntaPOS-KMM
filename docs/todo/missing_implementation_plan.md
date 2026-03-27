@@ -320,7 +320,7 @@ Remaining actionable items (in priority order):
 
 Comprehensive SQLDelight integration tests in `shared/data/src/jvmTest/` using real in-memory SQLite databases (`createTestDatabase()` with `foreign_keys = true`).
 
-**Total files as of last update: 35 test files**
+**Total files as of last update: 66 test files**
 
 #### Previously completed (sessions 1–3):
 | Test File | Tests | Key Coverage |
@@ -365,42 +365,48 @@ Comprehensive SQLDelight integration tests in `shared/data/src/jvmTest/` using r
 | `ConflictLogRepositoryImplIntegrationTest.kt` | 6 | resolve, getByEntity, pruneOld resolved-only, blank ID auto-gen |
 | `TransitTrackingRepositoryImplIntegrationTest.kt` | 5 | addEvent, getInTransitCount, warehouses+transfers FK seeding |
 
+#### Added in session 5 (2026-03-27):
+| Test File | Tests | Key Coverage |
+|-----------|-------|-------------|
+| `SystemRepositoryImplIntegrationTest.kt` | — | System-wide key-value settings |
+| `AttendanceRepositoryImplIntegrationTest.kt` | — | Clock-in/out, FK: employees |
+| `ShiftRepositoryImplIntegrationTest.kt` | — | Shift CRUD, FK: employees |
+| `LeaveRepositoryImplIntegrationTest.kt` | 7 | Insert/getById, getPendingForStore, updateStatus PENDING→APPROVED, getByEmployeeAndPeriod |
+| `PayrollRepositoryImplIntegrationTest.kt` | — | Payroll CRUD, status transitions, FK: employees |
+| `CompoundTaxRepositoryImplIntegrationTest.kt` | — | Compound tax groups, component rates |
+| `CustomerSegmentRepositoryImplIntegrationTest.kt` | — | Customer segment rules, evaluation |
+| `CustomerWalletRepositoryImplIntegrationTest.kt` | — | Wallet top-up, deduct, balance, transactions |
+| `EmployeeStoreAssignmentRepositoryImplIntegrationTest.kt` | — | Employee↔store multi-assignments, FK chain |
+| `ExchangeRateRepositoryImplIntegrationTest.kt` | — | Exchange rates, getLatest |
+| `FeatureRegistryRepositoryImplIntegrationTest.kt` | — | Feature registry flags, per-store overrides |
+| `OperationalLogRepositoryImplIntegrationTest.kt` | — | Append-only operational log, pruneOld |
+| `ProductVariantRepositoryImplIntegrationTest.kt` | — | Variants, FK: products |
+| `RackProductRepositoryImplIntegrationTest.kt` | — | Warehouse rack products, FK: racks |
+| `RegionalTaxOverrideRepositoryImplIntegrationTest.kt` | — | Regional tax overrides per store |
+| `StoreProductOverrideRepositoryImplIntegrationTest.kt` | — | Store-level price overrides |
+| `UserStoreAccessRepositoryImplIntegrationTest.kt` | — | User↔store RBAC access, Role.STORE_MANAGER |
+| `WarehouseRackRepositoryImplIntegrationTest.kt` | — | Warehouse rack CRUD, FK: warehouses |
+| `PayrollEntryRepositoryImplIntegrationTest.kt` | 7 | baseSalary/overtime/deductions, updateStatus DRAFT→APPROVED→PAID |
+| `ShiftSwapRepositoryImplIntegrationTest.kt` | 8 | Full FK chain (employees+shifts), updateStatus TARGET_ACCEPTED→MANAGER_APPROVED |
+| `AccountRepositoryImplIntegrationTest.kt` | 9 | AccountType, NormalBalance, isSystemAccount, isAccountCodeTaken, seedDefaultAccounts |
+| `JournalRepositoryImplIntegrationTest.kt` | 9 | Balanced entry validation, postEntry, reverseEntry, getNextEntryNumber |
+| `AccountingPeriodRepositoryImplIntegrationTest.kt` | 8 | getPeriodForDate, closePeriod, lockPeriod, reopenPeriod |
+| `AuditRepositoryImplIntegrationTest.kt` | 6 | kotlinx.datetime.Instant, getLatestHash, getRecentLoginFailureCount |
+| `BudgetRepositoryImplIntegrationTest.kt` | 7 | getByStoreAndPeriod overlap, updateSpent, null categoryId |
+| `FulfillmentRepositoryImplIntegrationTest.kt` | 6 | getPendingPickups, updateStatus lifecycle, expireOverdueOrders |
+| `MediaRepositoryImplIntegrationTest.kt` | 8 | Soft-delete, getPrimaryForEntity, getPendingUpload, updateUploadStatus, setPrimary |
+| `InstallmentRepositoryImplIntegrationTest.kt` | 7 | createPlan, recordPayment auto-complete, getDuePayments, updatePlanStatus |
+| `FinancialStatementRepositoryImplIntegrationTest.kt` | 6 | getTrialBalance (isBalanced), getProfitAndLoss, getBalanceSheet, upsertBalance |
+| `AccountingRepositoryImplIntegrationTest.kt` | 6 | insertEntries balanced check, getByReference, getSummaryForPeriodRange |
+| `ProductRepositoryImplIntegrationTest.kt` | 10 | getAll active-only, getByBarcode, getPage(PageRequest), getCount |
+
 ### 7.2 Still Untested Repositories
 
-Repositories not yet covered by integration tests (lower priority — complex deps or read-only sync):
+Repositories excluded from jvmTest integration tests due to external dependencies that cannot be mocked in an in-memory SQLite test:
 
-| Repository | Notes |
-|------------|-------|
-| `AccountRepositoryImpl` | Chart of accounts |
-| `AccountingPeriodRepositoryImpl` | Accounting periods |
-| `AccountingRepositoryImpl` | Journal entries, financial data |
-| `AttendanceRepositoryImpl` | Employee attendance — FK: employees |
-| `AuditRepositoryImpl` | Append-only audit log — kotlinx.datetime.Instant |
-| `AuthRepositoryImpl` | Auth tokens (already tested) |
-| `BackupRepositoryImpl` | Backup metadata |
-| `BudgetRepositoryImpl` | Budget allocations |
-| `CompoundTaxRepositoryImpl` | Compound tax groups |
-| `DiagnosticConsentRepositoryImpl` | Diagnostic sessions |
-| `EmployeeStoreAssignmentRepositoryImpl` | Employee↔store FK |
-| `ExchangeRateRepositoryImpl` | Exchange rates |
-| `FeatureRegistryRepositoryImpl` | Feature registry |
-| `FinancialStatementRepositoryImpl` | Financial statements |
-| `FulfillmentRepositoryImpl` | Click & Collect fulfillment |
-| `InstallmentRepositoryImpl` | Installment payments |
-| `JournalRepositoryImpl` | Journal entries |
-| `LeaveRepositoryImpl` | Employee leave — FK: employees |
-| `LicenseRepositoryImpl` | License data |
-| `MediaRepositoryImpl` | Media assets |
-| `OperationalLogRepositoryImpl` | Operational log |
-| `PayrollEntryRepositoryImpl` | Payroll entries — FK: employees |
-| `PayrollRepositoryImpl` | Payroll — FK: employees |
-| `ProductVariantRepositoryImpl` | Product variants — FK: products |
-| `RackProductRepositoryImpl` | Warehouse rack products |
-| `RegionalTaxOverrideRepositoryImpl` | Regional tax overrides |
-| `ReportRepositoryImpl` | Saved reports |
-| `ShiftRepositoryImpl` | Staff shifts — FK: employees |
-| `ShiftSwapRepositoryImpl` | Shift swaps — FK: employees |
-| `StoreProductOverrideRepositoryImpl` | Store-level price overrides |
-| `SystemRepositoryImpl` | System settings |
-| `UserStoreAccessRepositoryImpl` | User↔store access |
-| `WarehouseRackRepositoryImpl` | Warehouse rack definitions |
+| Repository | Reason Excluded |
+|------------|----------------|
+| `BackupRepositoryImpl` | Requires `BackupFileManager` — platform-specific file I/O (not injectable in jvmTest) |
+| `DiagnosticConsentRepositoryImpl` | Requires `ApiService` (live network calls) |
+| `LicenseRepositoryImpl` | Requires `ApiService` (live network calls) |
+| `ReportRepositoryImpl` | Complex multi-table aggregation queries only; no writable state to assert against |
