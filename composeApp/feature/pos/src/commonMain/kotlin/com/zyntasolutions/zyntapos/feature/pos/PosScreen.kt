@@ -431,7 +431,7 @@ private fun CustomerPickerDialog(
                             )
                         }
                     } else {
-                        items(customers) { customer ->
+                        items(customers, key = { it.id }) { customer ->
                             ListItem(
                                 headlineContent = { Text(customer.name) },
                                 supportingContent = { Text(customer.phone) },
