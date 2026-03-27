@@ -750,6 +750,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     customerDetail = { customerId, onNavigateUp, onNavigateToWallet ->
+        val s = LocalStrings.current
         val vm: CustomerViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         val snackbarHostState = remember { SnackbarHostState() }
@@ -1084,6 +1085,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     financialStatements = { storeId, onNavigateBack ->
+        val s = LocalStrings.current
         var exportedCsv by remember { mutableStateOf<Pair<String, String>?>(null) }
         val currentExport = exportedCsv
         if (currentExport != null) {
