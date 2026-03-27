@@ -85,7 +85,7 @@ fun PosSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadPos) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 SettingsEffect.PosSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_POS_SAVED])
                 is SettingsEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)

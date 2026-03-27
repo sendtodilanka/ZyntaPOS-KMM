@@ -114,13 +114,22 @@ internal fun CartContent(
         )
     }
 
+    // Stable lambda references — prevent CustomerRow and CartActionRow from
+    // recomposing every time CartContent recomposes due to a cart item change.
+    val onSelectCustomer  = remember(onIntent) { { onIntent(PosIntent.RequestCustomerSelect) } }
+    val onClearCustomer   = remember(onIntent) { { onIntent(PosIntent.ClearCustomer) } }
+    val onNotesClicked    = remember { { showNotesDialog = true } }
+    val onDiscountClicked = remember { { showOrderDiscountDialog = true } }
+    val onVoidClicked     = remember { { showVoidDialog = true } }
+    val onClearClicked    = remember(onIntent) { { onIntent(PosIntent.ClearCart) } }
+
     Column(modifier = modifier) {
 
         // ── Customer row ───────────────────────────────────────────────────
         CustomerRow(
             selectedCustomer = selectedCustomer,
-            onSelectCustomer = { onIntent(PosIntent.RequestCustomerSelect) },
-            onClearCustomer = { onIntent(PosIntent.ClearCustomer) },
+            onSelectCustomer = onSelectCustomer,
+            onClearCustomer = onClearCustomer,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = ZyntaSpacing.md, vertical = ZyntaSpacing.sm),
@@ -128,10 +137,10 @@ internal fun CartContent(
 
         // ── Cart action row (Order Notes | Order Discount | Void | Clear) ──
         CartActionRow(
-            onNotesClicked = { showNotesDialog = true },
-            onDiscountClicked = { showOrderDiscountDialog = true },
-            onVoidClicked = { showVoidDialog = true },
-            onClearClicked = { onIntent(PosIntent.ClearCart) },
+            onNotesClicked = onNotesClicked,
+            onDiscountClicked = onDiscountClicked,
+            onVoidClicked = onVoidClicked,
+            onClearClicked = onClearClicked,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = ZyntaSpacing.md),

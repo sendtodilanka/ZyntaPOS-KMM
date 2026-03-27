@@ -76,7 +76,7 @@ fun PrinterSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadPrinter) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 SettingsEffect.PrinterSaved -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_SAVED])
                 SettingsEffect.PrintTestPageSent -> snackbarHostState.showSnackbar(s[StringResource.SETTINGS_PRINTER_TEST_SENT])

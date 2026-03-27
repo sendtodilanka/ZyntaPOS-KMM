@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.feature.dashboard.mvi
 
+import androidx.compose.runtime.Immutable
 import com.zyntasolutions.zyntapos.designsystem.components.ChartDataPoint
 import com.zyntasolutions.zyntapos.domain.model.User
 
@@ -9,6 +10,7 @@ import com.zyntasolutions.zyntapos.domain.model.User
  * Holds all KPI metrics, chart data, recent activity, and alert information
  * that the dashboard displays. Updated atomically via [DashboardViewModel.updateState].
  */
+@Immutable
 data class DashboardState(
     val currentUser: User? = null,
     /** ID of the currently active store (from auth session). */
@@ -57,6 +59,7 @@ data class DashboardState(
  * @property formattedTime Pre-formatted "HH:mm" string computed in [DashboardViewModel].
  * @property chipVariantName Payment method display label for the status chip (e.g. "CASH", "CARD").
  */
+@Immutable
 data class RecentOrderItem(
     val orderNumber: String,
     val total: Double,

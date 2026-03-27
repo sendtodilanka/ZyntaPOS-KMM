@@ -191,8 +191,8 @@ fun StoreUserAccessScreen(
         onIntent(StoreUserAccessIntent.LoadForStore(storeId))
     }
 
-    LaunchedEffect(Unit) {
-        effects.collectLatest { effect ->
+    LaunchedEffect(effects) {
+        effects.collect { effect ->
             when (effect) {
                 is StoreUserAccessEffect.ShowError   -> snackbarHostState.showSnackbar(effect.message)
                 is StoreUserAccessEffect.ShowSuccess -> snackbarHostState.showSnackbar(effect.message)

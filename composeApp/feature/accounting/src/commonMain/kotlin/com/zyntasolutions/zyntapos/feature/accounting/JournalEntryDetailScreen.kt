@@ -65,8 +65,8 @@ fun JournalEntryDetailScreen(
     }
 
     // Effect collection
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is JournalEntryDetailEffect.ShowError ->
                     snackbarHostState.showSnackbar(effect.message, duration = SnackbarDuration.Short)

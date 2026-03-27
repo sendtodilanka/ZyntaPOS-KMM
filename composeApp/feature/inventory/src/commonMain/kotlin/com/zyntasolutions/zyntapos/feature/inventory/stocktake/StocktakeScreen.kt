@@ -84,8 +84,8 @@ fun StocktakeScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
 
     // Collect one-shot effects
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is StocktakeEffect.ScanSuccess   ->
                     snackbarHostState.showSnackbar(s[StringResource.INVENTORY_SCAN_SUCCESS_MSG, effect.productName, effect.qty])

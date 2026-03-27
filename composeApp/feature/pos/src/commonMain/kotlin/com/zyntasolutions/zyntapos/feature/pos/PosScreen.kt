@@ -82,8 +82,8 @@ fun PosScreen(
     }
 
     // Collect one-shot effects
-    LaunchedEffect(Unit) {
-        viewModel.effects.collectLatest { effect ->
+    LaunchedEffect(viewModel.effects) {
+        viewModel.effects.collect { effect ->
             when (effect) {
                 is PosEffect.OpenPaymentSheet   -> isPaymentScreenVisible = true
                 is PosEffect.OpenCustomerPicker -> isCustomerPickerVisible = true
@@ -431,7 +431,7 @@ private fun CustomerPickerDialog(
                             )
                         }
                     } else {
-                        items(customers) { customer ->
+                        items(customers, key = { it.id }) { customer ->
                             ListItem(
                                 headlineContent = { Text(customer.name) },
                                 supportingContent = { Text(customer.phone) },

@@ -56,7 +56,7 @@ fun ScannerSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadScannerSettings) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 SettingsEffect.ScannerSettingsSaved ->
                     snackbarHostState.showSnackbar(s[StringResource.SETTINGS_SCANNER_SAVED])

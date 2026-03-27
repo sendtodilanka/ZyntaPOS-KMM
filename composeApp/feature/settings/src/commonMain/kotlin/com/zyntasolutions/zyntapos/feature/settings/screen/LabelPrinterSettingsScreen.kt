@@ -64,7 +64,7 @@ fun LabelPrinterSettingsScreen(
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadLabelPrinter) }
 
     LaunchedEffect(effects) {
-        effects.collectLatest { effect ->
+        effects.collect { effect ->
             when (effect) {
                 SettingsEffect.LabelPrinterSaved ->
                     snackbarHostState.showSnackbar(s[StringResource.SETTINGS_LABEL_PRINTER_SAVED])
