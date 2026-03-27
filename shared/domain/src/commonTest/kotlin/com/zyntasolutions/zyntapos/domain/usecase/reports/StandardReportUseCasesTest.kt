@@ -13,10 +13,9 @@ import com.zyntasolutions.zyntapos.domain.model.report.CouponCodeData
 import com.zyntasolutions.zyntapos.domain.model.report.CouponUsageData
 import com.zyntasolutions.zyntapos.domain.model.report.DailySalesSummaryData
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeReportRepository
-import kotlinx.datetime.LocalDate
-import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -226,7 +225,7 @@ class StandardReportUseCasesTest {
         GenerateDiscountVoidAnalysisReportUseCase(FakeReportRepository())(from, to).test {
             val result = awaitItem()
             assertEquals(0.0, result.totalDiscountAmount)
-            assertEquals(0, result.voidCount)
+            assertEquals(0, result.totalVoidCount)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -236,15 +235,15 @@ class StandardReportUseCasesTest {
         val repo = FakeReportRepository().apply {
             stubDiscountVoid = DiscountVoidData(
                 totalDiscountAmount = 450.0,
-                voidCount = 3,
-                voidAmount = 210.0,
+                totalVoidCount = 3,
+                totalVoidAmount = 210.0,
                 byCashier = emptyList(),
             )
         }
         GenerateDiscountVoidAnalysisReportUseCase(repo)(from, to).test {
             val result = awaitItem()
             assertEquals(450.0, result.totalDiscountAmount)
-            assertEquals(3, result.voidCount)
+            assertEquals(3, result.totalVoidCount)
             cancelAndIgnoreRemainingEvents()
         }
     }
