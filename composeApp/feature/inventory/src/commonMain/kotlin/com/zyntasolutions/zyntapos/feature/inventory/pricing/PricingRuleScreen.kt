@@ -133,7 +133,7 @@ fun PricingRuleScreen(
             onDismissRequest = { viewModel.dispatch(PricingRuleIntent.DismissDelete) },
             title = { Text(s[StringResource.INVENTORY_DELETE_PRICING_RULE_TITLE]) },
             text = {
-                Text("\"${rule.description.ifBlank { "Rule for ${rule.productId.take(8)}" }}\" will be permanently deleted.")
+                Text(s[StringResource.INVENTORY_PRICING_RULE_DELETE_CONFIRM_FORMAT, rule.description.ifBlank { s[StringResource.INVENTORY_PRICING_RULE_DEFAULT_NAME_FORMAT, rule.productId.take(8)] }])
             },
             confirmButton = {
                 TextButton(
@@ -224,7 +224,7 @@ private fun PricingRuleCard(
                     if (rule.priority > 0) {
                         AssistChip(
                             onClick = {},
-                            label = { Text("P${rule.priority}", style = MaterialTheme.typography.labelSmall) },
+                            label = { Text(s[StringResource.INVENTORY_PRIORITY_FORMAT, "${rule.priority}"], style = MaterialTheme.typography.labelSmall) },
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             ),
@@ -283,7 +283,7 @@ private fun PricingRuleEditDialog(
                     value = state.formDescription,
                     onValueChange = { onUpdateField(PricingField.DESCRIPTION, it) },
                     label = { Text(s[StringResource.INVENTORY_DESCRIPTION]) },
-                    placeholder = { Text("e.g. Summer Sale, Colombo Region") },
+                    placeholder = { Text(s[StringResource.INVENTORY_PRICING_RULE_DESC_PLACEHOLDER]) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
