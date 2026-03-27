@@ -309,3 +309,98 @@ Remaining actionable items (in priority order):
 2. **IRD XML invoice format** — IRD sandbox required; verify/adjust once sandbox access is granted.
 3. **Blue-green deployment** — Phase 3 infrastructure scope.
 4. **Online ordering API** — External platform dependency.
+
+---
+
+## 7. DATA LAYER INTEGRATION TEST COVERAGE
+
+**Section added 2026-03-27 (session 4 onward)**
+
+### 7.1 Integration Test Progress
+
+Comprehensive SQLDelight integration tests in `shared/data/src/jvmTest/` using real in-memory SQLite databases (`createTestDatabase()` with `foreign_keys = true`).
+
+**Total files as of last update: 35 test files**
+
+#### Previously completed (sessions 1–3):
+| Test File | Tests | Key Coverage |
+|-----------|-------|-------------|
+| `ProductRepositoryIntegrationTest.kt` | — | Products CRUD, FTS5 search |
+| `CategoryRepositoryImplIntegrationTest.kt` | — | Categories CRUD, soft-delete |
+| `CustomerRepositoryImplIntegrationTest.kt` | — | Customers, wallet, group assignment |
+| `OrderRepositoryImplIntegrationTest.kt` | — | Orders, line items, status transitions |
+| `RegisterRepositoryImplIntegrationTest.kt` | — | Cash register sessions |
+| `StockRepositoryImplIntegrationTest.kt` | — | Stock adjustments, history |
+| `StocktakeRepositoryImplIntegrationTest.kt` | — | Stocktake sessions and items |
+| `EmployeeRepositoryImplIntegrationTest.kt` | — | Employee CRUD |
+| `ExpenseRepositoryImplIntegrationTest.kt` | — | Expenses, categories |
+| `CouponRepositoryImplIntegrationTest.kt` | — | Coupons, usage tracking |
+| `AuthRepositoryImplIntegrationTest.kt` | — | Auth tokens |
+| `RoleRepositoryImplIntegrationTest.kt` | — | Roles, permissions |
+| `SyncRepositoryIntegrationTest.kt` | — | Sync queue, state |
+| `PrinterProfileRepositoryImplIntegrationTest.kt` | — | Printer profiles |
+| `LabelPrinterConfigRepositoryImplIntegrationTest.kt` | — | Printer configs |
+| `FeatureConfigRepositoryImplIntegrationTest.kt` | — | Feature flags |
+
+#### Added in session 4 (2026-03-27):
+| Test File | Tests | Key Coverage |
+|-----------|-------|-------------|
+| `SupplierRepositoryImplIntegrationTest.kt` | 8 | CRUD, soft-delete, getAll active |
+| `LabelTemplateRepositoryImplIntegrationTest.kt` | 8 | Save/getById, PaperType, isDefault, count |
+| `WarehouseStockRepositoryImplIntegrationTest.kt` | 10 | Upsert, adjustStock, transferStock, insufficient stock error |
+| `PurchaseOrderRepositoryImplIntegrationTest.kt` | 10 | Create, getByStatus, receiveItems PARTIAL/RECEIVED, cancel |
+| `MasterProductRepositoryImplIntegrationTest.kt` | 8 | Upsert, getAll active filter, getByBarcode, FTS5 search |
+| `UserRepositoryImplIntegrationTest.kt` | 8 | Create with fake PasswordHashPort, one-admin rule, deactivate |
+| `ReplenishmentRuleRepositoryImplIntegrationTest.kt` | 7 | JOIN-based queries, autoApprove filter |
+| `TaxGroupRepositoryImplIntegrationTest.kt` | 7 | Soft-delete, TAX_GROUP_IN_USE guard |
+| `SettingsRepositoryImplIntegrationTest.kt` | 6 | Set/get, upsert, observe Flow |
+| `LoyaltyRepositoryImplIntegrationTest.kt` | 5 | recordPoints, getBalance, expirePoints |
+| `EInvoiceRepositoryImplIntegrationTest.kt` | 8 | JSON deserialization, status transitions |
+| `StoreRepositoryImplIntegrationTest.kt` | 8 | upsertFromSync, getAllStores active filter, ReturnStockPolicy |
+| `CustomerGroupRepositoryImplIntegrationTest.kt` | 7 | Soft-delete, PriceType, null discountType |
+| `WarehouseRepositoryImplIntegrationTest.kt` | 10 | isDefault demotion, createTransfer, cancelTransfer |
+| `NotificationRepositoryImplIntegrationTest.kt` | 7 | markRead, markAllRead, pruneOld (read-only filter) |
+| `UnitGroupRepositoryImplIntegrationTest.kt` | 9 | isBaseUnit demotion, UNIT_IN_USE guard, conversionRate > 0 |
+| `PricingRuleRepositoryImplIntegrationTest.kt` | 7 | getEffectiveRule (priority+validity), global rules (storeId=null) |
+| `ConflictLogRepositoryImplIntegrationTest.kt` | 6 | resolve, getByEntity, pruneOld resolved-only, blank ID auto-gen |
+| `TransitTrackingRepositoryImplIntegrationTest.kt` | 5 | addEvent, getInTransitCount, warehouses+transfers FK seeding |
+
+### 7.2 Still Untested Repositories
+
+Repositories not yet covered by integration tests (lower priority — complex deps or read-only sync):
+
+| Repository | Notes |
+|------------|-------|
+| `AccountRepositoryImpl` | Chart of accounts |
+| `AccountingPeriodRepositoryImpl` | Accounting periods |
+| `AccountingRepositoryImpl` | Journal entries, financial data |
+| `AttendanceRepositoryImpl` | Employee attendance — FK: employees |
+| `AuditRepositoryImpl` | Append-only audit log — kotlinx.datetime.Instant |
+| `AuthRepositoryImpl` | Auth tokens (already tested) |
+| `BackupRepositoryImpl` | Backup metadata |
+| `BudgetRepositoryImpl` | Budget allocations |
+| `CompoundTaxRepositoryImpl` | Compound tax groups |
+| `DiagnosticConsentRepositoryImpl` | Diagnostic sessions |
+| `EmployeeStoreAssignmentRepositoryImpl` | Employee↔store FK |
+| `ExchangeRateRepositoryImpl` | Exchange rates |
+| `FeatureRegistryRepositoryImpl` | Feature registry |
+| `FinancialStatementRepositoryImpl` | Financial statements |
+| `FulfillmentRepositoryImpl` | Click & Collect fulfillment |
+| `InstallmentRepositoryImpl` | Installment payments |
+| `JournalRepositoryImpl` | Journal entries |
+| `LeaveRepositoryImpl` | Employee leave — FK: employees |
+| `LicenseRepositoryImpl` | License data |
+| `MediaRepositoryImpl` | Media assets |
+| `OperationalLogRepositoryImpl` | Operational log |
+| `PayrollEntryRepositoryImpl` | Payroll entries — FK: employees |
+| `PayrollRepositoryImpl` | Payroll — FK: employees |
+| `ProductVariantRepositoryImpl` | Product variants — FK: products |
+| `RackProductRepositoryImpl` | Warehouse rack products |
+| `RegionalTaxOverrideRepositoryImpl` | Regional tax overrides |
+| `ReportRepositoryImpl` | Saved reports |
+| `ShiftRepositoryImpl` | Staff shifts — FK: employees |
+| `ShiftSwapRepositoryImpl` | Shift swaps — FK: employees |
+| `StoreProductOverrideRepositoryImpl` | Store-level price overrides |
+| `SystemRepositoryImpl` | System settings |
+| `UserStoreAccessRepositoryImpl` | User↔store access |
+| `WarehouseRackRepositoryImpl` | Warehouse rack definitions |
