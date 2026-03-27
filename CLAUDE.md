@@ -533,7 +533,7 @@ ZyntaPOS-KMM/
 ├── gradle/libs.versions.toml          # Centralized version catalog (250 lines)
 ├── gradle_commands.md                 # Full Gradle command reference
 ├── build.gradle.kts                   # Root build (plugins, Detekt, version props)
-├── settings.gradle.kts                # Module registry (26 modules)
+├── settings.gradle.kts                # Module registry (29 modules)
 ├── gradle.properties                  # Build cache, parallelism, JVM memory
 ├── version.properties                 # Semantic version (1.0.0, BUILD=1)
 ├── local.properties.template          # Secrets template (local.properties is git-ignored)
@@ -543,14 +543,14 @@ ZyntaPOS-KMM/
 
 ---
 
-## Module Map (26 Modules)
+## Module Map (29 Modules)
 
 ### Shared Modules (KMP — Pure Business Logic)
 
 | Module | Purpose |
 |--------|---------|
 | `:shared:core` | Pure Kotlin utilities, MVI base classes, `Result<T>`, `CurrencyUtils`, `DateTimeUtils`, `ValidationUtils`, Koin `coreModule` |
-| `:shared:domain` | Domain models (38+), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
+| `:shared:domain` | Domain models (104+), repository interfaces, use-case classes, business-rule validators — **no framework deps** |
 | `:shared:data` | SQLDelight schema + DAOs, Ktor HTTP client (GZIP), repository implementations, offline sync engine. Full C6.1 sync stack: `ConflictResolver` (LWW/FIELD_MERGE/APPEND_ONLY via `CrdtStrategy`), `SyncEngine` (priority push, store isolation, conflict detection), `SyncQueueMaintenance` (prune + dedup), `ConflictLogRepositoryImpl` audit trail, version vectors. Multi-store isolation via `store_id` column. |
 | `:shared:hal` | `PrinterManager`, `BarcodeScanner` — `expect/actual` platform drivers, `EscPosEncoder`. `CashDrawerController` — NOT YET IMPLEMENTED (Phase 2 backlog) |
 | `:shared:security` | `DatabaseKeyManager`/`EncryptionManager` (AES-256-GCM, Keystore/JCE), `PinManager` (SHA-256 + salt), `JwtManager` + `TokenStorage` interface, `RbacEngine` |
@@ -565,7 +565,7 @@ ZyntaPOS-KMM/
 | `:composeApp:designsystem` | `ZyntaTheme`, Material 3 tokens, `ZyntaButton/Card/TextField`, `NumericKeypad`, `ReceiptPreview`, responsive breakpoints |
 | `:composeApp:navigation` | Type-safe `NavRoute` sealed hierarchy, `ZyntaNavHost`, adaptive nav shell (Rail vs Bottom Bar), RBAC route gating |
 
-### Feature Modules (16)
+### Feature Modules (17)
 
 | Module | Purpose |
 |--------|---------|
@@ -738,7 +738,7 @@ data class ProductEntity(...)
 
 **Code review rule:** If you see `*Entity` in `shared/domain/model/`, request a rename citing ADR-002.
 
-**Domain models (38+ files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`, `Edition`, `Heartbeat`, `IntegrityReport`, `License`, `LicenseStatus`, `MasterProduct`, `StoreProductOverride`, `WarehouseStock`, `TransitEvent`, `ReplenishmentRule`, `PurchaseOrder`, `PurchaseOrderItem`
+**Domain models (104+ files):** `Product`, `Order`, `OrderItem`, `Customer`, `Category`, `User`, `Role`, `Permission`, `CashRegister`, `RegisterSession`, `CashMovement`, `PaymentMethod`, `PaymentSplit`, `Supplier`, `TaxGroup`, `UnitOfMeasure`, `StockAdjustment`, `SyncOperation`, `SyncStatus`, `OrderStatus`, `OrderType`, `DiscountType`, `CartItem`, `OrderTotals`, `ProductVariant`, `AuditEntry`, `Edition`, `Heartbeat`, `IntegrityReport`, `License`, `LicenseStatus`, `MasterProduct`, `StoreProductOverride`, `WarehouseStock`, `TransitEvent`, `ReplenishmentRule`, `PurchaseOrder`, `PurchaseOrderItem`, and 66+ additional models added in Phase 2/3 (multi-store, staff/HR, accounting, diagnostics, analytics). See `shared/domain/src/commonMain/kotlin/.../model/` for full list.
 
 ### ADR-001: ViewModel Base Class (ACCEPTED)
 
@@ -1407,10 +1407,10 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 |-------|--------|
 | Phase A: Critical Security | **COMPLETED** (PR #285) |
 | Phase B: Cross-Module Alignment | **COMPLETED** (S2-3 timestamps, S2-12 license validation) |
-| Phase C: Test Coverage (52 files) | **PARTIAL** (S3-6 admin auth tests, S3-11 indexes, S3-14 pool tuning, S3-15 repository extraction) |
-| Phase D: Code Quality & Performance | Pending |
-| Phase E: Documentation & API Spec | **PARTIAL** (S4-5/S4-6/S4-7 backend docs, S4-10 GDPR export, S4-11 audit sync) |
-| Phase F: Advanced Security Hardening | **PARTIAL** (S4-9 CSP nonce) |
+| Phase C: Test Coverage (52 files) | **SUBSTANTIALLY COMPLETE** (S3-6 admin auth tests ✅ — `AdminAuthServiceTest` + `AdminAuthServiceC6Test` 791+ LOC; S3-11 indexes, S3-14 pool tuning, S3-15 repository extraction verified 2026-03-27) |
+| Phase D: Code Quality & Performance | **PARTIAL** — in progress |
+| Phase E: Documentation & API Spec | **SUBSTANTIALLY COMPLETE** (S4-5/S4-6/S4-7 backend docs ✅, S4-10 GDPR export ✅ `ExportRoutes.kt`, S4-11 audit sync ✅) |
+| Phase F: Advanced Security Hardening | **PARTIAL** (S4-9 CSP nonce ✅) |
 
 ### Backend Common Pitfalls
 
@@ -1431,7 +1431,7 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
 | Phase 2 — Growth | ✅ 100% Complete | Multi-store (C1.1–C1.5), CRM, promotions, CRDT sync (C6.1), centralized inventory, full sync pipeline, admin panel replenishment dashboard |
-| Phase 3 — Enterprise | ~80% In Progress | Staff/HR, admin, e-invoicing (IRD), analytics |
+| Phase 3 — Enterprise | ✅ ~90% Complete (code) | Staff/HR ✅, admin ✅, e-invoicing/IRD ✅, analytics ✅, Firebase RemoteConfig ✅. Pending: IRD sandbox validation, FCM push, Google SSO (external deps) |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 

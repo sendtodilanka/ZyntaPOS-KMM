@@ -4,7 +4,9 @@ import android.content.Context
 import android.provider.Settings
 import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.config.AppConfig
+import com.zyntasolutions.zyntapos.core.config.RemoteConfigProvider
 import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
+import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
@@ -90,6 +92,12 @@ val androidDataModule = module {
     // modules can depend on the interface from :shared:core.
     single { AnalyticsService(context = androidContext()) }
     single<AnalyticsTracker> { get<AnalyticsService>() }
+
+    // ── Remote Config (platform expect/actual) ───────────────────────────
+    // Android actual uses Firebase Remote Config SDK (TODO-011 Phase 2).
+    // Bound as both concrete type and RemoteConfigProvider interface.
+    single { RemoteConfigService() }
+    single<RemoteConfigProvider> { get<RemoteConfigService>() }
 
     // Note: SecurePreferences is bound by securityModule (canonical expect/actual).
     // Adapter class AndroidEncryptedSecurePreferences removed — MERGED-D3 (2026-02-21).

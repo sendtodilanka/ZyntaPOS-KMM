@@ -76,6 +76,7 @@ mlkit-barcode                  = "17.3.0"
 # ── Firebase ─────────────────────────────────────────────────
 firebase-bom                   = "33.7.0"
 firebase-analytics             = "22.1.2"
+firebase-config                = "22.0.1"
 google-services                = "4.4.2"
 
 # ── Google Play ───────────────────────────────────────────────
@@ -150,6 +151,7 @@ firebase-bom                           = { module = "com.google.firebase:firebas
 firebase-analytics-ktx                 = { module = "com.google.firebase:firebase-analytics-ktx" }
 firebase-analytics-ktx-versioned      = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebase-analytics" }
 firebase-crashlytics-ktx               = { module = "com.google.firebase:firebase-crashlytics-ktx" }
+firebase-config-ktx-versioned          = { module = "com.google.firebase:firebase-config-ktx",   version.ref = "firebase-config" }
 
 # ── Google Play (Android only) — TODO-008 ASO ──────────────────
 play-review-ktx                        = { module = "com.google.android.play:review-ktx",        version.ref = "play-review" }
