@@ -288,7 +288,7 @@ private fun PurchaseOrderDetailSheet(
             Spacer(Modifier.height(ZyntaSpacing.sm))
             Text(s[StringResource.INVENTORY_PO_STATUS_FORMAT, order.status.name])
             Text(s[StringResource.INVENTORY_PO_ITEMS_FORMAT, "${order.items.size}"])
-            if (order.notes != null) Text(s[StringResource.INVENTORY_PO_NOTES_FORMAT, order.notes])
+            order.notes?.let { notes -> Text(s[StringResource.INVENTORY_PO_NOTES_FORMAT, notes]) }
             Spacer(Modifier.height(ZyntaSpacing.md))
 
             if (order.items.isNotEmpty()) {
