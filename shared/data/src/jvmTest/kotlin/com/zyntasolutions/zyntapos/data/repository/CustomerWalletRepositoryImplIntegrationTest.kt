@@ -192,8 +192,9 @@ class CustomerWalletRepositoryImplIntegrationTest {
         repo.getTransactions(walletId).test {
             val txns = awaitItem()
             assertEquals(3, txns.size)
-            // Verify total balance reflects all credits
-            assertEquals(350.0, txns.last().balanceAfter)
+            // getTransactionsByWallet orders by created_at DESC — most recent is first
+            // "Third" (50.0) is the most recent: cumulative balance = 100 + 200 + 50 = 350
+            assertEquals(350.0, txns.first().balanceAfter)
             cancelAndIgnoreRemainingEvents()
         }
     }

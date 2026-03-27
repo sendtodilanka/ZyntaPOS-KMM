@@ -139,9 +139,13 @@ class LeaveRepositoryImplIntegrationTest {
 
     @Test
     fun `D - getPendingForStore excludes approved and rejected leaves`() = runTest {
+        // insert() always persists status = PENDING regardless of input (business rule: new leaves start pending)
+        // Use updateStatus() to transition to APPROVED / REJECTED after insertion
         repo.insert(makeRecord(id = "leave-pending", status = LeaveStatus.PENDING))
-        repo.insert(makeRecord(id = "leave-approved", status = LeaveStatus.APPROVED, startDate = "2026-06-01", endDate = "2026-06-02"))
-        repo.insert(makeRecord(id = "leave-rejected", status = LeaveStatus.REJECTED, startDate = "2026-07-01", endDate = "2026-07-02"))
+        repo.insert(makeRecord(id = "leave-approved", status = LeaveStatus.PENDING, startDate = "2026-06-01", endDate = "2026-06-02"))
+        repo.updateStatus("leave-approved", LeaveStatus.APPROVED, "mgr-01", now, null, now)
+        repo.insert(makeRecord(id = "leave-rejected", status = LeaveStatus.PENDING, startDate = "2026-07-01", endDate = "2026-07-02"))
+        repo.updateStatus("leave-rejected", LeaveStatus.REJECTED, "mgr-01", now, "Not approved", now)
 
         repo.getPendingForStore("store-01").test {
             val list = awaitItem()
