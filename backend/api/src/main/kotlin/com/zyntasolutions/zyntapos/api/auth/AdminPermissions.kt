@@ -69,6 +69,9 @@ object AdminPermissions {
         "inventory:read"            to setOf(ADMIN, OPERATOR, FINANCE),
         "inventory:write"           to setOf(ADMIN, OPERATOR),
 
+        // ── Customers (read-only cross-store monitoring — ADR-009) ─────────────
+        "customers:read"            to setOf(ADMIN, OPERATOR, HELPDESK),
+
         // ── System ─────────────────────────────────────────────────────────────
         "system:settings"           to setOf(ADMIN),
         "system:health"             to setOf(ADMIN, OPERATOR),
