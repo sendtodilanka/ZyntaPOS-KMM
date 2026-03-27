@@ -6,6 +6,7 @@ import com.zyntasolutions.zyntapos.domain.model.JournalEntry
 import com.zyntasolutions.zyntapos.domain.model.JournalEntryLine
 import com.zyntasolutions.zyntapos.domain.model.JournalReferenceType
 import com.zyntasolutions.zyntapos.domain.model.PeriodStatus
+import com.zyntasolutions.zyntapos.domain.model.StandardAccountCodes
 import com.zyntasolutions.zyntapos.domain.repository.AccountRepository
 import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.JournalRepository
@@ -51,38 +52,38 @@ class PostSaleJournalEntryUseCase(
             )
         }
 
-        // Lookup debit account: Cash (1010)
-        val cashAccountResult = accountRepository.getByCode(storeId, "1010")
+        // Lookup debit account: Cash
+        val cashAccountResult = accountRepository.getByCode(storeId, StandardAccountCodes.CASH)
         if (cashAccountResult is Result.Error) return cashAccountResult
         val cashAccount = (cashAccountResult as Result.Success).data
             ?: return Result.Error(
                 ValidationException(
-                    "Required account '1010 Cash' not found. Seed the Chart of Accounts first.",
+                    "Required account '${StandardAccountCodes.CASH} Cash' not found. Seed the Chart of Accounts first.",
                     field = "accountCode",
                     rule = "ACCOUNT_NOT_FOUND",
                 ),
             )
 
-        // Lookup credit account: Sales Revenue (4010)
-        val revenueAccountResult = accountRepository.getByCode(storeId, "4010")
+        // Lookup credit account: Sales Revenue
+        val revenueAccountResult = accountRepository.getByCode(storeId, StandardAccountCodes.SALES_REVENUE)
         if (revenueAccountResult is Result.Error) return revenueAccountResult
         val revenueAccount = (revenueAccountResult as Result.Success).data
             ?: return Result.Error(
                 ValidationException(
-                    "Required account '4010 Sales Revenue' not found. Seed the Chart of Accounts first.",
+                    "Required account '${StandardAccountCodes.SALES_REVENUE} Sales Revenue' not found. Seed the Chart of Accounts first.",
                     field = "accountCode",
                     rule = "ACCOUNT_NOT_FOUND",
                 ),
             )
 
-        // Lookup credit account: Sales Tax Payable (2100) — required only if taxAmount > 0
+        // Lookup credit account: Sales Tax Payable — required only if taxAmount > 0
         val taxAccount = if (taxAmount > 0.0) {
-            val taxAccountResult = accountRepository.getByCode(storeId, "2100")
+            val taxAccountResult = accountRepository.getByCode(storeId, StandardAccountCodes.SALES_TAX_PAYABLE)
             if (taxAccountResult is Result.Error) return taxAccountResult
             (taxAccountResult as Result.Success).data
                 ?: return Result.Error(
                     ValidationException(
-                        "Required account '2100 Sales Tax Payable' not found. Seed the Chart of Accounts first.",
+                        "Required account '${StandardAccountCodes.SALES_TAX_PAYABLE} Sales Tax Payable' not found. Seed the Chart of Accounts first.",
                         field = "accountCode",
                         rule = "ACCOUNT_NOT_FOUND",
                     ),

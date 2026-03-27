@@ -54,6 +54,24 @@ CREATE INDEX idx_order_items_order ON order_items(order_id);
 getAllOrders:
 SELECT * FROM orders ORDER BY created_at DESC;
 
+-- Filtered reactive query (replaces in-memory matchesFilters).
+-- Nullable params: NULL means "no filter on this column".
+-- Used by OrderRepositoryImpl.getAll() to push filtering into SQL and avoid
+-- loading all rows into memory. Re-emits on any write to the orders table.
+getFilteredOrders:
+SELECT * FROM orders
+WHERE (:status IS NULL OR status = :status)
+  AND (:cashierId IS NULL OR cashier_id = :cashierId)
+  AND (:customerId IS NULL OR customer_id = :customerId)
+  AND (:sessionId IS NULL OR register_session_id = :sessionId)
+  AND (:paymentMethod IS NULL OR payment_method = :paymentMethod)
+ORDER BY created_at DESC;
+
+-- Batch-loads all order_items for a given set of order IDs in ONE query.
+-- Used alongside list/range queries to eliminate N+1 item loading.
+getItemsForOrders:
+SELECT * FROM order_items WHERE order_id IN :orderIds;
+
 -- ── Paginated queries (for Paging3 / infinite-scroll UI) ────────────────────
 
 getOrdersPage:
