@@ -54,7 +54,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.coupons.ApplyStorePromotionsUs
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.CalculateCouponDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.GetStorePromotionsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.coupons.ValidateCouponUseCase
+import com.zyntasolutions.zyntapos.domain.port.EmailPort
 import com.zyntasolutions.zyntapos.domain.usecase.pos.LookupOrderForReturnUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.pos.SendReceiptByEmailUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.CalculateLoyaltyDiscountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.EarnRewardPointsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.crm.RedeemRewardPointsUseCase
@@ -501,6 +503,13 @@ class PosViewModelTest {
         override suspend fun upsertFromSync(store: Store) = Unit
     }
 
+    // ── No-op EmailPort ───────────────────────────────────────────────────────
+
+    private val noOpEmailPort = object : EmailPort {
+        override suspend fun sendReceiptEmail(to: String, subject: String, pdfBytes: ByteArray) =
+            Result.Success(Unit)
+    }
+
     // ── Real use cases wired to fake repositories ──────────────────────────────
 
     private val calculateTotalsUseCase = CalculateOrderTotalsUseCase()
@@ -572,6 +581,7 @@ class PosViewModelTest {
             applyStorePromotionsUseCase = ApplyStorePromotionsUseCase(),
             settingsRepository = fakeSettingsRepository,
             currencyFormatter = CurrencyFormatter(),
+            sendReceiptByEmailUseCase = SendReceiptByEmailUseCase(fakeOrderRepository, fakeSettingsRepository, noOpEmailPort),
             auditLogger = testAuditLogger,
             analytics = noOpAnalytics,
         )
