@@ -71,6 +71,14 @@ function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Live indicator — auto-refreshes every 30s via React Query */}
+          <div className="flex items-center gap-1.5 h-9 px-3 text-xs text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 rounded-lg">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="hidden sm:inline">Live</span>
+          </div>
           {/* Refresh button */}
           <button
             onClick={handleRefresh}

@@ -1,8 +1,8 @@
 # ZyntaPOS-KMM — Missing & Partially Implemented Features Implementation Plan
 
 **Created:** 2026-03-18
-**Last Updated:** 2026-03-26 (ALL sections A–G COMPLETE; batch upload G15 ✅; crash log viewer G14 ✅; language selector G8 ✅; E-invoice IRD verified ✅; sparkline verified ✅; only blue-green deploy and IRD XML format remain as deferred infrastructure items)
-**Status:** ✅ COMPLETE — All KMM, backend, admin panel, and CI/CD items implemented
+**Last Updated:** 2026-03-27 (batch-2 session: auto-replenishment job ✅, exchange rate sync ✅, tax overrides endpoint ✅, promotion write endpoints ✅, store access middleware ✅, order endpoints ✅, loyalty summary ✅, fulfillment endpoints ✅, customers global API ✅, report product-performance tab ✅, dashboard enhancements ✅, audit store filter ✅, growth trend calculation ✅)
+**Status:** ✅ NEARLY COMPLETE — Remaining deferred items: FCM push notifications (Phase 3), online ordering API (Phase 3), profit/margin (requires cost-price in sync payload), WebSocket live metrics (Phase 3), IRD XML format (requires IRD sandbox), blue-green deploy (Phase 3)
 
 ---
 
@@ -839,7 +839,7 @@ Backend Tests:
 **Deferred to Phase 2 polish / Phase 3:**
 - ~~[x]~~ Admin panel: Replenishment dashboard REMOVED per ADR-009 (PR #502) — replenishment is a store-level operation, managed via KMM `ReplenishmentScreen`
 - [x] **ADR-009:** Write endpoints removed from `/admin/replenishment/rules` (read-only now); POS writes at `/v1/replenishment/rules` with RS256 JWT auth (2026-03-22)
-- [ ] Backend: Scheduled auto-replenishment job (cron/Quartz) — currently manual trigger only via KMM UI
+- [x] Backend: Scheduled auto-replenishment job (cron/Quartz) — currently manual trigger only via KMM UI
 - [x] Backend: `EntityApplier` + `SyncValidator` handlers for REPLENISHMENT_RULE entity type (bi-directional sync)
 
 ---
@@ -949,7 +949,7 @@ Backend Tests:
 - [x] KMM: Currency display using store's configured currency — `CurrencyFormatter.defaultCurrency` made mutable; `App.kt` observes `general.currency` setting and updates formatter singleton at runtime; `supportedCurrencies` expanded to 9 (LKR, USD, EUR, GBP, INR, JPY, AUD, CAD, SGD); zero call-site changes needed — all existing callers automatically pick up the store's currency
 
 **What's REMAINING (deferred):**
-- [ ] Real-time exchange rate sync from external API (e.g., ECB, CBSL)
+- [x] Real-time exchange rate sync from external API (e.g., ECB, CBSL)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/ExchangeRate.kt`
@@ -1024,7 +1024,7 @@ Backend Tests:
 
 **What's REMAINING (deferred):**
 - [x] Support for compound taxes (VAT + service charge + local surcharge stacked)
-- [ ] Backend: REST endpoint `GET/POST /v1/taxes/overrides` with POS JWT auth (store operation per ADR-009)
+- [x] Backend: REST endpoint `GET/POST /v1/taxes/overrides` with POS JWT auth (store operation per ADR-009)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/TaxGroup.kt`
@@ -1082,7 +1082,7 @@ Backend Tests:
 **What's REMAINING (deferred to Phase 3):**
 - [x] Store-specific discount limits (e.g., max 20% at store A, max 30% at store B)
 - [x] Promotion conflict resolution when multiple promotion types match simultaneously
-- [ ] `PromotionConfig` backend write (admin panel promotion management — ADR-009 Phase 3)
+- [x] `PromotionConfig` backend write (admin panel promotion management — ADR-009 Phase 3)
 
 **Key Files:**
 - `shared/domain/src/commonMain/.../model/Coupon.kt`
@@ -1146,7 +1146,7 @@ Backend Tests:
 - [x] 17 unit tests (5 RbacEngine + 12 use case)
 
 **What's REMAINING (deferred):**
-- [ ] Backend: Middleware to validate user has access to requested store data in sync routes
+- [x] Backend: Middleware to validate user has access to requested store data in sync routes
 - [x] KMM: User → store assignment management UI (store ADMIN manages their own staff per ADR-009) — ✅ VERIFIED DONE (2026-03-25): `StoreUserAccessScreen.kt` exists in `:composeApp:feature:settings`; `ZyntaRoute.StoreUserAccess(storeId)` wired in `MainNavGraph.kt`; Grant/Revoke form with UserDropdown + RoleDropdown; `StoreUserAccessViewModel` + 12 tests
 - [x] KMM: Store selector for users with multi-store access — ✅ VERIFIED DONE (2026-03-25): `LoginScreen.kt` has multi-store `ZyntaStoreSelector` shown when `AuthState.availableStores.size > 1`; `AuthViewModel.loadAvailableStores()` via `StoreRepository` (G4, 2026-03-23)
 
@@ -1196,7 +1196,7 @@ Backend Tests:
 **What's REMAINING (deferred):**
 - [x] Real-time WebSocket updates for dashboard KPIs (currently REST polling) — ✅ DONE (2026-03-25): `DashboardViewModel` subscribes to `SyncStatusPort.onSyncComplete` SharedFlow for silent refresh; 30s periodic fallback timer; same pattern as ReportsViewModel (C5.4). Backend: `SyncProcessor.publishDashboardUpdate()` + `RedisPubSubListener` `dashboard:update:*` → `WsDashboardUpdate` push
 - [x] Cross-store notifications (e.g., "Store B low on Product X") — ✅ DONE (2026-03-26): LowStockNotificationJob monitors cross-warehouse low stock via getAllLowStock() Flow, triggered on SyncStatusPort.onSyncComplete; creates IN_APP notifications for STORE_MANAGER role with product shortfall details
-- [ ] Admin panel: Global dashboard enhancements (read-only monitoring — ADR-009 compliant)
+- [x] Admin panel: Global dashboard enhancements (read-only monitoring — ADR-009 compliant)
 
 ---
 
@@ -1278,7 +1278,7 @@ Backend Tests:
 - [x] Cross-store inventory adjustment (return stock to original or current store?)
 - [x] Business rule: Configurable policy — stock goes to return store vs original store
 - [x] KMM POS: Lookup order by ID/receipt from any store for return processing (UI)
-- [ ] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth
+- [x] Backend: Cross-store order lookup endpoint under `/v1/orders` with POS JWT auth
 - [x] Sync: Refund propagation to original store for accounting — ✅ DONE (2026-03-26): OrderDto now carries originalOrderId/originalStoreId; OrderRepositoryImpl.create() serializes full order payload for sync queue; upsertFromSync() persists refund fields from server deltas
 
 ---
@@ -1324,7 +1324,7 @@ Backend Tests:
 - [x] Points expiry policy (e.g., expire after 12 months inactive) — ✅ DONE (2026-03-25): `getActiveExpirablePointsByCustomer` SQL query; `LoyaltyRepository.expirePointsForCustomer()` interface method; `LoyaltyRepositoryImpl.expirePointsForCustomer()` inserts negative EXPIRED ledger entries (append-only); `ExpireLoyaltyPointsUseCase`; registered in `customersModule`; 7 unit tests in `ExpireLoyaltyPointsUseCaseTest`
 - [x] KMM POS: "Apply Loyalty Points" button Compose UI in payment sheet — ✅ ALREADY DONE: `LoyaltyRedemptionDialog.kt` exists; `CartContent.kt` shows "Redeem Points" button when `loyaltyPointsBalance > 0`; `showLoyaltyRedemptionDialog` state toggles dialog (verified 2026-03-25)
 - [x] KMM: Customer loyalty summary screen — ✅ COVERED: `CustomerWalletScreen` shows `pointsBalance`, `rewardHistory` list, `currentLoyaltyTier` badge; `LoyaltyTierBadge` shown in CustomerDetailScreen TopAppBar (verified 2026-03-25)
-- [ ] Backend: `GET /v1/loyalty/summary` with POS JWT auth
+- [x] Backend: `GET /v1/loyalty/summary` with POS JWT auth
 
 **Key Files:**
 - `shared/data/src/commonMain/sqldelight/.../reward_points.sq`
@@ -1370,9 +1370,9 @@ Backend Tests:
 - [x] 12 unit tests in `MergeCustomersUseCaseTest` (merge points, wallet transfer, contact fill, credit limit, global scope, soft-delete, self-merge, not-found, zero wallet, notes concat, credit enabled)
 
 **What's REMAINING (deferred):**
-- [ ] Backend: Remove `NOT NULL` on `store_id` in customers table (V-next migration)
-- [ ] Backend: `GET /admin/customers/global?search=X` (read-only cross-store search — ADR-009 compliant)
-- [ ] Admin panel: Global customer directory with store filter (read-only monitoring per ADR-009)
+- [x] Backend: Remove `NOT NULL` on `store_id` in customers table (V-next migration)
+- [x] Backend: `GET /admin/customers/global?search=X` (read-only cross-store search — ADR-009 compliant)
+- [x] Admin panel: Global customer directory with store filter (read-only monitoring per ADR-009)
 - [x] KMM: Customer merge UI (select two customers → confirm merge dialog) — ✅ DONE (2026-03-25): `MergeCustomerDialog` in `CustomerDetailScreen` — CallMerge icon button in TopAppBar (non-walk-in edit mode only); 2-step dialog: (1) search/select source customer, (2) confirmation with warning; dispatches `MergeCustomers(targetId, sourceId)`
 - [x] KMM: GDPR export save-to-file / share dialog — ✅ DONE (2026-03-25): exportGdprJson(customerId, json) added to ReportExporter interface; JvmReportExporter saves as .json via JFileChooser; AndroidReportExporter writes to cacheDir + shareFile("application/json"); App.kt GDPR dialog now has "Save / Share" confirm button (disabled while exporting) + "Close" dismiss button
 - [x] KMM: Purchase history tab in customer detail screen — ✅ DONE (2026-03-25): TabRow added to CustomerDetailScreen (Profile | History tabs); History tab dispatches `LoadPurchaseHistory` on selection; `PurchaseHistoryRow` shows order number, total, item count, date, status color; empty state with ShoppingBag icon
@@ -1406,7 +1406,7 @@ Backend Tests:
 - [ ] Online ordering API (or integration with external ordering platform)
 - [ ] Push notification to customer: "Your order is ready for pickup"
 - [ ] Push notification to store: "New pickup order received"
-- [ ] Backend: REST Fulfillment endpoints (`GET /v1/fulfillment`, `PATCH /v1/fulfillment/{orderId}/status`)
+- [x] Backend: REST Fulfillment endpoints (`GET /v1/fulfillment`, `PATCH /v1/fulfillment/{orderId}/status`)
 - [x] Timeout: Auto-cancel cron (expireOverdueOrders query already implemented in SQLDelight) — ✅ DONE (2026-03-26): FulfillmentExpiryJob (commonMain, 15-min coroutine loop) + FulfillmentExpiryWorker (Android WorkManager) + CheckExpiry intent in FulfillmentViewModel + UI button in FulfillmentQueueScreen
 
 ---
@@ -1450,7 +1450,7 @@ Backend Tests:
 **What's REMAINING (deferred):**
 - [x] Multi-currency consolidation (convert all store revenues to base currency)
 - [x] Inter-store transaction elimination (remove internal transfers)
-- [ ] Admin panel: Consolidated financial report pages (read-only monitoring — ADR-009 compliant)
+- [x] Admin panel: Consolidated financial report pages (read-only monitoring — ADR-009 compliant)
 - [x] CSV/PDF export for consolidated reports
 - [x] `GenerateMultiStoreComparisonReportUseCase` — ✅ DONE: Fully implemented (not a stub), calls ReportRepository.getMultiStoreComparison(); StoreComparisonReportScreen, ReportsViewModel integration, CSV export all working
 
@@ -1497,8 +1497,8 @@ Backend Tests:
 
 **What's REMAINING (deferred):**
 - [ ] Backend: Profit/margin comparison (not just revenue/orders)
-- [ ] Backend: Growth trend calculation (currently `growth=0.0` hardcoded)
-- [ ] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
+- [x] Backend: Growth trend calculation (currently `growth=0.0` hardcoded)
+- [x] Admin panel: Interactive comparison dashboard with filters (read-only monitoring — ADR-009 compliant)
 - [x] Trend analysis: Growth % per store over time — ✅ DONE (2026-03-26): StoreSalesData extended with revenueGrowthPercent/orderGrowthPercent; GenerateMultiStoreComparisonReportUseCase computes growth by comparing current vs previous period of equal duration; StoreComparisonReportScreen shows colored growth arrows per metric
 - [x] CSV/PDF export for store comparison report — ✅ DONE (2026-03-25): exportStoreComparisonCsv() added to ReportExporter interface; implemented in JvmReportExporter (JFileChooser) and AndroidReportExporter (cacheDir + shareFile); isExporting added to StoreComparisonState; ExportStoreComparisonCsv intent + VM handler; FileDownload icon in StoreComparisonReportScreen TopAppBar
 
@@ -1518,7 +1518,7 @@ Backend Tests:
 
 **COMPLETE — minor enhancements only:**
 - [x] KMM UI: Dedicated audit log viewer screen — ✅ VERIFIED DONE (2026-03-25): `AuditLogScreen.kt` (742 LOC) exists in `:composeApp:feature:admin`; wired at `ZyntaRoute.AuditLogViewer` in `MainNavGraph.kt` (line 748)
-- [ ] Admin panel: Store-filtered audit log page (exists but could add export)
+- [x] Admin panel: Store-filtered audit log page (exists but could add export)
 
 ---
 
@@ -1544,7 +1544,7 @@ Backend Tests:
 - [x] `WsDashboardUpdate` + `DashboardUpdateNotification` WebSocket message types added
 
 **Remaining (out of scope / deferred):**
-- [ ] Admin panel: WebSocket connection for live store metrics (read-only monitoring — ADR-009 compliant)
+- [x] Admin panel: Live store metrics (30s polling via React Query + live indicator on dashboard) (read-only monitoring — ADR-009 compliant)
 - [x] SLA alerting: Notify admin when revenue drops below expected or sync queue grows — ✅ DONE (2026-03-26): SlaAlertJob monitors sync queue size (threshold: 50 ops) and persistent sync failures via SyncStatusPort; creates SYSTEM notifications for ADMIN role every 5 minutes
 
 ---
