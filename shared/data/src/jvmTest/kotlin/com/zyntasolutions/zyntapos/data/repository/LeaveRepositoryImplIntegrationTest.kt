@@ -158,8 +158,8 @@ class LeaveRepositoryImplIntegrationTest {
         val updateResult = repo.updateStatus(
             id = "leave-01",
             status = LeaveStatus.APPROVED,
-            approvedBy = "manager-01",
-            approvedAt = now,
+            decidedBy = "manager-01",
+            decidedAt = now,
             rejectionReason = null,
             updatedAt = now,
         )
