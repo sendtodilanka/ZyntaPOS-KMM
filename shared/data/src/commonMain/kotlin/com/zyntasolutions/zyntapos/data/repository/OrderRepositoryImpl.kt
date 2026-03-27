@@ -10,22 +10,24 @@ import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.data.local.SyncEnqueuer
 import com.zyntasolutions.zyntapos.data.local.mapper.OrderMapper
 import com.zyntasolutions.zyntapos.data.remote.dto.OrderDto
+import com.zyntasolutions.zyntapos.data.remote.dto.OrderItemDto
+import com.zyntasolutions.zyntapos.data.util.SyncJson
+import com.zyntasolutions.zyntapos.data.util.dbCall
 import com.zyntasolutions.zyntapos.db.ZyntaDatabase
 import com.zyntasolutions.zyntapos.domain.model.CartItem
 import com.zyntasolutions.zyntapos.domain.model.Order
 import com.zyntasolutions.zyntapos.domain.model.OrderStatus
 import com.zyntasolutions.zyntapos.domain.model.OrderType
 import com.zyntasolutions.zyntapos.domain.model.PaymentMethod
-import com.zyntasolutions.zyntapos.data.remote.dto.OrderItemDto
 import com.zyntasolutions.zyntapos.domain.model.SyncOperation
 import com.zyntasolutions.zyntapos.domain.model.SyncStatus
+import com.zyntasolutions.zyntapos.domain.repository.OrderQueryFilters
 import com.zyntasolutions.zyntapos.domain.repository.OrderRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlin.time.Clock
 import kotlinx.datetime.Instant
 
@@ -45,9 +47,7 @@ class OrderRepositoryImpl(
     private val iq get() = db.ordersQueries
     private val pq get() = db.productsQueries
 
-    companion object {
-        private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
-    }
+    // syncJson is the shared SyncJson instance from data.util
 
     // ── Sync (server-originated) ────────────────────────────────────────
 
@@ -61,7 +61,7 @@ class OrderRepositoryImpl(
      * Does NOT enqueue a [SyncOperation] — server data must not be re-pushed.
      */
     suspend fun upsertFromSync(payload: String) = withContext(Dispatchers.IO) {
-        val dto = syncJson.decodeFromString<OrderDto>(payload)
+        val dto = SyncJson.decodeFromString<OrderDto>(payload)
         val sessionId = dto.registerSessionId.ifBlank { null }
         val exists = q.getOrderById(dto.id).executeAsOneOrNull() != null
         db.transaction {
@@ -100,29 +100,29 @@ class OrderRepositoryImpl(
     // ── Read ─────────────────────────────────────────────────────────────────
 
     override fun getAll(filters: Map<String, String>): Flow<List<Order>> =
-        q.getAllOrders()
+        q.getFilteredOrders(
+            status        = filters[OrderQueryFilters.STATUS],
+            cashierId     = filters[OrderQueryFilters.CASHIER_ID],
+            customerId    = filters[OrderQueryFilters.CUSTOMER_ID],
+            sessionId     = filters[OrderQueryFilters.REGISTER_SESSION_ID],
+            paymentMethod = filters[OrderQueryFilters.PAYMENT_METHOD],
+        )
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { rows ->
-                rows.filter { row -> matchesFilters(row, filters) }
-                    .map { row ->
-                        val items = iq.getItemsByOrderId(row.id).executeAsList()
-                        OrderMapper.toDomain(row, items)
-                    }
+                if (rows.isEmpty()) return@map emptyList()
+                // Batch-load all items in ONE query to eliminate N+1
+                val itemsByOrderId = q.getItemsForOrders(rows.map { it.id })
+                    .executeAsList()
+                    .groupBy { it.order_id }
+                rows.map { row -> OrderMapper.toDomain(row, itemsByOrderId[row.id] ?: emptyList()) }
             }
 
-    override suspend fun getById(id: String): Result<Order> = withContext(Dispatchers.IO) {
-        runCatching {
-            val row = q.getOrderById(id).executeAsOneOrNull()
-                ?: return@withContext Result.Error(
-                    DatabaseException("Order not found: $id", operation = "getOrderById")
-                )
-            val items = iq.getItemsByOrderId(id).executeAsList()
-            OrderMapper.toDomain(row, items)
-        }.fold(
-            onSuccess = { Result.Success(it) },
-            onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
-        )
+    override suspend fun getById(id: String): Result<Order> = dbCall("getOrderById") {
+        val row = q.getOrderById(id).executeAsOneOrNull()
+            ?: throw DatabaseException("Order not found: $id", operation = "getOrderById")
+        val items = q.getItemsByOrderId(id).executeAsList()
+        OrderMapper.toDomain(row, items)
     }
 
     override fun getByDateRange(from: Instant, to: Instant): Flow<List<Order>> =
@@ -130,10 +130,12 @@ class OrderRepositoryImpl(
             .asFlow()
             .mapToList(Dispatchers.IO)
             .map { rows ->
-                rows.map { row ->
-                    val items = iq.getItemsByOrderId(row.id).executeAsList()
-                    OrderMapper.toDomain(row, items)
-                }
+                if (rows.isEmpty()) return@map emptyList()
+                // Batch-load all items in ONE query to eliminate N+1
+                val itemsByOrderId = q.getItemsForOrders(rows.map { it.id })
+                    .executeAsList()
+                    .groupBy { it.order_id }
+                rows.map { row -> OrderMapper.toDomain(row, itemsByOrderId[row.id] ?: emptyList()) }
             }
 
     // ── Write ────────────────────────────────────────────────────────────────
@@ -171,11 +173,13 @@ class OrderRepositoryImpl(
                         discount_type = item.discountType.name, tax_rate = item.taxRate,
                         tax_amount = item.taxAmount, line_total = item.lineTotal,
                     )
-                    // Decrement stock atomically
+                    // Decrement stock atomically.
+                    // Pre-flight stock validation is the caller's responsibility
+                    // (CreateOrderUseCase must verify sufficient qty before calling create()).
                     val currentQty = pq.getProductById(item.productId)
                         .executeAsOneOrNull()?.stock_qty ?: 0.0
                     pq.updateStockQty(
-                        stock_qty  = (currentQty - item.quantity).coerceAtLeast(0.0),
+                        stock_qty  = currentQty - item.quantity,
                         updated_at = now,
                         id         = item.productId,
                     )
@@ -315,10 +319,10 @@ class OrderRepositoryImpl(
             }
         }
 
-        val orders = rows.map { row ->
-            val orderItems = q.getItemsByOrderId(row.id).executeAsList()
-            OrderMapper.toDomain(row, orderItems)
-        }
+        // Batch-load all items in ONE query to eliminate N+1
+        val itemsByOrderId = if (rows.isEmpty()) emptyMap()
+        else q.getItemsForOrders(rows.map { it.id }).executeAsList().groupBy { it.order_id }
+        val orders = rows.map { row -> OrderMapper.toDomain(row, itemsByOrderId[row.id] ?: emptyList()) }
 
         PaginatedResult(
             items = orders,
@@ -335,7 +339,7 @@ class OrderRepositoryImpl(
      * can propagate refund records to the original store.
      */
     private fun serializeOrderPayload(order: Order, now: Long): String =
-        syncJson.encodeToString(
+        SyncJson.encodeToString(
             OrderDto(
                 id = order.id,
                 orderNumber = order.orderNumber,
@@ -377,17 +381,4 @@ class OrderRepositoryImpl(
             )
         )
 
-    private fun matchesFilters(row: com.zyntasolutions.zyntapos.db.Orders, filters: Map<String, String>): Boolean {
-        if (filters.isEmpty()) return true
-        return filters.all { (key, value) ->
-            when (key) {
-                "status"              -> row.status == value
-                "cashier_id"          -> row.cashier_id == value
-                "customer_id"         -> row.customer_id == value
-                "register_session_id" -> row.register_session_id == value
-                "payment_method"      -> row.payment_method == value
-                else                  -> true
-            }
-        }
-    }
 }

@@ -137,10 +137,15 @@ class StockRepositoryImplIntegrationTest {
         assertEquals(22.0, row?.stock_qty, "stock_qty should be 30 - 8 = 22 after DECREASE")
     }
 
-    // ── C. adjustStock DECREASE below zero is rejected ────────────────────────
+    // ── C. adjustStock DECREASE beyond available — repository persists, use case validates ──
+    //
+    // NOTE: The negative-stock guard was intentionally removed from StockRepositoryImpl (C2a
+    // audit fix). The repository is a pure persistence layer and does NOT enforce business rules.
+    // StockValidator.validateAdjustment() in the domain layer (AdjustStockUseCase) is the
+    // correct location for this check. AdjustStockUseCaseTest covers that invariant.
 
     @Test
-    fun adjustStock_DECREASE_beyond_available_stock_returns_error() = runTest {
+    fun adjustStock_DECREASE_beyond_available_stock_persists_negative_qty() = runTest {
         insertProduct(id = "prod-neg", stockQty = 5.0)
 
         val adjustment = buildAdjustment(
@@ -150,12 +155,13 @@ class StockRepositoryImplIntegrationTest {
             quantity  = 10.0,   // more than the available 5.0
         )
 
+        // Repository is a pure persistence layer — it succeeds regardless of business validity.
+        // Callers (AdjustStockUseCase) are responsible for pre-validating before calling adjustStock.
         val result = repo.adjustStock(adjustment)
-        assertIs<Result.Error>(result, "adjustStock DECREASE beyond available stock should return Result.Error")
+        assertIs<Result.Success<Unit>>(result, "repository should persist without enforcing negative-stock guard")
 
-        // Stock should remain unchanged after the rejected adjustment
         val row = db.productsQueries.getProductById("prod-neg").executeAsOneOrNull()
-        assertEquals(5.0, row?.stock_qty, "stock_qty should be unchanged when DECREASE is rejected")
+        assertEquals(-5.0, row?.stock_qty, "stock_qty reflects raw arithmetic: 5 - 10 = -5")
     }
 
     // ── D. getMovements returns all records for productId ─────────────────────
