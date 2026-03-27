@@ -1,10 +1,12 @@
 package com.zyntasolutions.zyntapos.api.service
 
 import com.zyntasolutions.zyntapos.api.repository.ReplenishmentRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -33,9 +35,11 @@ class AutoReplenishmentJob(
     fun start(intervalSeconds: Long = 3600L) {
         scope.launch {
             log.info("AutoReplenishmentJob started (interval: ${intervalSeconds}s)")
-            while (true) {
+            while (isActive) {
                 try {
                     processAutoReplenishment()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     log.error("AutoReplenishmentJob error: ${e.message}", e)
                 }

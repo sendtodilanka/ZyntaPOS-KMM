@@ -1,7 +1,9 @@
 package com.zyntasolutions.zyntapos.data.job
 
+import com.zyntasolutions.zyntapos.core.logger.ZyntaLogger
 import com.zyntasolutions.zyntapos.domain.model.IntegrityReport
 import com.zyntasolutions.zyntapos.domain.usecase.admin.VerifyAuditIntegrityUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +46,7 @@ class AuditIntegrityJob(
     private val scope: CoroutineScope,
 ) {
 
+    private val log = ZyntaLogger.forModule("AuditIntegrityJob")
     private val _latestReport = MutableStateFlow<IntegrityReport?>(null)
 
     /** The most recent integrity verification result, or null if never run. */
@@ -71,9 +74,13 @@ class AuditIntegrityJob(
      * the 24-hour delay loop.
      */
     internal suspend fun runVerification() {
-        runCatching {
+        try {
             val report = verifyUseCase()
             _latestReport.value = report
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.e("AuditIntegrityJob failed: ${e.message}", throwable = e)
         }
     }
 }

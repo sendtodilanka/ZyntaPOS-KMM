@@ -1,9 +1,11 @@
 package com.zyntasolutions.zyntapos.api.service
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.zyntasolutions.zyntapos.api.db.Stores
 import com.zyntasolutions.zyntapos.api.db.SyncQueue
@@ -26,9 +28,11 @@ class AlertGenerationJob(
     fun start(intervalSeconds: Long = 60L) {
         scope.launch {
             logger.info("AlertGenerationJob started (interval: ${intervalSeconds}s)")
-            while (true) {
+            while (isActive) {
                 try {
                     evaluate()
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: Exception) {
                     logger.warn("AlertGenerationJob evaluation error: ${e.message}")
                 }
@@ -39,9 +43,11 @@ class AlertGenerationJob(
 
     private suspend fun evaluate() {
         // Check SLA breaches and send email notifications
-        runCatching {
+        try {
             ticketService?.checkSlaBreaches()
-        }.onFailure { e ->
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
             logger.warn("SLA breach check failed: ${e.message}")
         }
 
