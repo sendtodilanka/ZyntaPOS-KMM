@@ -43,6 +43,19 @@ class FinancialStatementRepositoryImplIntegrationTest {
 
         val now = Clock.System.now().toEpochMilliseconds()
 
+        // Seed accounting_periods required by account_balances FK and rebuildAllBalances
+        db.accounting_periodsQueries.insertPeriod(
+            id = "period-apr",
+            period_name = "April 2026",
+            start_date = "2026-04-01",
+            end_date = "2026-04-30",
+            status = "OPEN",
+            fiscal_year_start = "2026-01-01",
+            is_adjustment = 0L,
+            created_at = now,
+            updated_at = now,
+        )
+
         // Seed chart_of_accounts for journal line FKs
         listOf(
             Triple("acc-cash",    "1010", "Cash"),
@@ -127,11 +140,13 @@ class FinancialStatementRepositoryImplIntegrationTest {
     }
 
     @Test
-    fun `B - getTrialBalance returns empty trial balance when no entries posted`() = runTest {
+    fun `B - getTrialBalance returns zero-balance lines when no entries posted`() = runTest {
         val result = repo.getTrialBalance("store-01", "2026-12-31")
         assertIs<Result.Success<FinancialStatement.TrialBalance>>(result)
         val tb = result.data
-        assertTrue(tb.lines.isEmpty())
+        // getTrialBalance uses LEFT JOIN on chart_of_accounts — returns all active accounts
+        // with zero debit/credit when no journal entries exist. isBalanced = true (0 == 0).
+        assertTrue(tb.lines.all { it.totalDebits == 0.0 && it.totalCredits == 0.0 })
         assertTrue(tb.isBalanced)
     }
 

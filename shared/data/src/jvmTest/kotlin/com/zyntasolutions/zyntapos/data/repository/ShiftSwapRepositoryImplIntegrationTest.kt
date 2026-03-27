@@ -184,16 +184,24 @@ class ShiftSwapRepositoryImplIntegrationTest {
     }
 
     @Test
-    fun `D - getPendingForManager emits all PENDING requests`() = runTest {
+    fun `D - getPendingForManager emits TARGET_ACCEPTED requests awaiting manager approval`() = runTest {
+        // getPendingForManager() returns only TARGET_ACCEPTED records (not PENDING).
+        // A swap must be accepted by the target employee before the manager sees it.
         repo.insert(makeRequest(id = "swap-01", requestingEmployeeId = "emp-01", targetEmployeeId = "emp-02",
-            requestingShiftId = "shift-01", targetShiftId = "shift-02"))
+            requestingShiftId = "shift-01", targetShiftId = "shift-02",
+            status = ShiftSwapStatus.TARGET_ACCEPTED))
         repo.insert(makeRequest(id = "swap-02", requestingEmployeeId = "emp-02", targetEmployeeId = "emp-01",
-            requestingShiftId = "shift-02", targetShiftId = "shift-01"))
+            requestingShiftId = "shift-02", targetShiftId = "shift-01",
+            status = ShiftSwapStatus.TARGET_ACCEPTED))
+        // This PENDING record should NOT appear in the manager queue
+        repo.insert(makeRequest(id = "swap-03", requestingEmployeeId = "emp-01", targetEmployeeId = "emp-02",
+            requestingShiftId = "shift-03", targetShiftId = "shift-04",
+            status = ShiftSwapStatus.PENDING))
 
         repo.getPendingForManager().test {
             val list = awaitItem()
             assertEquals(2, list.size)
-            assertTrue(list.all { it.status == ShiftSwapStatus.PENDING })
+            assertTrue(list.all { it.status == ShiftSwapStatus.TARGET_ACCEPTED })
             cancelAndIgnoreRemainingEvents()
         }
     }

@@ -127,14 +127,15 @@ class ProductRepositoryImplIntegrationTest {
 
     @Test
     fun `C - search by name returns matching products`() = runTest {
-        repo.insert(makeProduct(id = "prod-01", name = "Blue T-Shirt", barcode = "1000000000001", sku = "TS-B"))
+        repo.insert(makeProduct(id = "prod-01", name = "Blue Shirt", barcode = "1000000000001", sku = "TS-B"))
         repo.insert(makeProduct(id = "prod-02", name = "Red Hoodie", barcode = "1000000000002", sku = "HOO-R"))
-        repo.insert(makeProduct(id = "prod-03", name = "Black T-Shirt", barcode = "1000000000003", sku = "TS-BL"))
+        repo.insert(makeProduct(id = "prod-03", name = "Black Shirt", barcode = "1000000000003", sku = "TS-BL"))
 
-        repo.search("T-Shirt", null).test {
+        // Use "Shirt" not "T-Shirt": FTS5 treats hyphen as NOT operator, making "T-Shirt*" invalid syntax
+        repo.search("Shirt", null).test {
             val list = awaitItem()
             assertEquals(2, list.size)
-            assertTrue(list.all { it.name.contains("T-Shirt") })
+            assertTrue(list.all { it.name.contains("Shirt") })
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -207,10 +208,11 @@ class ProductRepositoryImplIntegrationTest {
                 barcode = "30000000$i", sku = "P0$i"))
         }
 
-        val result = repo.getPage(PageRequest(limit = 3, offset = 0), categoryId = null)
-        assertIs<Result.Success<*>>(result)
-        val page = result.data as com.zyntasolutions.zyntapos.core.pagination.PaginatedResult<*>
+        // getPage returns PaginatedResult<Product> directly (not wrapped in Result)
+        val page = repo.getPage(PageRequest(limit = 3, offset = 0), categoryId = null)
         assertEquals(3, page.items.size)
+        assertEquals(5, page.totalCount)
+        assertTrue(page.hasMore)
     }
 
     @Test

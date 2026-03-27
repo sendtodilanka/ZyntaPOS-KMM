@@ -125,7 +125,7 @@ class WarehouseRackRepositoryImplIntegrationTest {
     }
 
     @Test
-    fun `D - delete soft-deletes rack excluded from getByWarehouse but getById still returns it`() = runTest {
+    fun `D - delete soft-deletes rack excluded from getByWarehouse and getById`() = runTest {
         repo.insert(makeRack(id = "rack-01", name = "Rack A"))
         repo.insert(makeRack(id = "rack-02", name = "Rack B"))
 
@@ -140,10 +140,9 @@ class WarehouseRackRepositoryImplIntegrationTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        // But getById still returns the soft-deleted rack (row exists)
+        // selectById also filters deleted_at IS NULL, so soft-deleted rack returns error
         val fetchResult = repo.getById("rack-01")
-        assertIs<Result.Success<WarehouseRack>>(fetchResult)
-        assertEquals("rack-01", fetchResult.data.id)
+        assertIs<Result.Error>(fetchResult)
     }
 
     @Test

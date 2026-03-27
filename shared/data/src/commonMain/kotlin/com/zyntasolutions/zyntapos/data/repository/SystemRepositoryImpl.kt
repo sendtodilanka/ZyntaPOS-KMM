@@ -75,8 +75,8 @@ class SystemRepositoryImpl(
                 add(TableStats("orders", countTable("orders")))
                 add(TableStats("customers", countTable("customers")))
                 add(TableStats("categories", countTable("categories")))
-                add(TableStats("sync_queue", countTable("sync_queue")))
-                add(TableStats("audit_log", countTable("audit_log")))
+                add(TableStats("pending_operations", countTable("pending_operations")))
+                add(TableStats("audit_entries", countTable("audit_entries")))
             }
             val totalRows = tableStats.sumOf { it.rowCount }
             val pageSize = pragmaLong("page_size")
@@ -131,7 +131,7 @@ class SystemRepositoryImpl(
                     db.sync_queueQueries.pruneSynced(cutoff)
 
                     // Purge old audit log entries beyond retention window
-                    driver.execute(null, "DELETE FROM audit_log WHERE timestamp < $cutoff", 0)
+                    driver.execute(null, "DELETE FROM audit_entries WHERE timestamp < $cutoff", 0)
                 }
 
                 // Run incremental vacuum after deletes to reclaim space
