@@ -382,6 +382,7 @@ private fun UserDropdown(
     users: List<User>,
     onUserSelected: (String) -> Unit,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selectedName = users.find { it.id == selectedUserId }?.name ?: ""
 
