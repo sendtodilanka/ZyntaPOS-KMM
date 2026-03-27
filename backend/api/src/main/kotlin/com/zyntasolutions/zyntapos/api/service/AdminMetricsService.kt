@@ -27,10 +27,14 @@ class AdminMetricsService {
         val activeStores = Stores.selectAll().where { Stores.isActive eq true }.count().toInt()
 
         val now = OffsetDateTime.now(ZoneOffset.UTC)
-        val since = when (period) {
-            "today" -> now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
-            "week"  -> now.minusDays(7)
-            else    -> now.minusDays(30)
+        // Current window
+        val (since, prevSince, prevUntil) = when (period) {
+            "today" -> {
+                val todayStart = now.toLocalDate().atStartOfDay(ZoneOffset.UTC).toOffsetDateTime()
+                Triple(todayStart, todayStart.minusDays(1), todayStart)
+            }
+            "week"  -> Triple(now.minusDays(7), now.minusDays(14), now.minusDays(7))
+            else    -> Triple(now.minusDays(30), now.minusDays(60), now.minusDays(30))
         }
 
         val totalPending = SyncQueue.selectAll()
@@ -45,17 +49,29 @@ class AdminMetricsService {
             ((totalStores - storesWithPendingIssues) * 100.0) / totalStores
         }
 
+        // Revenue trend: compare current window to previous window
+        val currentRevenue = estimateRevenue(since, now)
+        val prevRevenue    = estimateRevenue(prevSince, prevUntil)
+        val revenueTrend   = if (prevRevenue > 0.0) ((currentRevenue - prevRevenue) / prevRevenue) * 100.0 else 0.0
+
+        // Stores trend: new stores added in current vs previous window
+        val storesInCurrent = Stores.selectAll()
+            .where { Stores.createdAt greaterEq since }.count().toInt()
+        val storesInPrev    = Stores.selectAll()
+            .where { (Stores.createdAt greaterEq prevSince) and (Stores.createdAt less prevUntil) }.count().toInt()
+        val storesTrend = if (storesInPrev > 0) ((storesInCurrent - storesInPrev) * 100.0) / storesInPrev else 0.0
+
         val activeAlerts = AlertInstances.selectAll()
             .where { AlertInstances.status eq "active" }
             .count().toInt()
 
         DashboardKPIs(
             totalStores          = totalStores,
-            totalStoresTrend     = 0.0,
+            totalStoresTrend     = storesTrend,
             activeLicenses       = activeStores,
-            activeLicensesTrend  = 0.0,
-            revenueToday         = estimateRevenue(since, now),
-            revenueTodayTrend    = 0.0,
+            activeLicensesTrend  = 0.0,   // license trend requires license-service query (cross-DB — omit for now)
+            revenueToday         = currentRevenue,
+            revenueTodayTrend    = revenueTrend,
             syncHealthPercent    = syncHealthPct,
             syncHealthTrend      = 0.0,
             currency             = "LKR"

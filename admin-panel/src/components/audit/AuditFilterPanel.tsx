@@ -42,6 +42,16 @@ export function AuditFilterPanel({ filters, onChange, className }: AuditFilterPa
         <option value="false">Failed</option>
       </select>
 
+      {/* Store ID filter */}
+      <input
+        type="text"
+        aria-label="Filter by store ID"
+        value={filters.storeId ?? ''}
+        onChange={(e) => update({ storeId: e.target.value || undefined })}
+        placeholder="Store ID…"
+        className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[120px] max-w-[160px]"
+      />
+
       {/* Date range */}
       <DateRangePicker
         value={filters.from && filters.to ? { from: filters.from, to: filters.to } : undefined}
