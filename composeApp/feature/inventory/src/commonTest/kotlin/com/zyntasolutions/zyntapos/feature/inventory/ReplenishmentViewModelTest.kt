@@ -252,16 +252,20 @@ class ReplenishmentViewModelTest {
 
     private val fakeReportRepository = object : ReportRepository {
         override suspend fun getStockReorderAlerts(): List<StockReorderData> = emptyList()
-        override suspend fun getDailySalesSummary(date: LocalDate): DailySalesSummaryData = TODO()
+        override suspend fun getDailySalesSummary(date: LocalDate): DailySalesSummaryData =
+            DailySalesSummaryData(date, 0.0, 0, 0.0, 0, 0.0, 0.0, 0.0, 0.0)
         override suspend fun getSalesByCategory(from: Instant, to: Instant): List<CategorySalesData> = emptyList()
         override suspend fun getCashMovementLog(from: Instant, to: Instant): List<CashMovementRecord> = emptyList()
         override suspend fun getTopProductsByVolume(from: Instant, to: Instant, limit: Int): List<ProductVolumeData> = emptyList()
-        override suspend fun getProfitLoss(from: Instant, to: Instant): ProfitLossData = TODO()
+        override suspend fun getProfitLoss(from: Instant, to: Instant): ProfitLossData =
+            ProfitLossData(from, to, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         override suspend fun getProductPerformance(from: Instant, to: Instant): List<ProductPerformanceData> = emptyList()
-        override suspend fun getCouponUsage(from: Instant, to: Instant): CouponUsageData = TODO()
+        override suspend fun getCouponUsage(from: Instant, to: Instant): CouponUsageData =
+            CouponUsageData(0, 0.0, emptyList())
         override suspend fun getPaymentMethodBreakdown(from: Instant, to: Instant): Map<String, Double> = emptyMap()
         override suspend fun getTaxCollection(from: Instant, to: Instant): List<TaxCollectionData> = emptyList()
-        override suspend fun getDiscountVoidAnalysis(from: Instant, to: Instant): DiscountVoidData = TODO()
+        override suspend fun getDiscountVoidAnalysis(from: Instant, to: Instant): DiscountVoidData =
+            DiscountVoidData(0.0, 0, 0.0, emptyList())
         override suspend fun getTopCustomers(from: Instant, to: Instant, limit: Int): List<CustomerSpendData> = emptyList()
         override suspend fun getStaffAttendanceSummary(from: Instant, to: Instant): List<StaffAttendanceData> = emptyList()
         override suspend fun getStaffSalesSummary(from: Instant, to: Instant): List<StaffSalesData> = emptyList()
@@ -273,7 +277,8 @@ class ReplenishmentViewModelTest {
         override suspend fun getWarehouseInventory(): List<WarehouseInventoryData> = emptyList()
         override suspend fun getStockAging(noSalesDays: Int): List<StockAgingData> = emptyList()
         override suspend fun getSupplierPurchases(from: Instant, to: Instant): List<SupplierPurchaseData> = emptyList()
-        override suspend fun getReturnRefundSummary(from: Instant, to: Instant): ReturnRefundData = TODO()
+        override suspend fun getReturnRefundSummary(from: Instant, to: Instant): ReturnRefundData =
+            ReturnRefundData(0, 0.0, emptyList())
         override suspend fun getEInvoiceStatus(from: Instant, to: Instant): List<EInvoiceStatusData> = emptyList()
         override suspend fun getAccountingLedger(from: Instant, to: Instant): List<AccountingLedgerRecord> = emptyList()
         override suspend fun getHourlySales(date: LocalDate): List<HourlySalesData> = emptyList()
@@ -284,7 +289,8 @@ class ReplenishmentViewModelTest {
         override suspend fun getAnnualSalesTrend(year: Int): List<MonthlySalesData> = emptyList()
         override suspend fun getClockInOutLog(from: Instant, to: Instant, employeeId: String?): List<ClockRecord> = emptyList()
         override suspend fun getInventoryValuation(): List<InventoryValuationData> = emptyList()
-        override suspend fun getCustomerRetentionMetrics(from: Instant, to: Instant): CustomerRetentionData = TODO()
+        override suspend fun getCustomerRetentionMetrics(from: Instant, to: Instant): CustomerRetentionData =
+            CustomerRetentionData(0, 0, 0, 0.0, 0.0)
         override suspend fun getPurchaseOrders(from: Instant, to: Instant): List<PurchaseOrderData> = emptyList()
         override suspend fun getExpensesByDepartment(from: Instant, to: Instant): List<DeptExpenseData> = emptyList()
     }
