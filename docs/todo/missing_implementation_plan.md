@@ -241,7 +241,7 @@ Items that are implemented but documentation has not been updated to reflect com
 | Genuinely unimplemented (Phase 3 deferred — externally blocked) | 7 items | Low — Phase 3 scope |
 | TODO-012 gaps | ✅ 0 remaining | All verified implemented |
 | Firebase code gaps | ✅ 0 remaining | All implemented 2026-03-27 |
-| `:shared:domain` test coverage gaps | License use cases | Addressed — LicenseUseCasesTest added 2026-03-27 |
+| `:shared:domain` test coverage gaps | ✅ 0 remaining | All gaps addressed — LicenseUseCasesTest, RackUseCasesTest, EnterpriseReportUseCasesTest added 2026-03-27 |
 | External/infrastructure (user action only) | 9 items | Varies |
 | Documentation staleness | ✅ Resolved | CLAUDE.md, gap_analysis, plan updated |
 
@@ -270,6 +270,17 @@ All previously identified code priorities have been implemented:
 - ✅ Firebase JS SDK for admin panel — implemented 2026-03-27
 - ✅ EmailPort implementations + SendReceiptByEmailUseCase wiring — implemented 2026-03-27
 - ✅ License use case tests (ActivateLicenseUseCase, GetLicenseStatusUseCase, SendHeartbeatUseCase) — implemented 2026-03-27
+- ✅ FakeRackProductRepository + RackUseCasesTest (GetWarehouseRacksUseCase, GetRackProductsUseCase, SaveRackProductUseCase, DeleteRackProductUseCase) — implemented 2026-03-27
+- ✅ FakeReportRepository + EnterpriseReportUseCasesTest (all 30 enterprise report use cases) — implemented 2026-03-27
+- ✅ PosViewModelTest fixed: added sendReceiptByEmailUseCase + no-op EmailPort to setUp() — fixed 2026-03-27 (CI compile failure)
+- ✅ FakeLicenseRepository: fixed kotlin.time.Clock import (was kotlinx.datetime.Clock, invalid in Kotlin 2.3) — fixed 2026-03-27
+
+**Test coverage gaps found and resolved 2026-03-27:**
+- `GetWarehouseRacksUseCase` — untested → now covered (3 tests)
+- `GetRackProductsUseCase` — untested → now covered (3 tests)
+- `SaveRackProductUseCase` — untested → now covered (8 tests)
+- `DeleteRackProductUseCase` — untested → now covered (5 tests)
+- All 30 enterprise report use cases — untested → now covered (32 tests)
 
 Remaining actionable items (in priority order):
 
@@ -277,8 +288,3 @@ Remaining actionable items (in priority order):
 2. **IRD XML invoice format** — IRD sandbox required; verify/adjust once sandbox access is granted.
 3. **Blue-green deployment** — Phase 3 infrastructure scope.
 4. **Online ordering API** — External platform dependency.
-3. **TODO-012 SLA bug fix** — Verify `InboundEmailProcessor` reads SLA dynamically. ~1h.
-4. **Firebase RemoteConfig** — Edition feature flags via remote config. ~4h KMP expect/actual.
-5. **Firebase Crashlytics** — Dual crash reporting. ~2h Android integration.
-6. **Firebase JS SDK for admin panel** — Web analytics. ~1h.
-7. **Documentation cleanup** — Update CLAUDE.md counts, mark gap_analysis superseded. ~1h.
