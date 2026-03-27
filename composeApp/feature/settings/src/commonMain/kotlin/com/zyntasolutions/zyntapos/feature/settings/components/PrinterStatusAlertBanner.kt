@@ -22,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.hal.printer.PrinterStatusMonitor
 import org.koin.compose.koinInject
 
@@ -40,12 +42,13 @@ fun PrinterStatusAlertBanner(
     modifier: Modifier = Modifier,
     monitor: PrinterStatusMonitor = koinInject(),
 ) {
+    val s = LocalStrings.current
     val status by monitor.statusState.collectAsState()
 
     val warnings = buildList {
-        if (status.isPaperOut) add("Paper out — please load a new roll.")
-        else if (status.isPaperLow) add("Paper low — replace roll soon.")
-        if (status.isCoverOpen) add("Printer cover is open.")
+        if (status.isPaperOut) add(s[StringResource.POS_PRINTER_PAPER_OUT])
+        else if (status.isPaperLow) add(s[StringResource.POS_PRINTER_PAPER_LOW])
+        if (status.isCoverOpen) add(s[StringResource.POS_PRINTER_COVER_OPEN])
     }
 
     AnimatedVisibility(
@@ -64,13 +67,13 @@ fun PrinterStatusAlertBanner(
         ) {
             Icon(
                 imageVector = Icons.Default.Warning,
-                contentDescription = "Printer warning",
+                contentDescription = s[StringResource.POS_PRINTER_WARNING_CD],
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = warnings.joinToString(" · "),
+                text = warnings.joinToString(s[StringResource.COMMON_SEPARATOR_MIDDLE_DOT]),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )

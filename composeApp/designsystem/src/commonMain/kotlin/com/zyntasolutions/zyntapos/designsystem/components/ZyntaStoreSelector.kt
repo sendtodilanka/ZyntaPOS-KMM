@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -67,6 +68,7 @@ fun ZyntaStoreSelector(
     modifier: Modifier = Modifier,
     enabled: Boolean = availableStores.size > 1,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
 
     Surface(
@@ -91,7 +93,7 @@ fun ZyntaStoreSelector(
             Spacer(Modifier.width(ZyntaSpacing.sm))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = currentStore?.name ?: "No Store Selected",
+                    text = currentStore?.name ?: s[StringResource.DESIGNSYSTEM_NO_STORE_SELECTED],
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
@@ -111,7 +113,7 @@ fun ZyntaStoreSelector(
                 Spacer(Modifier.width(ZyntaSpacing.xs))
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = "Switch store",
+                    contentDescription = s[StringResource.DESIGNSYSTEM_SWITCH_STORE_CD],
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp),
                 )
@@ -158,7 +160,7 @@ fun ZyntaStoreSelector(
                     {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            contentDescription = "Selected",
+                            contentDescription = s[StringResource.DESIGNSYSTEM_SELECTED_CD],
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(18.dp),
                         )
@@ -186,6 +188,7 @@ fun ZyntaStoreSelectorCompact(
     onStoreSelected: (StoreItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
 
     Row(

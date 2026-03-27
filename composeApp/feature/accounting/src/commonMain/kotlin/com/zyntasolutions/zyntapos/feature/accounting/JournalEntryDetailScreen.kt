@@ -86,7 +86,7 @@ fun JournalEntryDetailScreen(
             title = { Text(s[StringResource.ACCOUNTING_REVERSE_ENTRY]) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(ZyntaSpacing.sm)) {
-                    Text("Create a reversal entry for Journal Entry #${state.entry?.entryNumber}?")
+                    Text(s[StringResource.ACCOUNTING_REVERSE_CONFIRM_FORMAT, "${state.entry?.entryNumber}"])
                     OutlinedTextField(
                         value = reversalDate,
                         onValueChange = { reversalDate = it },
@@ -454,8 +454,8 @@ private fun BalanceStatusRow(state: JournalEntryDetailState) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.lg)) {
-                Text("Debits: ${"%.2f".format(debitTotal)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                Text("Credits: ${"%.2f".format(creditTotal)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(s[StringResource.ACCOUNTING_DEBITS_FORMAT, "%.2f".format(debitTotal)], style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                Text(s[StringResource.ACCOUNTING_CREDITS_FORMAT, "%.2f".format(creditTotal)], style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(ZyntaSpacing.xs)) {
                 Icon(

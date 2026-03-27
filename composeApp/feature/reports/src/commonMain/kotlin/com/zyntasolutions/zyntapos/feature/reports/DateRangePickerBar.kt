@@ -26,6 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
+import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import kotlinx.datetime.Instant
 
 /**
@@ -48,6 +51,7 @@ fun DateRangePickerBar(
     onCustomRange: (from: Instant, to: Instant) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val s = LocalStrings.current
     var showDatePicker by remember { mutableStateOf(false) }
     val dateRangeState = rememberDateRangePickerState()
 
@@ -66,7 +70,7 @@ fun DateRangePickerBar(
                         if (range == DateRange.CUSTOM) showDatePicker = true
                         else onRangeSelected(range)
                     },
-                    label = { Text(range.label) },
+                    label = { Text(range.label(s)) },
                 )
             }
         }
@@ -75,7 +79,7 @@ fun DateRangePickerBar(
         if (selectedRange != DateRange.CUSTOM) {
             Spacer(Modifier.height(4.dp))
             Text(
-                text = selectedRange.description,
+                text = selectedRange.description(s),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 4.dp),
@@ -100,10 +104,10 @@ fun DateRangePickerBar(
                         }
                         showDatePicker = false
                     },
-                ) { Text("Apply") }
+                ) { Text(s[StringResource.COMMON_APPLY]) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showDatePicker = false }) { Text(s[StringResource.COMMON_CANCEL]) }
             },
         ) {
             DateRangePicker(
@@ -118,18 +122,16 @@ fun DateRangePickerBar(
 
 private const val MILLIS_END_OF_DAY = 86_399_999L  // 23:59:59.999 offset
 
-private val DateRange.label: String
-    get() = when (this) {
-        DateRange.TODAY      -> "Today"
-        DateRange.THIS_WEEK  -> "This Week"
-        DateRange.THIS_MONTH -> "This Month"
-        DateRange.CUSTOM     -> "Custom"
-    }
+private fun DateRange.label(s: StringResolver): String = when (this) {
+    DateRange.TODAY      -> s[StringResource.COMMON_TODAY]
+    DateRange.THIS_WEEK  -> s[StringResource.COMMON_THIS_WEEK]
+    DateRange.THIS_MONTH -> s[StringResource.COMMON_THIS_MONTH]
+    DateRange.CUSTOM     -> s[StringResource.REPORTS_CUSTOM]
+}
 
-private val DateRange.description: String
-    get() = when (this) {
-        DateRange.TODAY      -> "Sales from today (midnight to now)"
-        DateRange.THIS_WEEK  -> "Sales from the start of this calendar week"
-        DateRange.THIS_MONTH -> "Sales from the 1st of the current month"
-        DateRange.CUSTOM     -> ""
-    }
+private fun DateRange.description(s: StringResolver): String = when (this) {
+    DateRange.TODAY      -> s[StringResource.REPORTS_DATE_RANGE_TODAY_DESC]
+    DateRange.THIS_WEEK  -> s[StringResource.REPORTS_DATE_RANGE_WEEK_DESC]
+    DateRange.THIS_MONTH -> s[StringResource.REPORTS_DATE_RANGE_MONTH_DESC]
+    DateRange.CUSTOM     -> ""
+}

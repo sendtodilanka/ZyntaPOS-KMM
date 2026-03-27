@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ fun ZyntaCartItemRow(
     modifier: Modifier = Modifier,
     imageUrl: String? = null,
 ) {
+    val s = LocalStrings.current
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             if (value == EndToStart) {
@@ -68,7 +70,7 @@ fun ZyntaCartItemRow(
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 Text(
-                    text = "Remove",
+                    text = s[StringResource.DESIGNSYSTEM_REMOVE],
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.padding(end = ZyntaSpacing.md),
                     style = MaterialTheme.typography.labelMedium,
@@ -120,7 +122,7 @@ fun ZyntaCartItemRow(
                 ) {
                     Icon(
                         Icons.Default.Remove,
-                        contentDescription = "Decrease quantity",
+                        contentDescription = s[StringResource.DESIGNSYSTEM_DECREASE_QTY_CD],
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -135,7 +137,7 @@ fun ZyntaCartItemRow(
                 ) {
                     Icon(
                         Icons.Default.Add,
-                        contentDescription = "Increase quantity",
+                        contentDescription = s[StringResource.DESIGNSYSTEM_INCREASE_QTY_CD],
                         modifier = Modifier.size(16.dp),
                     )
                 }

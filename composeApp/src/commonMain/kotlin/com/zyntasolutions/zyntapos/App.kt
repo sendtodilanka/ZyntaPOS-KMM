@@ -10,6 +10,7 @@ import com.zyntasolutions.zyntapos.core.utils.AppTimezone
 import com.zyntasolutions.zyntapos.core.utils.CurrencyFormatter
 import com.zyntasolutions.zyntapos.debug.DebugViewModel
 import com.zyntasolutions.zyntapos.core.i18n.LocalizationManager
+import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
@@ -247,6 +248,7 @@ fun App() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
+            val s = LocalStrings.current
             val navController = rememberNavigationController()
             val authRepository: AuthRepository = koinInject()
             val currentUser by authRepository.getSession().collectAsState(initial = null)
@@ -323,7 +325,7 @@ fun App() {
                             // Show candidate picker dialog
                             AlertDialog(
                                 onDismissRequest = { authVm.dispatch(AuthIntent.CancelQuickSwitch) },
-                                title = { Text("Switch User") },
+                                title = { Text(s[StringResource.AUTH_SWITCH_USER]) },
                                 text = {
                                     Column {
                                         authState.quickSwitchCandidates.forEach { candidate ->
@@ -339,7 +341,7 @@ fun App() {
                                 confirmButton = {},
                                 dismissButton = {
                                     TextButton(onClick = { authVm.dispatch(AuthIntent.CancelQuickSwitch) }) {
-                                        Text("Cancel")
+                                        Text(s[StringResource.COMMON_CANCEL])
                                     }
                                 },
                             )
@@ -748,6 +750,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     customerDetail = { customerId, onNavigateUp, onNavigateToWallet ->
+        val s = LocalStrings.current
         val vm: CustomerViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         val snackbarHostState = remember { SnackbarHostState() }
@@ -775,12 +778,11 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         if (currentExportedJson != null) {
             AlertDialog(
                 onDismissRequest = { exportedJson = null },
-                title = { Text("Customer Data Export (GDPR)") },
+                title = { Text(s[StringResource.CUSTOMERS_GDPR_EXPORT_TITLE]) },
                 text = {
                     Column {
                         Text(
-                            text = "Customer data has been exported successfully. " +
-                                "The data is shown below in JSON format.",
+                            text = s[StringResource.CUSTOMERS_GDPR_EXPORT_DESC],
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Spacer(Modifier.height(8.dp))
@@ -819,11 +821,11 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
                         },
                         enabled = !isGdprExporting,
                     ) {
-                        Text(if (isGdprExporting) "Saving…" else "Save / Share")
+                        Text(if (isGdprExporting) s[StringResource.CUSTOMERS_GDPR_SAVING] else s[StringResource.CUSTOMERS_GDPR_SAVE_SHARE])
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { exportedJson = null }) { Text("Close") }
+                    TextButton(onClick = { exportedJson = null }) { Text(s[StringResource.COMMON_CLOSE]) }
                 },
             )
         }
@@ -1083,6 +1085,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     financialStatements = { storeId, onNavigateBack ->
+        val s = LocalStrings.current
         var exportedCsv by remember { mutableStateOf<Pair<String, String>?>(null) }
         val currentExport = exportedCsv
         if (currentExport != null) {
@@ -1112,7 +1115,7 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { exportedCsv = null }) { Text("Close") }
+                    TextButton(onClick = { exportedCsv = null }) { Text(s[StringResource.COMMON_CLOSE]) }
                 },
             )
         }
