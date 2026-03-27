@@ -3,6 +3,7 @@ package com.zyntasolutions.zyntapos.data.email
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.zyntasolutions.zyntapos.core.result.HalException
 import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.port.EmailPort
 
@@ -37,7 +38,13 @@ class EmailPortImpl(private val context: Context) : EmailPort {
             context.startActivity(intent)
             Result.Success(Unit)
         } catch (e: Exception) {
-            Result.Error(e)
+            Result.Error(
+                HalException(
+                    message = "Failed to open email client: ${e.message}",
+                    device = "email_client",
+                    cause = e,
+                )
+            )
         }
     }
 }
