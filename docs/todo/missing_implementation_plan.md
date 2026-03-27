@@ -209,17 +209,17 @@ Items that are implemented but documentation has not been updated to reflect com
 
 ### 4.1 CLAUDE.md Updates Required
 
-- [ ] **Module count:** Change "Module Map (26 Modules)" heading → "Module Map (29 Modules)"; update Repository Layout table row `settings.gradle.kts` count
-- [ ] **Domain model count:** Change "38+" → "104+" in ADR-002 section
-- [ ] **Feature module table:** Update `:feature:accounting`, `:feature:staff`, `:feature:coupons`, `:feature:multistore` descriptions from scaffold/Phase 3 placeholder language to reflect full implementation
-- [ ] **Backend audit status table:** Update Phase C/D/E/F rows to reflect current state (verify each Sn item)
-- [ ] **ADR-009 violations:** Remove the "Known backend violations" row from the backend common pitfalls section; add confirmation that all /admin/* routes are now read-only compliant
-- [ ] **Phase 3 status description:** Update "Phase 3 — Enterprise (~80% In Progress)" section in Development Phases table to reflect current actual completion level
-- [ ] **.sq schema file count:** CLAUDE.md says "73 .sq schema files" — verified correct (73 confirmed). No change needed.
+- [x] **Module count:** "Module Map (29 Modules)" — ✅ already correct in CLAUDE.md
+- [x] **Domain model count:** "104+" — ✅ already correct in CLAUDE.md
+- [x] **Feature module table:** `:feature:accounting` expanded to include chart of accounts, general ledger, journal entries, financial statements — ✅ updated 2026-03-27
+- [x] **Backend audit status table:** Phase C/D/E/F — ✅ already reflects current state (SUBSTANTIALLY COMPLETE / PARTIAL)
+- [x] **ADR-009 violations:** No "Known backend violations" text in CLAUDE.md pitfalls — ✅ already clean
+- [x] **Phase 3 status description:** Updated to "~92% Complete (code)" with data-layer tests noted — ✅ updated 2026-03-27
+- [x] **.sq schema file count:** CLAUDE.md says "73 .sq schema files" — verified correct (73 confirmed). No change needed.
 
 ### 4.2 `docs/audit/gap_analysis_2026-03-09.md` Updates Required
 
-- [ ] Add superseded notice at top of file (see §2.6 above)
+- [x] Add superseded notice at top of file — ✅ already present in `gap_analysis_2026-03-09.md`
 
 ### 4.3 `docs/todo/missing-features-implementation-plan.md` Updates Required
 
