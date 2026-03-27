@@ -1,14 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Download, BarChart3, TrendingUp } from 'lucide-react';
+import { Download, BarChart3, TrendingUp, Package } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend,
 } from 'recharts';
-import { useSalesReport } from '@/api/metrics';
+import { useSalesReport, useProductPerformance } from '@/api/metrics';
 import { exportToCsv } from '@/lib/export';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useDebounce } from '@/hooks/use-debounce';
 
 export const Route = createFileRoute('/reports/')({
   component: ReportsPage,
@@ -45,8 +46,19 @@ const CUSTOM_TOOLTIP = ({ active, payload, label }: any) => {
 
 function ReportsPage() {
   const [period, setPeriod] = useState<Period>('30d');
+  const [storeIdFilter, setStoreIdFilter] = useState('');
+  const [activeTab, setActiveTab] = useState<'sales' | 'products'>('sales');
+  const debouncedStoreId = useDebounce(storeIdFilter, 300);
 
-  const { data: salesData, isLoading: salesLoading } = useSalesReport({ period });
+  const { data: salesData, isLoading: salesLoading } = useSalesReport({
+    period,
+    storeId: debouncedStoreId || undefined,
+  });
+  const { data: productData, isLoading: productLoading } = useProductPerformance({
+    period,
+    storeId: debouncedStoreId || undefined,
+    limit: 20,
+  });
 
   const handleExportSales = () => {
     if (!salesData?.length) return;
@@ -100,6 +112,14 @@ function ReportsPage() {
               </button>
             ))}
           </div>
+          {/* Store filter */}
+          <input
+            type="text"
+            value={storeIdFilter}
+            onChange={(e) => setStoreIdFilter(e.target.value)}
+            placeholder="Filter by Store ID…"
+            className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 w-40"
+          />
           {/* Export */}
           <button
             onClick={handleExportSales}
@@ -109,6 +129,25 @@ function ReportsPage() {
             Export CSV
           </button>
         </div>
+      </div>
+
+      {/* Tab selector */}
+      <div className="flex gap-1 bg-surface-elevated rounded-lg p-1 w-fit">
+        {([['sales', 'Sales Report', BarChart3], ['products', 'Product Performance', Package]] as const).map(([tab, label, Icon]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[36px]',
+              activeTab === tab
+                ? 'bg-surface-card text-slate-100'
+                : 'text-slate-400 hover:text-slate-100',
+            )}
+          >
+            <Icon className="w-4 h-4" />
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* KPI Summary Cards */}
@@ -133,7 +172,7 @@ function ReportsPage() {
       </div>
 
       {/* Sales Report */}
-      <div className="space-y-6">
+      {activeTab === 'sales' && <div className="space-y-6">
         {/* Revenue Line Chart */}
         <div className="bg-surface-card border border-surface-border rounded-xl p-4 md:p-6">
           <h2 className="text-base font-semibold text-slate-100 mb-4">Revenue Over Time</h2>
@@ -242,7 +281,102 @@ function ReportsPage() {
             </table>
           </div>
         </div>
-      </div>
+      </div>}
+
+      {/* Product Performance */}
+      {activeTab === 'products' && (
+        <div className="space-y-6">
+          <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
+            <div className="p-4 border-b border-surface-border flex items-center justify-between">
+              <h2 className="text-base font-semibold text-slate-100">Top Products by Revenue</h2>
+              <button
+                onClick={() => {
+                  if (!productData?.length) return;
+                  exportToCsv(productData, `product-performance-${period}`, [
+                    { key: 'productId', header: 'Product ID' },
+                    { key: 'productName', header: 'Product Name' },
+                    { key: 'revenue', header: 'Revenue' },
+                    { key: 'unitsSold', header: 'Units Sold' },
+                    { key: 'storeId', header: 'Store ID' },
+                  ]);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-surface-elevated hover:bg-surface-border text-slate-400 text-xs rounded-lg border border-surface-border transition-colors"
+              >
+                <Download className="w-3 h-3" />
+                CSV
+              </button>
+            </div>
+            {productLoading ? (
+              <div className="p-8 text-center text-slate-400">Loading…</div>
+            ) : !productData?.length ? (
+              <div className="p-8 text-center text-slate-500">
+                <Package className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No product data for selected period</p>
+              </div>
+            ) : (
+              <>
+                {/* Bar chart */}
+                <div className="p-4">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart
+                      data={productData.slice(0, 10).map((r) => ({
+                        name: (r.productName ?? r.productId).slice(0, 20),
+                        Revenue: r.revenue,
+                        Units: r.unitsSold,
+                      }))}
+                      margin={{ top: 4, right: 4, bottom: 40, left: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fill: '#94a3b8', fontSize: 10 }}
+                        tickLine={false}
+                        axisLine={false}
+                        angle={-30}
+                        textAnchor="end"
+                      />
+                      <YAxis
+                        tick={{ fill: '#94a3b8', fontSize: 11 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                        width={40}
+                      />
+                      <Tooltip content={<CUSTOM_TOOLTIP />} />
+                      <Bar dataKey="Revenue" fill="#38bdf8" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                {/* Table */}
+                <div className="overflow-x-auto border-t border-surface-border">
+                  <table className="w-full min-w-[480px] text-sm">
+                    <thead>
+                      <tr className="border-b border-surface-border bg-surface-elevated">
+                        {['#', 'Product', 'Units Sold', 'Revenue', 'Store'].map((h) => (
+                          <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {productData.map((row, i) => (
+                        <tr key={i} className="border-b border-surface-border hover:bg-surface-elevated transition-colors">
+                          <td className="px-4 py-3 text-slate-500 tabular-nums">{i + 1}</td>
+                          <td className="px-4 py-3 text-slate-200 font-medium">{row.productName ?? row.productId}</td>
+                          <td className="px-4 py-3 text-slate-300 tabular-nums">{row.unitsSold.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-slate-100 font-medium tabular-nums">{formatCurrency(row.revenue)}</td>
+                          <td className="px-4 py-3 text-slate-500 font-mono text-xs">{row.storeId ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
