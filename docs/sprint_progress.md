@@ -15,7 +15,7 @@
 |--------|--------|-------|-------|
 | `:shared:core` | ✅ IMPLEMENTED | 1 | Utils, extensions, base models, SystemHealthTracker |
 | `:shared:domain` | ✅ IMPLEMENTED | 1 | Use cases, repository interfaces, 77 domain models |
-| `:shared:data` | ✅ IMPLEMENTED | 1 | SQLDelight (61 .sq files), Ktor, repository impls, sync engine |
+| `:shared:data` | ✅ IMPLEMENTED | 1 | SQLDelight (73 .sq files), Ktor, repository impls, sync engine |
 | `:shared:hal` | ✅ IMPLEMENTED | 1 | Printer/Scanner/CashDrawer HAL interfaces + all platform drivers |
 | `:shared:security` | ✅ IMPLEMENTED | 1 | JWT, RBAC, AES-256-GCM, SQLCipher, PinManager, SecurePreferences |
 | `:shared:seed` | ✅ IMPLEMENTED | 1 | Debug-only SeedRunner (8 categories, 5 suppliers, 25 products, 15 customers) |
