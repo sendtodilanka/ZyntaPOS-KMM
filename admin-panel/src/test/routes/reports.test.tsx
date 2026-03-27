@@ -23,7 +23,7 @@ vi.mock('recharts', () => ({
 }));
 
 vi.mock('@/api/metrics');
-import { useSalesReport } from '@/api/metrics';
+import { useSalesReport, useProductPerformance } from '@/api/metrics';
 import { Route } from '@/routes/reports/index';
 
 const ReportsPage = (Route as unknown as { component: React.FC }).component;
@@ -45,6 +45,10 @@ describe('ReportsPage', () => {
       data: [mockSalesRow],
       isLoading: false,
     } as unknown as ReturnType<typeof useSalesReport>);
+    vi.mocked(useProductPerformance).mockReturnValue({
+      data: [],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useProductPerformance>);
   });
 
   it('renders page heading', () => {
@@ -102,9 +106,9 @@ describe('ReportsPage', () => {
     expect(summarySection.length).toBeGreaterThan(0);
   });
 
-  it('does not render Product Performance tab (removed per ADR-009)', () => {
+  it('renders Product Performance tab (read-only monitoring per ADR-009)', () => {
     render(<ReportsPage />);
-    expect(screen.queryByText('Product Performance')).not.toBeInTheDocument();
+    expect(screen.getByText('Product Performance')).toBeInTheDocument();
   });
 
   it('renders loading state when data is loading', () => {

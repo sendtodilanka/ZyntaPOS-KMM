@@ -60,7 +60,7 @@ fun Route.fulfillmentRoutes() {
                 val total = query.count().toInt()
                 val items = query
                     .orderBy(Orders.createdAt, SortOrder.DESC)
-                    .limit(size, offset = (page * size).toLong())
+                    .limit(size).offset((page * size).toLong())
                     .map { row ->
                         FulfillmentOrderDto(
                             id                = row[Orders.id],

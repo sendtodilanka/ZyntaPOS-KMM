@@ -6,11 +6,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.inList
-import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
@@ -85,24 +83,24 @@ class AutoReplenishmentJob(
 
                 newSuspendedTransaction {
                     PurchaseOrders.insert {
-                        it[id]           = poId
+                        it[PurchaseOrders.id]           = poId
                         // storeId not tracked per-warehouse in replenishment rules — use warehouseId as storeId
-                        it[storeId]      = suggestion.warehouseId
-                        it[supplierId]   = suggestion.supplierId
-                        it[orderNumber]  = orderNumber
-                        it[status]       = "PENDING"
-                        it[orderDate]    = now
-                        it[expectedDate] = now.plusDays(7)
-                        it[totalAmount]  = BigDecimal.ZERO   // priced when PO is confirmed
-                        it[currency]     = "USD"
-                        it[notes]        = "AUTO: product=${suggestion.productId} " +
+                        it[PurchaseOrders.storeId]      = suggestion.warehouseId
+                        it[PurchaseOrders.supplierId]   = suggestion.supplierId
+                        it[PurchaseOrders.orderNumber]  = orderNumber
+                        it[PurchaseOrders.status]       = "PENDING"
+                        it[PurchaseOrders.orderDate]    = now
+                        it[PurchaseOrders.expectedDate] = now.plusDays(7)
+                        it[PurchaseOrders.totalAmount]  = BigDecimal.ZERO   // priced when PO is confirmed
+                        it[PurchaseOrders.currency]     = "USD"
+                        it[PurchaseOrders.notes]        = "AUTO: product=${suggestion.productId} " +
                                            "qty=${suggestion.reorderQty} " +
                                            "currentStock=${suggestion.currentStock} " +
                                            "reorderPoint=${suggestion.reorderPoint}"
-                        it[createdBy]    = "auto-replenishment"
-                        it[syncVersion]  = now.toInstant().toEpochMilli()
-                        it[createdAt]    = now
-                        it[updatedAt]    = now
+                        it[PurchaseOrders.createdBy]    = "auto-replenishment"
+                        it[PurchaseOrders.syncVersion]  = now.toInstant().toEpochMilli()
+                        it[PurchaseOrders.createdAt]    = now
+                        it[PurchaseOrders.updatedAt]    = now
                     }
                 }
                 created++

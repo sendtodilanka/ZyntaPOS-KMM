@@ -8,11 +8,9 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.like
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.or
-import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.koin.ktor.ext.inject
 
@@ -68,7 +66,7 @@ fun Route.adminCustomersRoutes() {
                 val total = query.count().toInt()
                 val items = query
                     .orderBy(Customers.name)
-                    .limit(size, offset = (page * size).toLong())
+                    .limit(size).offset((page * size).toLong())
                     .map { row ->
                         CustomerSummaryDto(
                             id            = row[Customers.id],

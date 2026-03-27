@@ -50,7 +50,7 @@ fun Route.orderRoutes() {
                 val total = query.count().toInt()
                 val items = query
                     .orderBy(Orders.createdAt, SortOrder.DESC)
-                    .limit(size, offset = (page * size).toLong())
+                    .limit(size).offset((page * size).toLong())
                     .map { row ->
                         OrderSummaryDto(
                             id                = row[Orders.id],
