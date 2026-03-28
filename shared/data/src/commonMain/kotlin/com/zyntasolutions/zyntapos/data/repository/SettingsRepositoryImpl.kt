@@ -115,7 +115,6 @@ class SettingsRepositoryImpl(
         // Sync
         const val SYNC_INTERVAL_MS        = "sync.interval_ms"
         const val SYNC_LAST_PULL_AT       = "sync.last_pull_at"
-        const val SYNC_BASE_URL           = "sync.base_url"
 
         // Security
         const val SECURITY_PIN_TIMEOUT_MS = "security.pin_timeout_ms"
