@@ -267,7 +267,7 @@ Corporate License Token
 | Token tampering | RS256 JWT signature — verified locally using embedded public key |
 | Offline `feature_configs` manipulation | Table HMAC integrity check on every read (Phase 1) |
 | License key sharing between outlets | Each outlet token contains unique `outlet_id` + terminal count cap |
-| Man-in-the-middle on license server | Certificate pinning on `license.zyntapos.com` |
+| Man-in-the-middle on license server | SPKI certificate pinning on `license.zyntapos.com` (strategy: ADR-011) |
 | Private key extraction | Server holds private key — app holds only the public key (can verify, cannot forge) |
 | Clock manipulation to extend expiry | Server-issued timestamps + NTP cross-check; offline grace is hard-capped at 14 days |
 

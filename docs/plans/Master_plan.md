@@ -519,7 +519,7 @@ sealed interface PosSideEffect {
 │              ENCRYPTION IN TRANSIT                     │
 │                                                       │
 │  Protocol:     TLS 1.3 (minimum)                     │
-│  Pinning:      Certificate pinning via OkHttp/Ktor   │
+│  Pinning:      SPKI dual-pin via OkHttp/Ktor (ADR-011)│
 │  Signing:      HMAC-SHA256 request signing            │
 │  API Auth:     Bearer JWT + refresh rotation          │
 └──────────────────────────────────────────────────────┘
