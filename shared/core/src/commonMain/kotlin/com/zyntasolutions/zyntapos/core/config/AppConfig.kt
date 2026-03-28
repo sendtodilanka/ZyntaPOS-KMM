@@ -13,9 +13,41 @@ package com.zyntasolutions.zyntapos.core.config
  *   Default values are used in unit tests and are production-safe fallbacks.
  *
  * **Mutation contract:** all `var` fields are assigned exactly once, at app startup,
- * before the first Koin module is loaded. After startup they are effectively immutable.
+ * before [seal] is called and before the first Koin module is loaded. After [seal],
+ * any write attempt throws [IllegalStateException] immediately.
+ *
+ * **Call order (both Android and Desktop):**
+ * ```
+ * // 1. Write config fields
+ * AppConfig.BASE_URL = ...
+ * AppConfig.IS_DEBUG = ...
+ * // 2. Seal — no further writes allowed
+ * AppConfig.seal()
+ * // 3. Start Koin — modules read sealed values
+ * startKoin { ... }
+ * ```
  */
 object AppConfig {
+
+    @Volatile private var _sealed = false
+
+    /**
+     * Seals this configuration object, preventing any further mutation.
+     *
+     * Must be called after all startup assignments and **before** [startKoin].
+     * Any subsequent write to a `var` field throws [IllegalStateException].
+     * [seal] itself is idempotent and thread-safe.
+     */
+    fun seal() {
+        _sealed = true
+    }
+
+    private fun requireUnsealed(field: String) {
+        check(!_sealed) {
+            "AppConfig.$field cannot be written after seal() — all writes must occur " +
+            "before Koin initialisation. Check ZyntaApplication.onCreate() / main() call order."
+        }
+    }
 
     // ── Build ─────────────────────────────────────────────────────────────────
 
@@ -30,6 +62,7 @@ object AppConfig {
      * - Ktor HTTP request/response logging (enabled when `true`)
      */
     var IS_DEBUG: Boolean = false
+        set(value) { requireUnsealed("IS_DEBUG"); field = value }
 
     // ── API ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +75,7 @@ object AppConfig {
      * - Default: production endpoint — safe fallback when no override is supplied.
      */
     var BASE_URL: String = "https://api.zyntapos.com"
+        set(value) { requireUnsealed("BASE_URL"); field = value }
 
     /**
      * Base URL for the ZyntaPOS license validation service.
@@ -51,6 +85,7 @@ object AppConfig {
      * - Default: production endpoint — safe fallback when no override is supplied.
      */
     var LICENSE_BASE_URL: String = "https://license.zyntapos.com"
+        set(value) { requireUnsealed("LICENSE_BASE_URL"); field = value }
 
     /** API version prefix appended to [BASE_URL] for all versioned endpoint calls. */
     const val API_VERSION: String = "v1"
@@ -168,25 +203,37 @@ object AppConfig {
 
     /**
      * IRD (Inland Revenue Department) API endpoint for e-invoice submission.
-     * Override at runtime from BuildConfig.ZYNTA_IRD_API_ENDPOINT or SettingsRepository.
+     *
+     * - Android: overridden from `BuildConfig.ZYNTA_IRD_API_ENDPOINT` at startup.
+     * - Desktop: overridden from the `ZYNTA_IRD_API_ENDPOINT` environment variable.
      */
     var IRD_API_ENDPOINT: String = ""
+        set(value) { requireUnsealed("IRD_API_ENDPOINT"); field = value }
 
     /**
      * Absolute path to the IRD client certificate (.p12 / PKCS12) used for mTLS.
-     * Override at runtime from BuildConfig.ZYNTA_IRD_CLIENT_CERTIFICATE_PATH.
+     *
+     * - Android: overridden from `BuildConfig.ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` at startup.
+     * - Desktop: overridden from the `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` environment variable.
      */
     var IRD_CLIENT_CERT_PATH: String = ""
+        set(value) { requireUnsealed("IRD_CLIENT_CERT_PATH"); field = value }
 
     /**
-     * Password for the IRD client certificate.
-     * Override at runtime from BuildConfig / secure storage — **never hard-code**.
+     * Password for the IRD client certificate, stored as a [CharArray] to allow
+     * explicit zeroing after the certificate is loaded into [javax.net.ssl.KeyManagerFactory].
      *
-     * ⚠️ Security note: This field holds a plain [String] in JVM heap memory.
-     * Callers should zero out the source char array immediately after assigning,
-     * and this field should be cleared after the certificate is loaded into the
-     * [javax.net.ssl.KeyManagerFactory]. Full migration to [CharArray]-based
-     * handling is tracked as a Phase 2 security hardening item.
+     * - Android: assigned as `BuildConfig.ZYNTA_IRD_CERTIFICATE_PASSWORD.toCharArray()`.
+     * - Desktop: assigned as `System.getenv("ZYNTA_IRD_CERTIFICATE_PASSWORD")?.toCharArray()`.
+     *
+     * **Zeroing contract:** [IrdApiClient] zeros this array immediately after
+     * `KeyManagerFactory.init()` completes, so the password does not linger in
+     * heap memory beyond the TLS handshake setup.
+     *
+     * **Sharing:** both [AppConfig] and [IrdApiClient] hold a reference to the
+     * same array object. Zeroing inside [IrdApiClient] also zeroes the value
+     * visible here — this is intentional.
      */
-    var IRD_CLIENT_CERT_PASSWORD: String = ""
+    var IRD_CLIENT_CERT_PASSWORD: CharArray = CharArray(0)
+        set(value) { requireUnsealed("IRD_CLIENT_CERT_PASSWORD"); field = value }
 }

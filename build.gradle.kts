@@ -33,7 +33,6 @@ plugins {
     alias(libs.plugins.sqldelight)             apply false   // SQLDelight Gradle plugin
 
     // ── Build Tooling ──────────────────────────────────────────
-    alias(libs.plugins.buildkonfig)            apply false   // BuildKonfig (typed config per flavor)
     alias(libs.plugins.secretsGradle)          apply false   // Secrets Gradle Plugin (API key injection)
     alias(libs.plugins.mockative)              apply false   // Mockative KSP processor
     alias(libs.plugins.googleServices)         apply false   // Firebase google-services plugin (TODO-011)

@@ -75,9 +75,9 @@ import com.zyntasolutions.zyntapos.core.config.AppConfig
  */
 fun main() {
     // ── Sentry crash reporter — MUST init before Koin (ADR-011 rule #4) ───
-    // DSN read from SENTRY_DSN environment variable (set in docker-compose / run config).
+    // DSN read from ZYNTA_SENTRY_DSN environment variable (mirrors the Android key name).
     Sentry.init { options ->
-        options.dsn         = System.getenv("SENTRY_DSN") ?: ""
+        options.dsn         = System.getenv("ZYNTA_SENTRY_DSN") ?: ""
         options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
         options.release     = "zyntapos-desktop@1.0.0"
     }
@@ -87,11 +87,15 @@ fun main() {
     // BASE_URL / LICENSE_BASE_URL are read by ApiClient and LicenseClient during graph build.
     // IRD vars are read by AccountingModule / IrdSubmissionService at construction time.
     AppConfig.IS_DEBUG = System.getProperty("app.debug")?.toBoolean() ?: false
-    System.getenv("ZYNTA_API_BASE_URL")?.takeIf { it.isNotBlank() }?.let     { AppConfig.BASE_URL           = it }
-    System.getenv("ZYNTA_LICENSE_BASE_URL")?.takeIf { it.isNotBlank() }?.let { AppConfig.LICENSE_BASE_URL   = it }
+    System.getenv("ZYNTA_API_BASE_URL")?.takeIf { it.isNotBlank() }?.let     { AppConfig.BASE_URL         = it }
+    System.getenv("ZYNTA_LICENSE_BASE_URL")?.takeIf { it.isNotBlank() }?.let { AppConfig.LICENSE_BASE_URL = it }
     AppConfig.IRD_API_ENDPOINT         = System.getenv("ZYNTA_IRD_API_ENDPOINT")            ?: ""
     AppConfig.IRD_CLIENT_CERT_PATH     = System.getenv("ZYNTA_IRD_CLIENT_CERTIFICATE_PATH") ?: ""
-    AppConfig.IRD_CLIENT_CERT_PASSWORD = System.getenv("ZYNTA_IRD_CERTIFICATE_PASSWORD")    ?: ""
+    AppConfig.IRD_CLIENT_CERT_PASSWORD = System.getenv("ZYNTA_IRD_CERTIFICATE_PASSWORD")?.toCharArray() ?: CharArray(0)
+
+    // Seal AppConfig — no further writes allowed after this point.
+    // Koin modules that read AppConfig fields below will see the sealed values.
+    AppConfig.seal()
 
     // Load order: core → security → hal → data → domain → feature modules
     val koin = startKoin {

@@ -38,7 +38,7 @@ import javax.net.ssl.SSLContext
 actual class IrdApiClient actual constructor(
     private val endpoint: String,
     private val certPath: String,
-    private val certPassword: String,
+    private val certPassword: CharArray,
 ) {
     private val log = Logger.withTag("IrdApiClient")
 
@@ -77,7 +77,7 @@ actual class IrdApiClient actual constructor(
         val certFile = if (certPath.isNotBlank()) File(certPath) else null
         if (certFile != null && certFile.exists()) {
             log.i { "Loading IRD client certificate from: $certPath" }
-            configureSslContext(certFile, certPassword)
+            configureSslContext(certFile)
         } else {
             if (certPath.isNotBlank()) {
                 log.w { "IRD certificate file not found at '$certPath'; falling back to standard HTTPS" }
@@ -98,14 +98,18 @@ actual class IrdApiClient actual constructor(
     /**
      * Loads the PKCS12 certificate and sets it as the JVM default SSLContext
      * so that the Ktor CIO engine picks it up for all TLS connections.
+     *
+     * Zeros [certPassword] immediately after [KeyManagerFactory.init] so the
+     * password does not remain in heap memory beyond certificate setup.
      */
-    private fun configureSslContext(certFile: File, certPassword: String) {
-        val password = certPassword.toCharArray()
+    private fun configureSslContext(certFile: File) {
         val keyStore = KeyStore.getInstance("PKCS12")
-        FileInputStream(certFile).use { keyStore.load(it, password) }
+        FileInputStream(certFile).use { keyStore.load(it, certPassword) }
 
         val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-        kmf.init(keyStore, password)
+        kmf.init(keyStore, certPassword)
+        // Zero the password array immediately after use so it does not linger in heap memory.
+        certPassword.fill('\u0000')
 
         val sslCtx = SSLContext.getInstance("TLS")
         sslCtx.init(kmf.keyManagers, null, null)
