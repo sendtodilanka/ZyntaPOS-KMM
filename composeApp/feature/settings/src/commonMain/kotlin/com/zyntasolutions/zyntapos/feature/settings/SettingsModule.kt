@@ -9,17 +9,21 @@ import com.zyntasolutions.zyntapos.domain.usecase.feature.SetFeatureEnabledUseCa
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.DeleteTaxOverrideUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.GetLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.GetPrinterProfilesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetTaxOverridesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveTaxOverrideUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementViewModel
 import com.zyntasolutions.zyntapos.feature.settings.screen.RegionalTaxOverrideViewModel
 import com.zyntasolutions.zyntapos.feature.settings.screen.StoreUserAccessViewModel
 import com.zyntasolutions.zyntapos.hal.printer.PrinterManager
 import org.koin.core.module.dsl.factoryOf
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -57,6 +61,11 @@ val settingsModule = module {
     factoryOf(::IsFeatureEnabledUseCase)
     factoryOf(::SetFeatureEnabledUseCase)
 
+    // ── Tax override use cases ─────────────────────────────────────────────────
+    factoryOf(::GetTaxOverridesUseCase)
+    factoryOf(::SaveTaxOverrideUseCase)
+    factoryOf(::DeleteTaxOverrideUseCase)
+
     // ── Hardware settings use cases ────────────────────────────────────────────
     factoryOf(::GetLabelPrinterConfigUseCase)
     factoryOf(::SaveLabelPrinterConfigUseCase)
@@ -65,7 +74,34 @@ val settingsModule = module {
     factoryOf(::DeletePrinterProfileUseCase)
 
     // ── ViewModels ────────────────────────────────────────────────────────────
-    viewModelOf(::SettingsViewModel)
+    // SettingsViewModel exceeds viewModelOf() arity limit — explicit wiring required.
+    viewModel {
+        SettingsViewModel(
+            settingsRepository         = get(),
+            taxGroupRepository         = get(),
+            userRepository             = get(),
+            roleRepository             = get(),
+            saveTaxGroupUseCase        = get(),
+            saveUserUseCase            = get(),
+            setPinUseCase              = get(),
+            saveCustomRoleUseCase      = get(),
+            deleteCustomRoleUseCase    = get(),
+            printTestPageUseCase       = get(),
+            backupService              = get(),
+            getLabelPrinterConfigUseCase  = get(),
+            saveLabelPrinterConfigUseCase = get(),
+            getPrinterProfilesUseCase  = get(),
+            savePrinterProfileUseCase  = get(),
+            deletePrinterProfileUseCase = get(),
+            storeRepository            = get(),
+            auditLogger                = get(),
+            authRepository             = get(),
+            analytics                  = get(),
+            getTaxOverridesUseCase     = get(),
+            saveTaxOverrideUseCase     = get(),
+            deleteTaxOverrideUseCase   = get(),
+        )
+    }
     viewModelOf(::EditionManagementViewModel)
     viewModelOf(::RegionalTaxOverrideViewModel)
     viewModelOf(::StoreUserAccessViewModel)

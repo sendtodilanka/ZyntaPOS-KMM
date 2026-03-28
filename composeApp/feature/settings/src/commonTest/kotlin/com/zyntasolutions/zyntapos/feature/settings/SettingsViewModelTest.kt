@@ -27,6 +27,11 @@ import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
+import com.zyntasolutions.zyntapos.domain.model.RegionalTaxOverride
+import com.zyntasolutions.zyntapos.domain.repository.RegionalTaxOverrideRepository
+import com.zyntasolutions.zyntapos.domain.usecase.settings.DeleteTaxOverrideUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetTaxOverridesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveTaxOverrideUseCase
 import com.zyntasolutions.zyntapos.domain.model.LabelPrinterConfig
 import com.zyntasolutions.zyntapos.domain.model.PrinterJobType
 import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
@@ -260,6 +265,15 @@ class SettingsViewModelTest {
         override suspend fun delete(id: String): Result<Unit> = Result.Success(Unit)
     }
 
+    private val fakeRegionalTaxOverrideRepository = object : RegionalTaxOverrideRepository {
+        private val store = MutableStateFlow<List<RegionalTaxOverride>>(emptyList())
+        override fun getOverridesForStore(storeId: String) = store.map { it.filter { o -> o.storeId == storeId && o.isActive } }
+        override suspend fun getEffectiveOverride(taxGroupId: String, storeId: String, nowEpochMs: Long) = Result.Success<RegionalTaxOverride?>(null)
+        override fun getOverridesForTaxGroup(taxGroupId: String) = store.map { it.filter { o -> o.taxGroupId == taxGroupId } }
+        override suspend fun upsert(override: RegionalTaxOverride): Result<Unit> { store.value = store.value.filter { it.id != override.id } + override; return Result.Success(Unit) }
+        override suspend fun delete(id: String): Result<Unit> { store.value = store.value.filter { it.id != id }; return Result.Success(Unit) }
+    }
+
     private val fakeStoreRepository = object : com.zyntasolutions.zyntapos.domain.repository.StoreRepository {
         override fun getAllStores(): Flow<List<com.zyntasolutions.zyntapos.domain.model.Store>> = MutableStateFlow(emptyList())
         override suspend fun getById(storeId: String): com.zyntasolutions.zyntapos.domain.model.Store? = null
@@ -306,6 +320,9 @@ class SettingsViewModelTest {
             auditLogger                  = testAuditLogger,
             authRepository               = fakeAuthRepository,
             analytics                    = noOpAnalytics,
+            getTaxOverridesUseCase       = GetTaxOverridesUseCase(fakeRegionalTaxOverrideRepository),
+            saveTaxOverrideUseCase       = SaveTaxOverrideUseCase(fakeRegionalTaxOverrideRepository),
+            deleteTaxOverrideUseCase     = DeleteTaxOverrideUseCase(fakeRegionalTaxOverrideRepository),
         )
     }
 
