@@ -79,6 +79,9 @@ data class AppConfig(
                     ?: JwtDefaults.ADMIN_ACCESS_TOKEN_TTL_MINUTES) * 60_000L,
                 adminRefreshTokenTtlDays = System.getenv("ADMIN_REFRESH_TOKEN_TTL_DAYS")?.toLongOrNull()
                     ?: JwtDefaults.ADMIN_REFRESH_TOKEN_TTL_DAYS,
+                // ADMIN_PANEL_URL default is intentionally the production URL — password-reset
+                // links embed this host. Set ADMIN_PANEL_URL explicitly in staging/local .env
+                // to avoid reset emails pointing to production from non-production environments.
                 adminPanelUrl = validateUrl(
                     System.getenv("ADMIN_PANEL_URL") ?: "https://panel.zyntapos.com",
                     "ADMIN_PANEL_URL"

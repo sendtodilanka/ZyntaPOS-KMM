@@ -113,7 +113,7 @@ class EmailRetryJob(private val config: AppConfig) {
 
     private suspend fun retryEmail(candidate: RetryCandidate) {
         val result = try {
-            val response = client.post("https://api.resend.com/emails") {
+            val response = client.post(EmailService.RESEND_API_URL) {
                 bearerAuth(config.resendApiKey)
                 contentType(ContentType.Application.Json)
                 setBody(
