@@ -14,7 +14,27 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_USER_KEY }}
           script: |
-            echo "=== /opt/zyntapos/.env ==="
-            cat /opt/zyntapos/.env 2>/dev/null || echo "NOT FOUND at /opt/zyntapos/.env"
-            echo "=== searching for .env files ==="
-            find /opt/zyntapos -name ".env" 2>/dev/null | head -10
+            echo "=== docker-compose.yml env section ==="
+            grep -E "(ZYNTA|RS256|VAPID|JWT_SECRET|API_BASE|api\.|zyntapos\.com)" /opt/zyntapos/docker-compose.yml 2>/dev/null | head -60
+            echo "=== Caddy config ==="
+            cat /opt/zyntapos/Caddyfile 2>/dev/null || find /opt/zyntapos -name "Caddyfile" -exec cat {} \; 2>/dev/null | head -60
+            echo "=== RS256 public key ==="
+            find /opt/zyntapos -name "*.pub" -o -name "public_key*" -o -name "*rs256*" 2>/dev/null | head -5
+            cat /opt/zyntapos/keys/public_key.pem 2>/dev/null || cat /opt/zyntapos/public_key.pem 2>/dev/null || echo "no public key found"
+            echo "=== API service env in compose ==="
+            python3 -c "
+import yaml, sys
+try:
+    d = yaml.safe_load(open('/opt/zyntapos/docker-compose.yml'))
+    svc = d.get('services',{})
+    for name,s in svc.items():
+        env = s.get('environment',{})
+        if env:
+            print(f'--- {name} ---')
+            if isinstance(env, list):
+                for e in env: print(e)
+            else:
+                for k,v in env.items(): print(f'{k}={v}')
+except Exception as e:
+    print(f'ERROR: {e}')
+" 2>/dev/null
