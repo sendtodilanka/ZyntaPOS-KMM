@@ -27,7 +27,8 @@ import com.zyntasolutions.zyntapos.domain.repository.LoyaltyRepository
 class MergeCustomersUseCase(
     private val customerRepo: CustomerRepository,
     private val walletRepo: CustomerWalletRepository,
-    private val loyaltyRepo: LoyaltyRepository,
+    @Suppress("UnusedPrivateProperty")
+    private val loyaltyRepo: LoyaltyRepository,   // Reserved for loyalty-point merge in Phase 3
 ) {
 
     /**

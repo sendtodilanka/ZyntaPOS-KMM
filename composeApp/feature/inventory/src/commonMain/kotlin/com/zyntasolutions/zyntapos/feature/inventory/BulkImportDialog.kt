@@ -341,7 +341,6 @@ private fun ColumnMappingRow(
     val s = LocalStrings.current
     var expanded by remember { mutableStateOf(false) }
     val selectedLabel = productFieldOptions.firstOrNull { it.first == currentMapping }?.second ?: s[StringResource.INVENTORY_SKIP_COLUMN]
-    val isRequired = currentMapping in requiredFields
 
     Row(
         verticalAlignment = Alignment.CenterVertically,

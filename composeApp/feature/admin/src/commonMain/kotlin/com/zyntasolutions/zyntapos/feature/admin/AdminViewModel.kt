@@ -11,7 +11,6 @@ import com.zyntasolutions.zyntapos.domain.usecase.admin.CreateBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.DeleteBackupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetBackupsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetDatabaseStatsUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.admin.GetConflictCountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetSystemHealthUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.GetUnresolvedConflictsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.admin.ResolveConflictUseCase
@@ -55,7 +54,6 @@ class AdminViewModel(
     // Conflict resolution (C6.1 Item 6)
     private val getUnresolvedConflictsUseCase: GetUnresolvedConflictsUseCase,
     private val resolveConflictUseCase: ResolveConflictUseCase,
-    private val getConflictCountUseCase: GetConflictCountUseCase,
     private val settingsRepository: SettingsRepository,
 ) : BaseViewModel<AdminState, AdminIntent, AdminEffect>(AdminState()) {
 

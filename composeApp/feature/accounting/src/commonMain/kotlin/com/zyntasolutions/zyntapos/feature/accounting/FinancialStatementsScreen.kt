@@ -840,7 +840,6 @@ private fun CashFlowLineRow(line: CashFlowLine) {
 
 @Composable
 private fun CashFlowSummaryRow(label: String, amount: Double, highlight: Boolean) {
-    val s = LocalStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()

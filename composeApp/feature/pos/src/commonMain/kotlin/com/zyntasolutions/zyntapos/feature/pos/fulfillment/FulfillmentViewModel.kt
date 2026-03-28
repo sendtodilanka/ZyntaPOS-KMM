@@ -30,7 +30,8 @@ class FulfillmentViewModel(
         when (intent) {
             is FulfillmentIntent.LoadQueue    -> observePickups()
             is FulfillmentIntent.MarkPreparing -> updateStatus(intent.orderId, FulfillmentStatus.PREPARING)
-            is FulfillmentIntent.MarkReady    -> updateStatus(intent.orderId, FulfillmentStatus.READY_FOR_PICKUP, notifyCustomer = intent.notifyCustomer)
+            is FulfillmentIntent.MarkReady ->
+                updateStatus(intent.orderId, FulfillmentStatus.READY_FOR_PICKUP, notifyCustomer = intent.notifyCustomer)
             is FulfillmentIntent.MarkPickedUp -> updateStatus(intent.orderId, FulfillmentStatus.PICKED_UP)
             is FulfillmentIntent.CancelOrder  -> updateStatus(intent.orderId, FulfillmentStatus.CANCELLED)
             is FulfillmentIntent.CheckExpiry -> checkExpiry()

@@ -98,7 +98,10 @@ data class PosState(
     val customerSearchQuery: String = "",
     val orderDiscount: Double = 0.0,
     val orderDiscountType: DiscountType = DiscountType.FIXED,
-    /** Free-text note attached to the current order. Forwarded to [com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase] at checkout. */
+    /**
+     * Free-text note attached to the current order. Forwarded to
+     * [com.zyntasolutions.zyntapos.domain.usecase.pos.ProcessPaymentUseCase] at checkout.
+     */
     val orderNotes: String = "",
     val heldOrders: List<Order> = emptyList(),
     val orderTotals: OrderTotals = OrderTotals.EMPTY,

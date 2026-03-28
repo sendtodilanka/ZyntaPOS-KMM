@@ -6,6 +6,7 @@ package com.zyntasolutions.zyntapos.core.i18n
  * Every [StringResource] key MUST have an entry here. Debug builds can use
  * [LocalizationManager.missingKeys] to catch gaps.
  */
+@Suppress("detekt:LargeClass")
 internal object EnglishStrings {
     val table: Map<StringResource, String> = mapOf(
         // ── Common ──────────────────────────────────────────────────────────

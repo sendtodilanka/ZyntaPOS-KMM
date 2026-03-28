@@ -72,6 +72,7 @@ data class DiagnosticSessionResponse(
 class DiagnosticSessionService(private val config: AppConfig) {
 
     private val log = LoggerFactory.getLogger(DiagnosticSessionService::class.java)
+    private val secureRandom = SecureRandom()
 
     private val TOKEN_TTL_MS = 15L * 60 * 1000   // 15 minutes
 
@@ -329,7 +330,7 @@ class DiagnosticSessionService(private val config: AppConfig) {
      * session + hardware scope are distinct, preventing replay from captured tokens.
      */
     private fun generateSiteVisitToken(sessionId: UUID, hardwareScope: String): String {
-        val random = ByteArray(32).also { SecureRandom().nextBytes(it) }
+        val random = ByteArray(32).also { secureRandom.nextBytes(it) }
         val randomHex = random.joinToString("") { "%02x".format(it) }
         val payload = "svt|$sessionId|$hardwareScope|$randomHex"
         val keyBytes = config.adminJwtPrivateKey.encoded

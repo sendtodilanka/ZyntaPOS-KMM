@@ -88,7 +88,11 @@ class CompoundTaxRepositoryImpl(
                 queries.deleteComponentsForTaxGroup(parentTaxGroupId)
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(DatabaseException(e.message ?: "Failed to delete compound tax components", operation = "deleteComponentsForTaxGroup", cause = e))
+                Result.Error(DatabaseException(
+                    e.message ?: "Failed to delete compound tax components",
+                    operation = "deleteComponentsForTaxGroup",
+                    cause = e,
+                ))
             }
         }
 }

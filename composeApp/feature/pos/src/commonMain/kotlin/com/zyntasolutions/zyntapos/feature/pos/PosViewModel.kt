@@ -118,6 +118,7 @@ import kotlinx.datetime.toLocalDateTime
  * @param registerRepository             Register session source — active session ID is resolved in [init].
  */
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
+@Suppress("detekt:LongParameterList")
 class PosViewModel(
     private val productRepository: ProductRepository,
     private val categoryRepository: CategoryRepository,
@@ -332,8 +333,10 @@ class PosViewModel(
             is PosIntent.ScanReceiptBarcode -> onScanReceiptBarcode(intent.barcode)
             is PosIntent.ScanLoyaltyCard    -> onScanLoyaltyCard(intent.barcode)
 
-            is PosIntent.ShowReturnLookupDialog  -> updateState { copy(showReturnLookupDialog = true, returnLookupQuery = "", returnLookupError = null) }
-            is PosIntent.DismissReturnLookupDialog -> updateState { copy(showReturnLookupDialog = false, returnLookupQuery = "", returnLookupError = null) }
+            is PosIntent.ShowReturnLookupDialog ->
+                updateState { copy(showReturnLookupDialog = true, returnLookupQuery = "", returnLookupError = null) }
+            is PosIntent.DismissReturnLookupDialog ->
+                updateState { copy(showReturnLookupDialog = false, returnLookupQuery = "", returnLookupError = null) }
             is PosIntent.SetReturnLookupQuery    -> updateState { copy(returnLookupQuery = intent.query, returnLookupError = null) }
             is PosIntent.LookupOrderForReturn    -> onLookupOrderForReturn()
             is PosIntent.ScanCoupon         -> {
@@ -353,7 +356,8 @@ class PosViewModel(
                 onLookupGiftCard()
             }
             // ── Gift Card (G3-2) ────────────────────────────────────────────────
-            PosIntent.ShowGiftCardDialog     -> updateState { copy(showGiftCardDialog = true, giftCardCode = "", giftCardBalance = null, giftCardError = null) }
+            PosIntent.ShowGiftCardDialog ->
+                updateState { copy(showGiftCardDialog = true, giftCardCode = "", giftCardBalance = null, giftCardError = null) }
             PosIntent.DismissGiftCardDialog  -> updateState { copy(showGiftCardDialog = false) }
             is PosIntent.GiftCardCodeChanged -> updateState { copy(giftCardCode = intent.code, giftCardError = null) }
             PosIntent.LookupGiftCard         -> onLookupGiftCard()
@@ -631,7 +635,10 @@ class PosViewModel(
         updateState { copy(isLoading = true) }
         // Combine base order discount (monetary) + coupon discount + loyalty discount as a single FIXED amount.
         // orderTotals.discountAmount is already the monetary value regardless of original type.
-        val combinedDiscount = currentState.orderTotals.discountAmount + currentState.couponDiscount + currentState.loyaltyDiscount + currentState.autoPromotionDiscount
+        val combinedDiscount = currentState.orderTotals.discountAmount +
+            currentState.couponDiscount +
+            currentState.loyaltyDiscount +
+            currentState.autoPromotionDiscount
         // Add wallet payment to tendered amount so the payment validator is satisfied.
         val effectiveTendered = intent.tendered + currentState.walletPaymentAmount
         val result = processPaymentUseCase(

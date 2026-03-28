@@ -228,11 +228,11 @@ fun Route.adminSyncRoutes() {
         }
 
         post("/dead-letters/{id}/retry") {
-            val admin = resolveAdminUser(call, authService) ?: return@post
+            resolveAdminUser(call, authService) ?: return@post
             val id = call.parameters["id"] ?: return@post call.respond(
                 HttpStatusCode.BadRequest, ErrorResponse("MISSING_ID", "Dead letter ID required")
             )
-            val letter = deadLetterRepo.findById(id)
+            deadLetterRepo.findById(id)
                 ?: return@post call.respond(HttpStatusCode.NotFound, ErrorResponse("NOT_FOUND", "Dead letter not found"))
 
             deadLetterRepo.incrementRetry(id)

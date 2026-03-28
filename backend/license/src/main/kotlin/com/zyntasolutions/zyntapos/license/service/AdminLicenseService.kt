@@ -136,7 +136,7 @@ class AdminLicenseService {
 
     suspend fun updateLicense(key: String, req: AdminUpdateLicenseRequest, adminId: String): AdminLicense? =
         newSuspendedTransaction {
-            val existing = Licenses.selectAll().where { Licenses.key eq key }.singleOrNull()
+            Licenses.selectAll().where { Licenses.key eq key }.singleOrNull()
                 ?: return@newSuspendedTransaction null
 
             val now = OffsetDateTime.now(ZoneOffset.UTC)

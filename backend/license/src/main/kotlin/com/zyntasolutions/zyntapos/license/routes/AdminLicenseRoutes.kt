@@ -28,7 +28,7 @@ fun Route.adminLicenseRoutes() {
 
         // GET /admin/licenses — paginated list (all authenticated roles)
         get {
-            val (adminId, _) = call.requireAdmin(validator) ?: return@get
+            call.requireAdmin(validator) ?: return@get
             val page   = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
             val size   = call.request.queryParameters["size"]?.toIntOrNull()?.coerceIn(1, 100) ?: 20
             val status = call.request.queryParameters["status"]

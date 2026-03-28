@@ -71,6 +71,7 @@ class AdminAuthService(
 ) {
 
     private val bcryptVerifier = BCrypt.verifyer()
+    private val secureRandom = SecureRandom()
 
     // ── Login ────────────────────────────────────────────────────────────────
 
@@ -426,7 +427,7 @@ class AdminAuthService(
 
     private fun generateSecureToken(): String {
         val bytes = ByteArray(32)
-        SecureRandom().nextBytes(bytes)
+        secureRandom.nextBytes(bytes)
         return bytes.joinToString("") { "%02x".format(it) }
     }
 

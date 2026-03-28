@@ -100,9 +100,7 @@ class DiagnosticRelay(
 
             val tokenSessionId = decoded.getClaim("session_id")?.asString()
             if (tokenSessionId != expectedSessionId) {
-                logger.warn(
-                    "JIT token session_id mismatch: expected=$expectedSessionId got=$tokenSessionId"
-                )
+                logger.warn("JIT token session_id mismatch for session [REDACTED]")
                 return null
             }
 

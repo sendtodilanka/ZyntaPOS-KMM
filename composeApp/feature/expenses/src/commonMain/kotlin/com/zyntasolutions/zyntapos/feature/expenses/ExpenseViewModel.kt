@@ -418,45 +418,47 @@ class ExpenseViewModel(
         // Load all recurring expense templates stored via settings key pattern
         val categories = currentState.categories
         for (cat in categories) {
-            val key = "expense.recurring.${cat.id}"
-            val raw = settingsRepository.get(key) ?: continue
-            val parts = raw.split("|")
-            if (parts.size < 7) continue
-            entries.add(
-                RecurringExpenseEntry(
-                    id = parts[0],
-                    description = parts[1],
-                    amount = parts[2].toDoubleOrNull() ?: 0.0,
-                    categoryId = cat.id,
-                    categoryName = cat.name,
-                    frequency = runCatching { RecurringFrequency.valueOf(parts[3]) }
-                        .getOrDefault(RecurringFrequency.MONTHLY),
-                    isActive = parts[4].toBooleanStrictOrNull() ?: true,
-                    nextDueDate = parts[5],
-                    vendorName = parts[6],
-                ),
-            )
+            settingsRepository.get("expense.recurring.${cat.id}")
+                ?.split("|")
+                ?.takeIf { it.size >= 7 }
+                ?.let { parts ->
+                    entries.add(
+                        RecurringExpenseEntry(
+                            id = parts[0],
+                            description = parts[1],
+                            amount = parts[2].toDoubleOrNull() ?: 0.0,
+                            categoryId = cat.id,
+                            categoryName = cat.name,
+                            frequency = runCatching { RecurringFrequency.valueOf(parts[3]) }
+                                .getOrDefault(RecurringFrequency.MONTHLY),
+                            isActive = parts[4].toBooleanStrictOrNull() ?: true,
+                            nextDueDate = parts[5],
+                            vendorName = parts[6],
+                        ),
+                    )
+                }
         }
         // Also check for non-category-specific entries
         for (i in 0 until 50) {
-            val key = "expense.recurring.entry.$i"
-            val raw = settingsRepository.get(key) ?: continue
-            val parts = raw.split("|")
-            if (parts.size < 8) continue
-            entries.add(
-                RecurringExpenseEntry(
-                    id = parts[0],
-                    description = parts[1],
-                    amount = parts[2].toDoubleOrNull() ?: 0.0,
-                    categoryId = parts[3],
-                    categoryName = categories.find { it.id == parts[3] }?.name ?: parts[3],
-                    frequency = runCatching { RecurringFrequency.valueOf(parts[4]) }
-                        .getOrDefault(RecurringFrequency.MONTHLY),
-                    isActive = parts[5].toBooleanStrictOrNull() ?: true,
-                    nextDueDate = parts[6],
-                    vendorName = parts[7],
-                ),
-            )
+            settingsRepository.get("expense.recurring.entry.$i")
+                ?.split("|")
+                ?.takeIf { it.size >= 8 }
+                ?.let { parts ->
+                    entries.add(
+                        RecurringExpenseEntry(
+                            id = parts[0],
+                            description = parts[1],
+                            amount = parts[2].toDoubleOrNull() ?: 0.0,
+                            categoryId = parts[3],
+                            categoryName = categories.find { it.id == parts[3] }?.name ?: parts[3],
+                            frequency = runCatching { RecurringFrequency.valueOf(parts[4]) }
+                                .getOrDefault(RecurringFrequency.MONTHLY),
+                            isActive = parts[5].toBooleanStrictOrNull() ?: true,
+                            nextDueDate = parts[6],
+                            vendorName = parts[7],
+                        ),
+                    )
+                }
         }
         updateState { copy(recurringExpenses = entries) }
     }

@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNames
 import kotlin.time.Clock
 
 private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
@@ -25,20 +26,13 @@ private val syncJson = Json { ignoreUnknownKeys = true; isLenient = true }
 @Serializable
 private data class UserStoreAccessSyncPayload(
     val id: String,
-    val userId: String = "",
-    val user_id: String = "",
-    val storeId: String = "",
-    val store_id: String = "",
-    val roleAtStore: String? = null,
-    val role_at_store: String? = null,
-    val isActive: Boolean = true,
-    val is_active: Boolean = true,
-    val grantedBy: String? = null,
-    val granted_by: String? = null,
-    val updatedAt: Long = 0L,
-    val updated_at: Long = 0L,
-    val createdAt: Long = 0L,
-    val created_at: Long = 0L,
+    @JsonNames("userId", "user_id")       val userId: String = "",
+    @JsonNames("storeId", "store_id")     val storeId: String = "",
+    @JsonNames("roleAtStore", "role_at_store") val roleAtStore: String? = null,
+    @JsonNames("isActive", "is_active")   val isActive: Boolean = true,
+    @JsonNames("grantedBy", "granted_by") val grantedBy: String? = null,
+    @JsonNames("updatedAt", "updated_at") val updatedAt: Long = 0L,
+    @JsonNames("createdAt", "created_at") val createdAt: Long = 0L,
 )
 
 /**
@@ -70,7 +64,7 @@ class UserStoreAccessRepositoryImpl(
         withContext(Dispatchers.IO) {
             runCatching {
                 q.getById(id).executeAsOneOrNull()?.toDomain()
-                    ?: throw IllegalStateException("UserStoreAccess $id not found")
+                    ?: error("UserStoreAccess $id not found")
             }.fold(
                 onSuccess = { Result.Success(it) },
                 onFailure = { t -> Result.Error(DatabaseException(t.message ?: "DB error", cause = t)) },
@@ -156,13 +150,13 @@ class UserStoreAccessRepositoryImpl(
         val now = Clock.System.now().toEpochMilliseconds()
         q.insertAccess(
             id = dto.id,
-            user_id = dto.userId.ifEmpty { dto.user_id },
-            store_id = dto.storeId.ifEmpty { dto.store_id },
-            role_at_store = dto.roleAtStore ?: dto.role_at_store,
-            is_active = if (dto.isActive && dto.is_active) 1L else 0L,
-            granted_by = dto.grantedBy ?: dto.granted_by,
-            created_at = (dto.createdAt.takeIf { it > 0 } ?: dto.created_at.takeIf { it > 0 } ?: now),
-            updated_at = (dto.updatedAt.takeIf { it > 0 } ?: dto.updated_at.takeIf { it > 0 } ?: now),
+            user_id = dto.userId,
+            store_id = dto.storeId,
+            role_at_store = dto.roleAtStore,
+            is_active = if (dto.isActive) 1L else 0L,
+            granted_by = dto.grantedBy,
+            created_at = dto.createdAt.takeIf { it > 0 } ?: now,
+            updated_at = dto.updatedAt.takeIf { it > 0 } ?: now,
             sync_status = "SYNCED",
         )
     }
