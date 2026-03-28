@@ -906,11 +906,15 @@ val encryptedSecret = encryptionManager.encrypt(totpSecret.toByteArray())
 
 ---
 
-## 7. Google SSO Implementation
+## 7. Google SSO — ~~REMOVED~~ (2026-03-14)
 
-**Approach:** OAuth 2.0 Authorization Code Flow with PKCE (frontend-initiated)
+> **Google SSO was removed from ZyntaPOS.** Admin panel authentication uses email + password + TOTP MFA only.
+> Flyway V17 migration dropped the `google_sub` column. `GoogleOAuthService.kt` was deleted.
+> The planning content below is kept as historical context only — do not implement.
 
-**No 3rd party auth service needed.** Uses Google's free OAuth 2.0 API directly.
+~~**Approach:** OAuth 2.0 Authorization Code Flow with PKCE (frontend-initiated)~~
+
+~~**No 3rd party auth service needed.** Uses Google's free OAuth 2.0 API directly.~~
 
 ### Setup (one-time, in Google Cloud Console)
 
@@ -1353,8 +1357,8 @@ and tighten rules for the custom login endpoint:
 - [ ] Password login → dashboard (AUDITOR role — most restrictive, fewest nav items visible)
 - [ ] Password login → MFA verify screen → dashboard (ADMIN / OPERATOR with MFA enabled)
 - [ ] Password login → force MFA setup (ADMIN / OPERATOR without MFA → /settings/profile?prompt=mfa_setup)
-- [ ] Google SSO → dashboard (auto-provisioned as AUDITOR)
-- [ ] Google SSO with non-company email → "Access denied" error on /login
+~~- [ ] Google SSO → dashboard (auto-provisioned as AUDITOR)~~ ← REMOVED
+~~- [ ] Google SSO with non-company email → "Access denied" error on /login~~ ← REMOVED
 - [ ] Expired access token → auto-refreshed silently (user stays logged in)
 - [ ] Expired refresh token → redirected to /login
 - [ ] Logout → both cookies cleared → /login → old refresh token rejected
@@ -1405,13 +1409,9 @@ and tighten rules for the custom login endpoint:
 - [ ] Reused backup code: 401
 - [ ] Backup code via `/admin/auth/mfa/backup` (not `/mfa/verify`) works mid-login
 
-### Google SSO
+### Google SSO — ~~REMOVED~~ (not required)
 
-- [ ] Google chooser shows company domain hint (`hd=zyntapos.com`)
-- [ ] Login with `@gmail.com` → blocked (both Google-side and backend-side)
-- [ ] Login with `@zyntapos.com` → success, auto-provisioned
-- [ ] Second login with same Google account → no duplicate user row
-- [ ] Deactivated Google user cannot log in via SSO
+~~Google SSO test cases removed — Google OAuth was dropped from the implementation (2026-03-14).~~
 
 ---
 

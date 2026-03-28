@@ -1431,7 +1431,7 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
 | Phase 2 — Growth | ✅ 100% Complete | Multi-store (C1.1–C1.5), CRM, promotions, CRDT sync (C6.1), centralized inventory, full sync pipeline, admin panel replenishment dashboard |
-| Phase 3 — Enterprise | ✅ ~92% Complete (code) | Staff/HR ✅, admin ✅, e-invoicing/IRD ✅, analytics ✅, Firebase RemoteConfig ✅, data-layer integration tests (66 files) ✅. Pending: IRD sandbox validation, FCM push, Google SSO (external deps) |
+| Phase 3 — Enterprise | ✅ ~92% Complete (code) | Staff/HR ✅, admin ✅, e-invoicing/IRD ✅, analytics ✅, Firebase RemoteConfig ✅, data-layer integration tests (66 files) ✅. Pending: IRD sandbox validation, FCM push (external deps) |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 

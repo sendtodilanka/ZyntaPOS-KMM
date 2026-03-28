@@ -12,8 +12,12 @@ import com.zyntasolutions.zyntapos.debug.DebugViewModel
 import com.zyntasolutions.zyntapos.core.i18n.LocalizationManager
 import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
+import com.zyntasolutions.zyntapos.designsystem.components.LocalDrawerAvailableStores
+import com.zyntasolutions.zyntapos.designsystem.components.LocalDrawerCurrentStore
+import com.zyntasolutions.zyntapos.designsystem.components.LocalDrawerOnStoreSelected
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncDisplayStatus
 import com.zyntasolutions.zyntapos.designsystem.components.LocalSyncPendingCount
+import com.zyntasolutions.zyntapos.designsystem.components.StoreItem
 import com.zyntasolutions.zyntapos.designsystem.components.StringResolver
 import com.zyntasolutions.zyntapos.designsystem.components.SyncDisplayStatus
 import com.zyntasolutions.zyntapos.domain.port.SyncStatusPort
@@ -255,6 +259,15 @@ fun App() {
             val isSessionActive = currentUser != null
             val userRole = currentUser?.role
 
+            // ── Multi-store drawer selector ───────────────────────────────────
+            val drawerAuthVm = koinViewModel<AuthViewModel>()
+            val drawerAuthState by drawerAuthVm.state.collectAsState()
+            val drawerStoreItems = drawerAuthState.availableStores.map { store ->
+                StoreItem(id = store.id, name = store.name, address = store.address)
+            }
+            val drawerCurrentStoreId = currentUser?.storeId ?: drawerAuthState.selectedStoreId
+            val drawerCurrentStore = drawerStoreItems.find { it.id == drawerCurrentStoreId }
+
             // ── Drawer footer user info ───────────────────────────────────────
             val drawerUserName = currentUser?.name
             val drawerUserInitials = currentUser?.name?.split(" ")
@@ -281,6 +294,15 @@ fun App() {
             }
 
             val isFirstRun = onboardingCompleted != "true"
+
+            // ── Drawer store selector locals (multi-store only) ───────────────
+            CompositionLocalProvider(
+                LocalDrawerAvailableStores provides drawerStoreItems,
+                LocalDrawerCurrentStore provides drawerCurrentStore,
+                LocalDrawerOnStoreSelected provides { storeItem ->
+                    drawerAuthVm.dispatch(AuthIntent.StoreSelected(storeItem.id))
+                },
+            ) {
 
             ZyntaNavGraph(
                 navigationController = navController,
@@ -394,6 +416,7 @@ fun App() {
                     DiagnosticConsentScreen(state = state, onIntent = vm::dispatch)
                 },
             )
+            } // end LocalDrawerStores CompositionLocalProvider
         }
         } // end CompositionLocalProvider
     }

@@ -1,39 +1,32 @@
-# 011 — Firebase Analytics, Crash Reporting & Google SSO Integration
+# 011 — Firebase Analytics, Crash Reporting & Monitoring
 
 **Decision Date:** 2026-03-08
-**Status:** ✅ ~98% COMPLETE (code) — Phase 2 code items completed 2026-03-27. Firebase BOM deps + google-services plugin + ZyntaApplication init (Analytics + Crashlytics) implemented. Sentry SDK in all 3 backend services + Android + Desktop JVM. AnalyticsService KMP expect/actual complete. RemoteConfigService KMP expect/actual complete (androidMain Firebase RC SDK, jvmMain stub). Firebase JS SDK added to admin-panel (src/lib/firebase.ts). RemoteConfigProvider interface in shared:core with RemoteConfigKeys constants. Koin wiring complete in androidDataModule + desktopDataModule. ViewModel event wiring complete (16 VMs). Remaining (external only): GA4 property + Firebase project creation (Firebase Console), google-services.json (CI secret), Google Cloud Console OAuth setup. Verified 2026-03-27.
+**Status:** ✅ ~98% COMPLETE (code) — Phase 2 code items completed 2026-03-27. Firebase BOM deps + google-services plugin + ZyntaApplication init (Analytics + Crashlytics) implemented. Sentry SDK in all 3 backend services + Android + Desktop JVM. AnalyticsService KMP expect/actual complete. RemoteConfigService KMP expect/actual complete (androidMain Firebase RC SDK, jvmMain stub). Firebase JS SDK added to admin-panel (src/lib/firebase.ts). RemoteConfigProvider interface in shared:core with RemoteConfigKeys constants. Koin wiring complete in androidDataModule + desktopDataModule. ViewModel event wiring complete (16 VMs). Remaining (external only): GA4 property + Firebase project creation (Firebase Console), google-services.json (CI secret). Verified 2026-03-27.
 **Phases:** Phase 1 (partial) → Phase 2 → Phase 3
 
 ---
 
 ## Decision Summary
 
-Full architectural decision covering Authentication (SSO), Analytics, and Crash Reporting
+Full architectural decision covering Analytics and Crash Reporting
 for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 
 ---
 
-## 1. Authentication — Google SSO
+## 1. Authentication
 
-**Decision: Direct Google OAuth2 PKCE (NOT Firebase Auth)**
-
-### Rationale
-- Firebase Auth has no Desktop JVM SDK — Phase 1 already has Desktop target
-- Existing JWT + RBAC system (JwtManager, TokenStorage, RbacEngine) stays untouched
-- Google OAuth2 PKCE works on Android (Credential Manager API) + Desktop JVM (system browser + localhost redirect)
-- Backend validation via Google JWKS endpoint — no Firebase Admin SDK dependency
-- Phase 3 SAML/OIDC enterprise federation can extend this same foundation
-
-### What is NOT changing
-- PinManager — staff daily login (offline, no internet required)
-- JwtManager + TokenStorage — session tokens
-- RbacEngine — ADMIN/MANAGER/CASHIER/MANAGER/REPORTER roles
-- SessionManager — idle timeout / auto-lock
-
-### Phase Rollout
-- **Phase 1:** Skip Google SSO — PIN login sufficient for single-store MVP
-- **Phase 2:** Add Google OAuth2 PKCE for owner/admin login
-- **Phase 3:** Extend to SAML/OIDC for enterprise customer SSO federation
+> **Google SSO — NOT REQUIRED (REMOVED 2026-03-14)**
+>
+> ZyntaPOS uses PIN-based authentication for POS staff (offline-first, no internet required).
+> Google OAuth2 PKCE was originally planned for Phase 2 owner/admin login but was dropped —
+> the existing email + PIN + RBAC system covers all use cases. No SSO integration is needed.
+>
+> **Auth architecture (current, final):**
+> - POS app: `PinManager` (SHA-256 + salt) for staff daily login — offline, no internet
+> - `JwtManager` + `TokenStorage` — session tokens from backend login
+> - `RbacEngine` — ADMIN/MANAGER/CASHIER/CUSTOMER_SERVICE/REPORTER roles
+> - `SessionManager` — idle timeout / auto-lock
+> - Admin panel: email + TOTP MFA (see TODO-007f)
 
 ---
 
@@ -113,14 +106,12 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 - [x] Add Firebase JS SDK to Web Admin Panel (React) — `admin-panel/src/lib/firebase.ts`, `firebase ^11.6.0` dep, `initFirebase()` in main.tsx | 2026-03-27
 - [x] Add Firebase Remote Config (edition feature flags) — `RemoteConfigProvider` interface in shared:core, `RemoteConfigService` expect/actual in shared:data (androidMain Firebase RC actual, jvmMain stub), Koin wiring in both platform modules | 2026-03-27
 - [ ] Implement FCM push notifications (low-stock, shift alerts) — Phase 3, requires FCM project setup
-- [ ] Implement Google OAuth2 PKCE SSO for owner/admin — Phase 3, requires Google Cloud Console OAuth client
 - [x] Add GA4 Measurement Protocol calls from Desktop JVM — implemented in jvmMain AnalyticsService | 2026-03-13
 
 ### Phase 3
 - [ ] Add Firebase Crashlytics to Android (dual with Sentry)
 - [ ] Add Sentry performance tracing to Ktor (IRD submission monitoring)
 - [ ] Enable GA4 BigQuery export for business intelligence
-- [ ] Extend Google OAuth2 → SAML/OIDC federation for enterprise customers
 
 ---
 
@@ -130,8 +121,6 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 |--------|-------|-------|
 | `SENTRY_DSN` | local.properties + GitHub Secrets + Docker env | 1 |
 | `ZYNTA_FCM_SERVER_KEY` | Already in local.properties.template | 2 |
-| `GOOGLE_OAUTH_CLIENT_ID` | local.properties + BuildConfig | 2 |
-| `GOOGLE_OAUTH_CLIENT_SECRET` | local.properties + GitHub Secrets | 2 |
 | `FIREBASE_GOOGLE_SERVICES_JSON` | Android build — `google-services.json` (gitignored) | 1 |
 
 ---
@@ -141,7 +130,5 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 1. Firebase SDK must only be used in `androidMain` or web — never in `commonMain`
 2. GA4 Measurement Protocol calls from Desktop/Backend go through a wrapper in `:shared:data`
    (behind a repository interface — no direct HTTP in feature modules)
-3. Google OAuth2 PKCE implementation must live in `:composeApp:feature:auth`
-   (not in `:shared:security` — platform browser interaction required)
-4. Sentry init must happen before Koin init (crash reporter must be up before DI)
-5. `google-services.json` is gitignored — provide via CI secret / local only
+3. Sentry init must happen before Koin init (crash reporter must be up before DI)
+4. `google-services.json` is gitignored — provide via CI secret / local only

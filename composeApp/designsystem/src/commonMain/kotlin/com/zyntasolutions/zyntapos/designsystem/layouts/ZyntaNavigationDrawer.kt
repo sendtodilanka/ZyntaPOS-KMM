@@ -56,7 +56,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.zyntasolutions.zyntapos.designsystem.components.LocalDrawerAvailableStores
+import com.zyntasolutions.zyntapos.designsystem.components.LocalDrawerCurrentStore
+import com.zyntasolutions.zyntapos.designsystem.components.LocalDrawerOnStoreSelected
 import com.zyntasolutions.zyntapos.designsystem.components.SyncDisplayStatus
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStoreSelector
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSyncStatusIndicator
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -461,6 +465,21 @@ private fun DrawerFooter(
         modifier = Modifier.padding(horizontal = 8.dp),
         color = MaterialTheme.colorScheme.outlineVariant,
     )
+
+    // ── Store selector (multi-store only, hidden in mini mode) ───────────────
+    val drawerAvailableStores = LocalDrawerAvailableStores.current
+    val drawerCurrentStore = LocalDrawerCurrentStore.current
+    val drawerOnStoreSelected = LocalDrawerOnStoreSelected.current
+    if (!isMini && drawerAvailableStores.size > 1) {
+        ZyntaStoreSelector(
+            currentStore = drawerCurrentStore,
+            availableStores = drawerAvailableStores,
+            onStoreSelected = drawerOnStoreSelected,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+        )
+    }
 
     // ── Sync status row (above user info) ────────────────────────────────────
     if (syncStatus != null) {

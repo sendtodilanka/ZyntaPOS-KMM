@@ -2254,7 +2254,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] Add employee name/badge to POS screen header — ✅ DONE (2026-03-22): `PosState.cashierName` from auth session, Person icon + name in both EXPANDED and COMPACT layouts
 
 **Phase 2 Must-Have (before multi-store launch):**
-- [x] Create `ZyntaStoreSelector` component + wire to drawer footer — ✅ component created (2026-03-21), drawer wiring pending
+- [x] Create `ZyntaStoreSelector` component + wire to drawer footer — ✅ component created (2026-03-21); drawer wiring implemented (2026-03-28): `LocalDrawerAvailableStores` / `LocalDrawerCurrentStore` / `LocalDrawerOnStoreSelected` CompositionLocals added; provided in `App.kt` from `AuthViewModel.authState`; consumed in `DrawerFooter` (shown only when `availableStores.size > 1`, hidden in mini mode)
 - [x] Create `ZyntaCurrencyPicker` + `ZyntaTimezonePicker` components — ✅ DONE (2026-03-21)
 - [x] Add store selector to login screen — ✅ DONE (G4, 2026-03-23: `ZyntaStoreSelector` in `LoginScreen`, `AuthState.availableStores` + `selectedStoreId`, `AuthViewModel.loadAvailableStores()` via `StoreRepository`)
 - [x] Add onboarding steps for currency + timezone — ✅ Step 3 added (2026-03-21)
@@ -2265,7 +2265,7 @@ combine(_searchQuery.debounce(300L), _selectedCategoryId)
 - [x] Add native file picker to Media module — ✅ DONE (2026-03-25): expect/actual `rememberNativeFilePicker`; Android: ActivityResultContracts.GetContent; JVM: JFileChooser on IO thread; Browse button in AddMediaDialog
 - [x] Add GDPR Export button to customer detail — ✅ DONE (2026-03-23): Button existed; effect wired in App.kt with selectable JSON dialog
 - [x] Add date picker dialogs (replace manual text entry) — ✅ DONE in CouponDetailScreen (G12, 2026-03-23)
-- [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21), integration pending
+- [x] Add transfer status badge to stock transfer list — ✅ `ZyntaTransferStatusBadge` created (2026-03-21); integrated in `StockTransferCard` (2026-03-28): replaced inline `Text + when (status)` color block with `ZyntaTransferStatusBadge(statusString = ...)`
 - [x] Add store-specific discount assignment to coupons — ✅ DONE (C2.4, 2026-03-22)
 - [x] **[MS-1]** Add product selector/autocomplete to NewStockTransferScreen — ✅ DONE (ProductSearchDropdown composable)
 - [x] **[MS-2]** Display warehouse names instead of IDs in StockTransferCard — ✅ DONE (warehouseMap lookup)
