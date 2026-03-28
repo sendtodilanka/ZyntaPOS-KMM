@@ -98,6 +98,7 @@ data class SettingsState(
      * than the global default defined on the [TaxGroup].
      */
     data class StoreTaxOverride(
+        val id: String = "",
         val storeId: String,
         val storeName: String,
         val taxGroupId: String,

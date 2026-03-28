@@ -25,9 +25,13 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.model.RegionalTaxOverride
 import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.DeleteTaxOverrideUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.GetLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.GetPrinterProfilesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetTaxOverridesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveTaxOverrideUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
@@ -88,6 +92,9 @@ class SettingsViewModel(
     private val auditLogger: SecurityAuditLogger,
     private val authRepository: AuthRepository,
     private val analytics: AnalyticsTracker,
+    private val getTaxOverridesUseCase: GetTaxOverridesUseCase,
+    private val saveTaxOverrideUseCase: SaveTaxOverrideUseCase,
+    private val deleteTaxOverrideUseCase: DeleteTaxOverrideUseCase,
 ) : BaseViewModel<SettingsState, SettingsIntent, SettingsEffect>(SettingsState()) {
 
     private var currentUserId: String = "unknown"
@@ -991,40 +998,85 @@ class SettingsViewModel(
     private fun loadTaxOverrides() {
         viewModelScope.launch {
             updateState { copy(tax = tax.copy(isLoading = true)) }
-            // TODO: fetch persisted overrides from repository once backend supports it
-            updateState { copy(tax = tax.copy(isLoading = false)) }
+            val stores = storeRepository.getAllStores().first()
+            val allOverrides = mutableListOf<SettingsState.StoreTaxOverride>()
+            stores.forEach { store ->
+                getTaxOverridesUseCase(store.id).first().forEach { override ->
+                    allOverrides.add(
+                        SettingsState.StoreTaxOverride(
+                            id           = override.id,
+                            storeId      = store.id,
+                            storeName    = store.name,
+                            taxGroupId   = override.taxGroupId,
+                            taxGroupName = override.taxGroupId, // display name resolved by UI layer
+                            overrideRate = override.effectiveRate,
+                            isEnabled    = override.isActive,
+                        )
+                    )
+                }
+            }
+            updateState { copy(tax = tax.copy(taxOverrides = allOverrides, isLoading = false)) }
         }
     }
 
     private fun saveTaxOverride(override: SettingsState.StoreTaxOverride) {
         viewModelScope.launch {
-            // TODO: persist via repository once backend supports it
-            val current = currentState.tax.taxOverrides.toMutableList()
-            val idx = current.indexOfFirst {
-                it.storeId == override.storeId && it.taxGroupId == override.taxGroupId
-            }
-            if (idx >= 0) current[idx] = override else current.add(override)
-            updateState {
-                copy(
-                    tax = tax.copy(
-                        taxOverrides = current,
-                        showTaxOverrideDialog = false,
-                        editingTaxOverride = null,
-                    )
-                )
-            }
-            sendEffect(SettingsEffect.TaxOverrideSaved)
+            val now = Clock.System.now().toEpochMilliseconds()
+            val domainOverride = RegionalTaxOverride(
+                id             = override.id.ifBlank { IdGenerator.newId() },
+                taxGroupId     = override.taxGroupId,
+                storeId        = override.storeId,
+                effectiveRate  = override.overrideRate,
+                isActive       = override.isEnabled,
+                createdAt      = now,
+                updatedAt      = now,
+            )
+            saveTaxOverrideUseCase(domainOverride)
+                .onSuccess {
+                    updateState {
+                        val current = tax.taxOverrides.toMutableList()
+                        val idx = current.indexOfFirst {
+                            it.storeId == override.storeId && it.taxGroupId == override.taxGroupId
+                        }
+                        val updated = override.copy(id = domainOverride.id)
+                        if (idx >= 0) current[idx] = updated else current.add(updated)
+                        copy(
+                            tax = tax.copy(
+                                taxOverrides         = current,
+                                showTaxOverrideDialog = false,
+                                editingTaxOverride   = null,
+                            )
+                        )
+                    }
+                    sendEffect(SettingsEffect.TaxOverrideSaved)
+                }
+                .onError { e -> sendEffect(SettingsEffect.ShowSnackbar("Save failed: ${e.message}")) }
         }
     }
 
     private fun deleteTaxOverride(storeId: String, taxGroupId: String) {
         viewModelScope.launch {
-            // TODO: delete via repository once backend supports it
-            val filtered = currentState.tax.taxOverrides.filterNot {
+            val target = currentState.tax.taxOverrides.firstOrNull {
                 it.storeId == storeId && it.taxGroupId == taxGroupId
             }
-            updateState { copy(tax = tax.copy(taxOverrides = filtered)) }
-            sendEffect(SettingsEffect.TaxOverrideDeleted)
+            if (target == null || target.id.isBlank()) {
+                // Optimistic removal for in-memory entries not yet persisted
+                val filtered = currentState.tax.taxOverrides.filterNot {
+                    it.storeId == storeId && it.taxGroupId == taxGroupId
+                }
+                updateState { copy(tax = tax.copy(taxOverrides = filtered)) }
+                sendEffect(SettingsEffect.TaxOverrideDeleted)
+                return@launch
+            }
+            deleteTaxOverrideUseCase(target.id)
+                .onSuccess {
+                    val filtered = currentState.tax.taxOverrides.filterNot {
+                        it.storeId == storeId && it.taxGroupId == taxGroupId
+                    }
+                    updateState { copy(tax = tax.copy(taxOverrides = filtered)) }
+                    sendEffect(SettingsEffect.TaxOverrideDeleted)
+                }
+                .onError { e -> sendEffect(SettingsEffect.ShowSnackbar("Delete failed: ${e.message}")) }
         }
     }
 
