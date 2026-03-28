@@ -62,12 +62,14 @@ data class IrdApiResponse(
  *
  * @param endpoint     Full base URL of the IRD API (e.g. `https://einvoice.ird.gov.lk/api/v1`).
  * @param certPath     Absolute path to the PKCS12 client certificate (.p12 file).
- * @param certPassword Password for the PKCS12 client certificate.
+ * @param certPassword Password for the PKCS12 client certificate as a [CharArray].
+ *                     The actual implementations zero this array immediately after
+ *                     [javax.net.ssl.KeyManagerFactory.init] completes.
  */
 expect class IrdApiClient(
     endpoint: String,
     certPath: String,
-    certPassword: String,
+    certPassword: CharArray,
 ) {
     /**
      * Submits an e-invoice to the IRD API endpoint `POST {endpoint}/invoices`.

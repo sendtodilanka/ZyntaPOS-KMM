@@ -98,7 +98,7 @@ val desktopDataModule = module {
 
     // ── IRD e-Invoice API client (mTLS, platform expect/actual) ───────────────
     // Reads endpoint + cert config from AppConfig (set at app startup from
-    // BuildKonfig / local.properties ZYNTA_IRD_* keys).
+    // the ZYNTA_IRD_* environment variables in main.kt).
     single {
         IrdApiClient(
             endpoint     = AppConfig.IRD_API_ENDPOINT,

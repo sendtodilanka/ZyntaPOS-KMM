@@ -35,7 +35,7 @@ import javax.net.ssl.X509TrustManager
 actual class IrdApiClient actual constructor(
     private val endpoint: String,
     private val certPath: String,
-    private val certPassword: String,
+    private val certPassword: CharArray,
 ) {
     private val log = Logger.withTag("IrdApiClient")
 
@@ -74,7 +74,7 @@ actual class IrdApiClient actual constructor(
         val certFile = if (certPath.isNotBlank()) File(certPath) else null
         val sslCtx = if (certFile != null && certFile.exists()) {
             log.i { "Loading IRD client certificate from: $certPath" }
-            buildSslContext(certFile, certPassword)
+            buildSslContext(certFile)
         } else {
             if (certPath.isNotBlank()) {
                 log.w { "IRD certificate file not found at '$certPath'; falling back to standard HTTPS" }
@@ -101,13 +101,14 @@ actual class IrdApiClient actual constructor(
         }
     }
 
-    private fun buildSslContext(certFile: File, certPassword: String): SSLContext {
-        val password = certPassword.toCharArray()
+    private fun buildSslContext(certFile: File): SSLContext {
         val keyStore = KeyStore.getInstance("PKCS12")
-        FileInputStream(certFile).use { keyStore.load(it, password) }
+        FileInputStream(certFile).use { keyStore.load(it, certPassword) }
 
         val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
-        kmf.init(keyStore, password)
+        kmf.init(keyStore, certPassword)
+        // Zero the password array immediately after use so it does not linger in heap memory.
+        certPassword.fill('\u0000')
 
         val sslCtx = SSLContext.getInstance("TLS")
         sslCtx.init(kmf.keyManagers, null, null)

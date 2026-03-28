@@ -37,6 +37,11 @@ import java.util.UUID
  */
 class EmailService(private val config: AppConfig) {
 
+    companion object {
+        /** Resend transactional email API endpoint — single source of truth used by [EmailRetryJob]. */
+        const val RESEND_API_URL = "https://api.resend.com/emails"
+    }
+
     private val log = LoggerFactory.getLogger(EmailService::class.java)
 
     private val client = HttpClient(CIO) {
@@ -113,7 +118,7 @@ class EmailService(private val config: AppConfig) {
         withContext(Dispatchers.IO) {
             val fromAddress = config.emailFromAddress
             val result = runCatching {
-                val response = client.post("https://api.resend.com/emails") {
+                val response = client.post(RESEND_API_URL) {
                     bearerAuth(config.resendApiKey)
                     contentType(ContentType.Application.Json)
                     setBody(
