@@ -439,4 +439,143 @@ class MediaViewModelTest {
 
         assertNull(viewModel.state.value.successMessage)
     }
+
+    // ── Fullscreen preview ────────────────────────────────────────────────────
+
+    @Test
+    fun `ShowFullScreenPreview sets previewFile for known file`() = runTest {
+        mediaFilesFlow.value = listOf(testMediaFile)
+        viewModel.dispatch(MediaIntent.LoadMediaForEntity("Product", "prod-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(MediaIntent.ShowFullScreenPreview(testMediaFile.id))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testMediaFile.id, viewModel.state.value.previewFile?.id)
+    }
+
+    @Test
+    fun `HideFullScreenPreview clears previewFile`() = runTest {
+        mediaFilesFlow.value = listOf(testMediaFile)
+        viewModel.dispatch(MediaIntent.LoadMediaForEntity("Product", "prod-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(MediaIntent.ShowFullScreenPreview(testMediaFile.id))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(MediaIntent.HideFullScreenPreview)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.previewFile)
+    }
+
+    // ── Image Editor ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `OpenImageEditor sets editingFile for known file`() = runTest {
+        mediaFilesFlow.value = listOf(testMediaFile)
+        viewModel.dispatch(MediaIntent.LoadMediaForEntity("Product", "prod-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(MediaIntent.OpenImageEditor(testMediaFile.id))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testMediaFile.id, viewModel.state.value.editingFile?.id)
+        assertEquals(CropAspectRatio.FREE, viewModel.state.value.cropAspectRatio)
+        assertEquals(80, viewModel.state.value.compressionQuality)
+    }
+
+    @Test
+    fun `CloseImageEditor clears editingFile`() = runTest {
+        mediaFilesFlow.value = listOf(testMediaFile)
+        viewModel.dispatch(MediaIntent.LoadMediaForEntity("Product", "prod-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(MediaIntent.OpenImageEditor(testMediaFile.id))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(MediaIntent.CloseImageEditor)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.editingFile)
+    }
+
+    @Test
+    fun `SetCropAspectRatio updates cropAspectRatio`() = runTest {
+        viewModel.dispatch(MediaIntent.SetCropAspectRatio(CropAspectRatio.SQUARE))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(CropAspectRatio.SQUARE, viewModel.state.value.cropAspectRatio)
+    }
+
+    @Test
+    fun `SetCompressionQuality clamps value between 1 and 100`() = runTest {
+        viewModel.dispatch(MediaIntent.SetCompressionQuality(150))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(100, viewModel.state.value.compressionQuality)
+
+        viewModel.dispatch(MediaIntent.SetCompressionQuality(-5))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.state.value.compressionQuality)
+    }
+
+    @Test
+    fun `SetResizeMaxWidth clamps negative values to zero`() = runTest {
+        viewModel.dispatch(MediaIntent.SetResizeMaxWidth(-100))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.state.value.resizeMaxWidth)
+    }
+
+    @Test
+    fun `SetResizeMaxWidth sets positive value`() = runTest {
+        viewModel.dispatch(MediaIntent.SetResizeMaxWidth(1920))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1920, viewModel.state.value.resizeMaxWidth)
+    }
+
+    // ── Batch Upload ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `ShowBatchDialog sets showBatchDialog true and resets paths`() = runTest {
+        viewModel.dispatch(MediaIntent.ShowBatchDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showBatchDialog)
+        assertTrue(viewModel.state.value.batchFilePaths.isEmpty())
+    }
+
+    @Test
+    fun `DismissBatchDialog hides dialog and clears paths`() = runTest {
+        viewModel.dispatch(MediaIntent.ShowBatchDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(MediaIntent.AddBatchFiles(listOf("/img/a.jpg", "/img/b.jpg")))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(MediaIntent.DismissBatchDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showBatchDialog)
+        assertTrue(viewModel.state.value.batchFilePaths.isEmpty())
+    }
+
+    @Test
+    fun `AddBatchFiles appends paths to batchFilePaths`() = runTest {
+        viewModel.dispatch(MediaIntent.AddBatchFiles(listOf("/img/a.jpg", "/img/b.jpg")))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(2, viewModel.state.value.batchFilePaths.size)
+        assertTrue(viewModel.state.value.batchFilePaths.contains("/img/a.jpg"))
+    }
+
+    @Test
+    fun `RemoveBatchFile removes specific path from batchFilePaths`() = runTest {
+        viewModel.dispatch(MediaIntent.AddBatchFiles(listOf("/img/a.jpg", "/img/b.jpg")))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(MediaIntent.RemoveBatchFile("/img/a.jpg"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, viewModel.state.value.batchFilePaths.size)
+        assertFalse(viewModel.state.value.batchFilePaths.contains("/img/a.jpg"))
+    }
 }
