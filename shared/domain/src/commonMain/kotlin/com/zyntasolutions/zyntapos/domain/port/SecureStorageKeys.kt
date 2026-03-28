@@ -76,4 +76,24 @@ object SecureStorageKeys {
      * propagates to devices without requiring an app update (ADR-008).
      */
     const val KEY_RS256_PUBLIC_KEY: String = "security.rs256_public_key"
+
+    // ── TLS pin list (Signed Pin List — ADR-011) ───────────────────────────
+
+    /**
+     * Comma-separated SPKI SHA-256 pins fetched from `GET /.well-known/tls-pins.json`
+     * and verified against the hardcoded Ed25519 signing key.
+     *
+     * Format: `"sha256/<base64>,sha256/<base64>"` (one or more pins).
+     *
+     * Updated on every successful startup fetch. Used by [ApiClient] instead of the
+     * hardcoded primary pin. Falls back to [API_SPKI_PIN_BACKUP] when absent.
+     */
+    const val KEY_TLS_PINS: String = "security.tls_pins"
+
+    /**
+     * ISO-8601 UTC expiry timestamp of the currently stored pin list, e.g.
+     * `"2026-06-01T00:00:00Z"`. Stored alongside [KEY_TLS_PINS] to allow the
+     * client to detect and discard expired pin lists before the next refresh.
+     */
+    const val KEY_TLS_PINS_EXPIRES_AT: String = "security.tls_pins_expires_at"
 }
