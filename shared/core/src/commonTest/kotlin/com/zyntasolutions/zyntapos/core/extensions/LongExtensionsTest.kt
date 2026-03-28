@@ -7,6 +7,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.Instant
 import kotlin.time.Clock
+import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -41,10 +42,18 @@ class LongExtensionsTest {
     // Use UTC for all tests so results are deterministic regardless of CI timezone
     private val utc = TimeZone.UTC
 
+    private var savedTimezoneId: String = AppTimezone.id
+
     @BeforeTest
     fun setUp() {
+        savedTimezoneId = AppTimezone.id
         // Override AppTimezone to UTC for the duration of tests
         AppTimezone.set("UTC")
+    }
+
+    @AfterTest
+    fun tearDown() {
+        AppTimezone.set(savedTimezoneId)
     }
 
     /** Creates epoch milliseconds for the given UTC date at midnight. */
