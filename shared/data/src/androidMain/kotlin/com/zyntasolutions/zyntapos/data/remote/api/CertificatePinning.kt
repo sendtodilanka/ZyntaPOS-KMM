@@ -11,17 +11,21 @@ import okhttp3.CertificatePinner
  * connection to a server presenting a non-pinned certificate is immediately
  * rejected with an [javax.net.ssl.SSLPeerUnverifiedException].
  *
+ * All [spkiPins] are added for [host]. OkHttp accepts the connection if any pin
+ * matches any certificate in the server's chain, so the backup (intermediate CA)
+ * pin keeps connections alive across leaf cert renewals.
+ *
  * The unchecked cast is safe: the OkHttp engine is the only Ktor engine
  * on Android (declared in `androidMain.dependencies` of `:shared:data`).
  */
 @Suppress("UNCHECKED_CAST")
-internal actual fun HttpClientConfig<*>.installCertificatePinning(host: String, spkiPin: String) {
+internal actual fun HttpClientConfig<*>.installCertificatePinning(host: String, vararg spkiPins: String) {
     val config = this as HttpClientConfig<OkHttpConfig>
     config.engine {
         config {
             certificatePinner(
                 CertificatePinner.Builder()
-                    .add(host, spkiPin)
+                    .apply { spkiPins.forEach { pin -> add(host, pin) } }
                     .build()
             )
         }

@@ -49,7 +49,7 @@ fun buildApiClient(
             .removePrefix("https://")
             .removePrefix("http://")
             .substringBefore("/")
-        installCertificatePinning(host, API_SPKI_PIN_PRIMARY)
+        installCertificatePinning(host, API_SPKI_PIN_PRIMARY, API_SPKI_PIN_BACKUP)
     }
 
     // ── JSON Serialization ─────────────────────────────────────────────
