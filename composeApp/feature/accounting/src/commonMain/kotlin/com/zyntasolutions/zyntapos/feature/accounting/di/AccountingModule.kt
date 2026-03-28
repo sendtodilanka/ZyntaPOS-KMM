@@ -30,15 +30,9 @@ import com.zyntasolutions.zyntapos.domain.usecase.accounting.SaveAccountUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.SaveDraftJournalEntryUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.TrackBudgetSpendingUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.accounting.SeedDefaultChartOfAccountsUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.einvoice.CancelEInvoiceUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.einvoice.CreateEInvoiceUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.einvoice.GetEInvoiceByOrderUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.einvoice.GetEInvoicesUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.einvoice.SubmitEInvoiceToIrdUseCase
 import com.zyntasolutions.zyntapos.feature.accounting.AccountDetailViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.AccountingViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.ChartOfAccountsViewModel
-import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.FinancialStatementsViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.GeneralLedgerViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.JournalEntryDetailViewModel
@@ -49,10 +43,6 @@ import org.koin.dsl.module
 
 /**
  * Koin DI module for `:composeApp:feature:accounting`.
- *
- * ### E-Invoice Use Cases
- * - [GetEInvoicesUseCase], [GetEInvoiceByOrderUseCase], [CreateEInvoiceUseCase],
- *   [SubmitEInvoiceToIrdUseCase], [CancelEInvoiceUseCase]
  *
  * ### Accounting Ledger Use Cases (Sprint 18)
  * - [GetPeriodSummaryUseCase]   — aggregated account balances by fiscal period
@@ -75,13 +65,6 @@ import org.koin.dsl.module
  *   [GetGeneralLedgerUseCase]
  */
 val accountingModule = module {
-
-    // ── E-Invoice Use Cases ───────────────────────────────────────────────────
-    factoryOf(::GetEInvoicesUseCase)
-    factoryOf(::GetEInvoiceByOrderUseCase)
-    factoryOf(::CreateEInvoiceUseCase)
-    factoryOf(::SubmitEInvoiceToIrdUseCase)
-    factoryOf(::CancelEInvoiceUseCase)
 
     // ── Legacy Accounting Ledger Use Cases (Sprint 18) ────────────────────────
     factoryOf(::GetPeriodSummaryUseCase)
@@ -128,15 +111,6 @@ val accountingModule = module {
     // AuthRepository is injected directly into legacy VMs; storeId is resolved
     // lazily inside each ViewModel's init{} via viewModelScope.launch —
     // never blocks the main thread.
-
-    viewModel {
-        EInvoiceViewModel(
-            getEInvoicesUseCase        = get(),
-            submitEInvoiceToIrdUseCase = get(),
-            cancelEInvoiceUseCase      = get(),
-            authRepository             = get(),
-        )
-    }
 
     viewModel {
         AccountingViewModel(

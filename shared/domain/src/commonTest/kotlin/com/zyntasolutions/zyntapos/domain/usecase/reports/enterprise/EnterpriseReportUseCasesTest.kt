@@ -14,7 +14,6 @@ import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildClockRecord
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildCustomerLoyaltyData
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildCustomerRetentionData
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildDeptExpenseData
-import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildEInvoiceStatusData
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildGrossMarginData
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildHourlySalesData
 import com.zyntasolutions.zyntapos.domain.usecase.fakes.buildInventoryValuationData
@@ -349,18 +348,6 @@ class EnterpriseReportUseCasesTest {
     }
 
     // ─── Finance Reports ──────────────────────────────────────────────────────
-
-    @Test
-    fun `eInvoiceStatus_returns_invoice_records`() = runTest {
-        val repo = FakeReportRepository().apply {
-            stubEInvoiceStatus = listOf(buildEInvoiceStatusData("inv-01"), buildEInvoiceStatusData("inv-02"))
-        }
-
-        GenerateEInvoiceStatusReportUseCase(repo)(from, to).test {
-            assertEquals(2, awaitItem().size)
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
 
     @Test
     fun `accountingLedger_returns_ledger_entries`() = runTest {

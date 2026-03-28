@@ -45,9 +45,7 @@ import com.zyntasolutions.zyntapos.data.repository.FinancialStatementRepositoryI
 import com.zyntasolutions.zyntapos.data.repository.AccountingPeriodRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.AttendanceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
-import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.repository.BackupRepositoryImpl
-import com.zyntasolutions.zyntapos.data.repository.EInvoiceRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EmployeeStoreAssignmentRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.EmployeeRepositoryImpl
 import com.zyntasolutions.zyntapos.data.repository.FeatureRegistryRepositoryImpl
@@ -121,7 +119,6 @@ import com.zyntasolutions.zyntapos.domain.repository.FinancialStatementRepositor
 import com.zyntasolutions.zyntapos.domain.repository.AccountingPeriodRepository
 import com.zyntasolutions.zyntapos.domain.repository.AttendanceRepository
 import com.zyntasolutions.zyntapos.domain.repository.BackupRepository
-import com.zyntasolutions.zyntapos.domain.repository.EInvoiceRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeRepository
 import com.zyntasolutions.zyntapos.domain.repository.EmployeeStoreAssignmentRepository
 import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
@@ -604,9 +601,6 @@ val dataModule = module {
 
     // Backup: SQLDelight-backed + BackupFileManager for real file I/O (Phase 3 Sprint 13)
     single<BackupRepository> { BackupRepositoryImpl(db = get(), fileManager = get<BackupFileManager>()) }
-
-    // E-Invoice: SQLDelight-backed + IrdApiClient for real IRD API submission (Phase 3)
-    single<EInvoiceRepository> { EInvoiceRepositoryImpl(db = get(), syncEnqueuer = get(), irdApiClient = get<IrdApiClient>()) }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── Feature Registry (Edition Management) ────────────────────────────────

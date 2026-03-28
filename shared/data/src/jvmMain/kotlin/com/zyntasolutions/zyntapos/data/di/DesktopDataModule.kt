@@ -9,7 +9,6 @@ import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
-import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.domain.port.EmailPort
 import org.koin.core.qualifier.named
@@ -95,17 +94,6 @@ val desktopDataModule = module {
     // sit alongside the data dir at ~/.zyntapos/backups/ (macOS/Linux) or
     // %APPDATA%/ZyntaPOS/backups/ (Windows).
     single { BackupFileManager(appDataDir = get()) }
-
-    // ── IRD e-Invoice API client (mTLS, platform expect/actual) ───────────────
-    // Reads endpoint + cert config from AppConfig (set at app startup from
-    // the ZYNTA_IRD_* environment variables in main.kt).
-    single {
-        IrdApiClient(
-            endpoint     = AppConfig.IRD_API_ENDPOINT,
-            certPath     = AppConfig.IRD_CLIENT_CERT_PATH,
-            certPassword = AppConfig.IRD_CLIENT_CERT_PASSWORD,
-        )
-    }
 
     // ── Network Monitoring (platform expect/actual) ───────────────────
     // Desktop actual uses periodic InetAddress.isReachable() polling.

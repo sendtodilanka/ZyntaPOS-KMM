@@ -12,7 +12,6 @@ import com.zyntasolutions.zyntapos.domain.model.report.CustomerSpendData
 import com.zyntasolutions.zyntapos.domain.model.report.DailySalesSummaryData
 import com.zyntasolutions.zyntapos.domain.model.report.DeptExpenseData
 import com.zyntasolutions.zyntapos.domain.model.report.DiscountVoidData
-import com.zyntasolutions.zyntapos.domain.model.report.EInvoiceStatusData
 import com.zyntasolutions.zyntapos.domain.model.report.GrossMarginData
 import com.zyntasolutions.zyntapos.domain.model.report.HourlySalesData
 import com.zyntasolutions.zyntapos.domain.model.report.InventoryValuationData
@@ -98,9 +97,6 @@ fun buildGrossMarginData(productId: String = "prod-01") =
 fun buildCOGSData(productId: String = "prod-01") =
     COGSData(productId, "Widget", unitsSold = 20, costPerUnit = 5.0, totalCOGS = 100.0, revenue = 200.0)
 
-fun buildEInvoiceStatusData(invoiceId: String = "inv-01", orderId: String = "ord-01") =
-    EInvoiceStatusData(invoiceId, orderId, status = "ACCEPTED", submittedAt = now, totalAmount = 500.0)
-
 fun buildAccountingLedgerRecord(entryId: String = "entry-01") =
     AccountingLedgerRecord(entryId, entryType = "CREDIT", accountName = "Sales", amount = 100.0, description = "Sale", recordedAt = now)
 
@@ -182,7 +178,6 @@ class FakeReportRepository : ReportRepository {
     var stubSupplierPurchases: List<SupplierPurchaseData> = emptyList()
     var stubReturnRefund = ReturnRefundData(0, 0.0, emptyList())
 
-    var stubEInvoiceStatus: List<EInvoiceStatusData> = emptyList()
     var stubAccountingLedger: List<AccountingLedgerRecord> = emptyList()
     var stubHourlySales: List<HourlySalesData> = emptyList()
     var stubCustomerLoyalty: List<CustomerLoyaltyData> = emptyList()
@@ -272,8 +267,6 @@ class FakeReportRepository : ReportRepository {
     override suspend fun getReturnRefundSummary(from: Instant, to: Instant) = stubReturnRefund
 
     // ── Enterprise Reports — Finance ────────────────────────────────────────
-
-    override suspend fun getEInvoiceStatus(from: Instant, to: Instant) = stubEInvoiceStatus
 
     override suspend fun getAccountingLedger(from: Instant, to: Instant) = stubAccountingLedger
 

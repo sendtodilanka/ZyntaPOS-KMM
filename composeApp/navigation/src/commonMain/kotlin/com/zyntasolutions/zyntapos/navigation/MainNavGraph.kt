@@ -670,19 +670,6 @@ fun NavGraphBuilder.mainNavGraph(
                     { navigationController.navigateUp(ZyntaRoute.AccountingLedger) },
                 )
             }
-            composable<ZyntaRoute.EInvoiceList> {
-                screens.eInvoiceList(
-                    { invoiceId -> navigationController.navigate(ZyntaRoute.EInvoiceDetail(invoiceId)) },
-                )
-            }
-            composable<ZyntaRoute.EInvoiceDetail> { entry ->
-                val route = entry.toRoute<ZyntaRoute.EInvoiceDetail>()
-                screens.eInvoiceDetail(
-                    route.invoiceId,
-                    { navigationController.navigateUp(ZyntaRoute.EInvoiceList) },
-                )
-            }
-
             // ── Wave 4B routes ───────────────────────────────────────────────
             composable<ZyntaRoute.ChartOfAccounts> {
                 screens.chartOfAccounts(
@@ -953,11 +940,9 @@ private fun MainScaffoldShell(
         is ZyntaRoute.WarehouseRackDetail,
         is ZyntaRoute.PickListView -> item.route is ZyntaRoute.WarehouseList
 
-        // Accounting / E-Invoice sub-graph (including Wave 4B routes)
+        // Accounting sub-graph (Wave 4B routes)
         is ZyntaRoute.AccountingLedger,
         is ZyntaRoute.AccountDetail,
-        is ZyntaRoute.EInvoiceList,
-        is ZyntaRoute.EInvoiceDetail,
         is ZyntaRoute.ChartOfAccounts,
         is ZyntaRoute.AccountManagementDetail,
         is ZyntaRoute.JournalEntryList,

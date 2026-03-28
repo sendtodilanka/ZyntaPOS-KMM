@@ -101,11 +101,9 @@ class NavGraphCompletenessTest {
         // Pick list (P3-B1)
         "pickListView",
 
-        // Accounting / E-Invoice sub-graph
+        // Accounting sub-graph
         "accountingLedger",
         "accountDetail",
-        "eInvoiceList",
-        "eInvoiceDetail",
         "chartOfAccounts",
         "accountManagementDetail",
         "journalEntryList",

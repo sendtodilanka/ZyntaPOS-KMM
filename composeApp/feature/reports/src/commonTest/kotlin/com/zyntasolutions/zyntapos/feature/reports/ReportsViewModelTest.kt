@@ -302,7 +302,6 @@ class ReportsViewModelTest {
         override suspend fun getStockReorderAlerts() = throw NotImplementedError()
         override suspend fun getSupplierPurchases(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getReturnRefundSummary(from: Instant, to: Instant) = throw NotImplementedError()
-        override suspend fun getEInvoiceStatus(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getAccountingLedger(from: Instant, to: Instant) = throw NotImplementedError()
         override suspend fun getHourlySales(date: LocalDate) = throw NotImplementedError()
         override suspend fun getCustomerLoyaltySummary(from: Instant, to: Instant) = throw NotImplementedError()

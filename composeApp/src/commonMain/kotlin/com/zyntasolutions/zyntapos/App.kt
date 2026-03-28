@@ -86,9 +86,6 @@ import com.zyntasolutions.zyntapos.feature.multistore.WarehouseRackDetailScreen
 import com.zyntasolutions.zyntapos.feature.multistore.WarehouseViewModel
 import com.zyntasolutions.zyntapos.feature.multistore.dashboard.MultiStoreDashboardScreen
 import com.zyntasolutions.zyntapos.feature.multistore.dashboard.MultiStoreDashboardViewModel
-import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceListScreen
-import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceDetailScreen
-import com.zyntasolutions.zyntapos.feature.accounting.EInvoiceViewModel
 import com.zyntasolutions.zyntapos.feature.accounting.AccountingLedgerScreen
 import com.zyntasolutions.zyntapos.feature.accounting.AccountDetailScreen
 import com.zyntasolutions.zyntapos.feature.accounting.AccountingViewModel
@@ -1046,28 +1043,6 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             accountId = accountCode,
             storeId = "default-store",
             onNavigateBack = onNavigateUp,
-        )
-    },
-
-    eInvoiceList = { onNavigateToDetail ->
-        val vm: EInvoiceViewModel = koinViewModel()
-        val state by vm.state.collectAsState()
-        EInvoiceListScreen(
-            state = state,
-            onIntent = vm::dispatch,
-            onNavigateToDetail = onNavigateToDetail,
-        )
-    },
-
-    eInvoiceDetail = { invoiceId, _ ->
-        val vm: EInvoiceViewModel = koinViewModel()
-        val state by vm.state.collectAsState()
-        if (invoiceId != null) {
-            vm.dispatch(com.zyntasolutions.zyntapos.feature.accounting.EInvoiceIntent.LoadInvoice(invoiceId))
-        }
-        EInvoiceDetailScreen(
-            state = state,
-            onIntent = vm::dispatch,
         )
     },
 

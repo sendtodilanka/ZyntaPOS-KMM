@@ -1,7 +1,7 @@
 # ZyntaPOS — Dev Testing Guide
 
 > **Audience:** Engineers and QA testers who need to run the full app **without** a live backend API,
-> Firebase, Sentry DSN, or IRD certificate.
+> Firebase, or Sentry DSN.
 > **Scope:** Android (emulator/device) and Desktop JVM.
 > **Last updated:** 2026-03-18
 
@@ -95,12 +95,8 @@ headless CI agent, set it manually.
 | `ZYNTA_API_CLIENT_ID` | `dev-client-id` | Placeholder |
 | `ZYNTA_API_CLIENT_SECRET` | `dev-client-secret` | Placeholder |
 | `ZYNTA_DB_PASSPHRASE` | 64 zeroes | Intentional dev key — never use in production |
-| `ZYNTA_FCM_SERVER_KEY` | `dev-placeholder-fcm-key` | FCM not used in dev |
 | `ZYNTA_MAPS_API_KEY` | `dev-placeholder-maps-key` | Maps not used in dev |
 | `ZYNTA_SENTRY_DSN` | `dev-placeholder-sentry-dsn` | Crash reporting disabled in dev |
-| `ZYNTA_IRD_API_ENDPOINT` | `http://localhost:8080/ird` | IRD submission stubbed |
-| `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` | `/dev/null` | No real cert needed |
-| `ZYNTA_IRD_CERTIFICATE_PASSWORD` | `dev-placeholder-cert-password` | Placeholder |
 
 ---
 
@@ -452,9 +448,8 @@ After seeding, use this checklist to exercise all 17 feature modules manually.
 - [ ] Select an image, crop, and confirm — verify product thumbnail updates
 
 ### Accounting
-- [ ] Create an e-invoice for a completed order
-- [ ] Review submission status — verify it remains in "Pending" (IRD endpoint is stubbed in dev)
-- [ ] Verify no crash when attempting submission
+- [ ] Open the Accounting Ledger and verify it loads without errors
+- [ ] Verify Chart of Accounts and Journal Entries screens render correctly
 
 ### Diagnostic
 - [ ] Open the Diagnostic screen (requires ADMIN or MANAGER role)
@@ -577,7 +572,6 @@ After seeding, use this checklist to exercise all 17 feature modules manually.
 | Limitation | Detail |
 |-----------|--------|
 | Cloud sync stubbed | `DevApiService` accepts all push operations without sending to a server. Multi-store sync and conflict resolution are not testable offline. |
-| IRD e-invoice submission | `DevApiService.pushEInvoice()` is a no-op. The accounting feature renders correctly but submission always stays "Pending". |
 | Cash drawer | Hardware pulse not available in emulator. The HAL interface logs a no-op on Android and JVM when no device is connected. |
 | Barcode scanner (physical) | Use keyboard-wedge simulation: focus the barcode input field, type the barcode string (see seed data), and press Enter. |
 | Admin DB vacuum | `VacuumDatabaseUseCase` exists in domain + data but is not yet wired into `AdminModule.kt` or `AdminViewModel`. Tapping "Vacuum" in Admin may have no effect. |

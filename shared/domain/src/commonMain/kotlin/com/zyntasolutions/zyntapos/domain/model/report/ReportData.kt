@@ -239,14 +239,6 @@ data class ProductReturnData(
 
 // ── Enterprise Report Data Classes — Finance ──────────────────────────────────
 
-data class EInvoiceStatusData(
-    val invoiceId: String,
-    val orderId: String,
-    val status: String,
-    val submittedAt: Instant?,
-    val totalAmount: Double,
-)
-
 data class AccountingLedgerRecord(
     val entryId: String,
     val entryType: String,       // "DEBIT" | "CREDIT"

@@ -11,7 +11,6 @@ import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
-import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.domain.port.EmailPort
 import org.koin.android.ext.koin.androidContext
@@ -70,17 +69,6 @@ val androidDataModule = module {
     // Android actual copies DB files to getExternalFilesDir("backups") with
     // a fallback to filesDir/backups when external storage is unavailable.
     single { BackupFileManager(context = androidContext()) }
-
-    // ── IRD e-Invoice API client (mTLS, platform expect/actual) ───────────────
-    // Reads endpoint + cert config from AppConfig (set at app startup from
-    // BuildConfig.ZYNTA_IRD_* secrets injected by the Gradle Secrets Plugin).
-    single {
-        IrdApiClient(
-            endpoint     = AppConfig.IRD_API_ENDPOINT,
-            certPath     = AppConfig.IRD_CLIENT_CERT_PATH,
-            certPassword = AppConfig.IRD_CLIENT_CERT_PASSWORD,
-        )
-    }
 
     // ── Network Monitoring (platform expect/actual) ───────────────────
     // Android actual uses ConnectivityManager.NetworkCallback.

@@ -46,10 +46,9 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 ### Key Points
 - Single Firebase project → GA4 property auto-linked → unified dashboard all platforms
 - GA4 Measurement Protocol: simple HTTP POST, no SDK, same GA4 property receives events
-- Phase 3: GA4 BigQuery export for deep business intelligence / IRD compliance analytics
+- Phase 3: GA4 BigQuery export for deep business intelligence analytics
 - Firebase Remote Config (Phase 2): edition feature flags (STARTER / PROFESSIONAL / ENTERPRISE)
-- Firebase FCM (Phase 2): push notifications for low-stock alerts, shift notifications
-  (ZYNTA_FCM_SERVER_KEY already in local.properties.template — pre-planned)
+- **Push notifications:** FCM/VAPID removed. SMS gateway integration planned for Phase 4 instead.
 
 ---
 
@@ -82,8 +81,6 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 - Android Performance Monitoring (Phase 2 — SQLCipher query perf, startup time)
 - Android Remote Config (Phase 2 — edition feature flags)
 - Web Admin Panel (Analytics + Crashlytics + optionally Firebase Hosting)
-- FCM Push Notifications (Phase 2 — staff alerts, low-stock, shift reminders)
-
 ### DO NOT USE Firebase FOR
 - Authentication/SSO (Desktop JVM gap, vendor lock-in risk)
 - Firestore or Realtime Database (conflicts with SQLDelight offline-first architecture)
@@ -105,13 +102,15 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 ### Phase 2
 - [x] Add Firebase JS SDK to Web Admin Panel (React) — `admin-panel/src/lib/firebase.ts`, `firebase ^11.6.0` dep, `initFirebase()` in main.tsx | 2026-03-27
 - [x] Add Firebase Remote Config (edition feature flags) — `RemoteConfigProvider` interface in shared:core, `RemoteConfigService` expect/actual in shared:data (androidMain Firebase RC actual, jvmMain stub), Koin wiring in both platform modules | 2026-03-27
-- [ ] Implement FCM push notifications (low-stock, shift alerts) — Phase 3, requires FCM project setup
 - [x] Add GA4 Measurement Protocol calls from Desktop JVM — implemented in jvmMain AnalyticsService | 2026-03-13
 
 ### Phase 3
 - [ ] Add Firebase Crashlytics to Android (dual with Sentry)
-- [ ] Add Sentry performance tracing to Ktor (IRD submission monitoring)
+- [ ] Add Sentry performance tracing to Ktor
 - [ ] Enable GA4 BigQuery export for business intelligence
+
+### Phase 4
+- [ ] Implement SMS gateway for push notifications (replaces FCM — low-stock alerts, shift reminders, staff notifications)
 
 ---
 
@@ -120,7 +119,6 @@ for all ZyntaPOS platforms: Android, Desktop JVM, Ktor Backend, Web Admin Panel.
 | Secret | Where | Phase |
 |--------|-------|-------|
 | `SENTRY_DSN` | local.properties + GitHub Secrets + Docker env | 1 |
-| `ZYNTA_FCM_SERVER_KEY` | Already in local.properties.template | 2 |
 | `FIREBASE_GOOGLE_SERVICES_JSON` | Android build — `google-services.json` (gitignored) | 1 |
 
 ---
