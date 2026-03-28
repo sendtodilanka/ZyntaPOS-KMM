@@ -17,17 +17,17 @@ import javax.net.ssl.X509TrustManager
  * 1. Delegate standard chain validation to the platform's default [TrustManagerFactory]
  *    (ensures the certificate is signed by a trusted CA).
  * 2. Check that at least one certificate in the chain has an SPKI SHA-256 fingerprint
- *    matching [spkiPin]. Reject the connection if none match.
+ *    matching **any** of [spkiPins]. Reject the connection if none match.
  *
  * The unchecked cast is safe: the CIO engine is the only Ktor engine on JVM/Desktop
  * (declared in `jvmMain.dependencies` of `:shared:data`).
  */
 @Suppress("UNCHECKED_CAST")
-internal actual fun HttpClientConfig<*>.installCertificatePinning(host: String, spkiPin: String) {
+internal actual fun HttpClientConfig<*>.installCertificatePinning(host: String, vararg spkiPins: String) {
     val config = this as HttpClientConfig<CIOEngineConfig>
     config.engine {
         https {
-            trustManager = SpkiPinnedTrustManager(host, spkiPin)
+            trustManager = SpkiPinnedTrustManager(host, spkiPins.toList())
         }
     }
 }
@@ -35,16 +35,21 @@ internal actual fun HttpClientConfig<*>.installCertificatePinning(host: String, 
 /**
  * TLS trust manager that enforces SPKI SHA-256 certificate pinning.
  *
+ * A connection is accepted if **any** pin in [spkiPins] matches **any** certificate
+ * in the server's chain. This allows a backup intermediate CA pin to survive leaf
+ * certificate renewals without requiring an app update.
+ *
  * @param pinnedHost Hostname for which pinning is enforced (used in the error message).
- * @param spkiPin    SPKI SHA-256 pin in `"sha256/<base64>"` format.
+ * @param spkiPins   SPKI SHA-256 pins in `"sha256/<base64>"` format.
  */
 private class SpkiPinnedTrustManager(
     private val pinnedHost: String,
-    spkiPin: String,
+    spkiPins: List<String>,
 ) : X509TrustManager {
 
-    private val pinnedHash: ByteArray = Base64.getDecoder()
-        .decode(spkiPin.removePrefix("sha256/"))
+    private val pinnedHashes: List<ByteArray> = spkiPins.map { pin ->
+        Base64.getDecoder().decode(pin.removePrefix("sha256/"))
+    }
 
     private val delegate: X509TrustManager = TrustManagerFactory
         .getInstance(TrustManagerFactory.getDefaultAlgorithm())
@@ -62,16 +67,16 @@ private class SpkiPinnedTrustManager(
         // Step 1: Standard CA chain validation
         delegate.checkServerTrusted(chain, authType)
 
-        // Step 2: SPKI pin check — at least one cert in the chain must match
+        // Step 2: SPKI pin check — at least one cert in the chain must match at least one pin
         val md = MessageDigest.getInstance("SHA-256")
         val pinMatched = chain.any { cert ->
-            md.reset()
-            md.digest(cert.publicKey.encoded).contentEquals(pinnedHash)
+            val certHash = md.digest(cert.publicKey.encoded).also { md.reset() }
+            pinnedHashes.any { it.contentEquals(certHash) }
         }
         if (!pinMatched) {
             throw SSLPeerUnverifiedException(
                 "Certificate pinning failed for $pinnedHost — no SPKI match. " +
-                    "If the certificate was rotated, update API_SPKI_PIN_PRIMARY in CertificatePinning.kt."
+                    "If the certificate was rotated, update API_SPKI_PIN_PRIMARY in CertificatePinConstants.kt."
             )
         }
     }
