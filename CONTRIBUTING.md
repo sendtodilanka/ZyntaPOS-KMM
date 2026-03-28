@@ -103,8 +103,8 @@ sealed class ProductListIntent { data object LoadProducts : ProductListIntent() 
 | Layer | Coverage Target | Tool |
 |-------|----------------|------|
 | Use Cases | 95% | Kotlin Test + Mockative 3 |
-| Repositories | 80% | Kotlin Test + Mockative 3 |
-| ViewModels | 80% | Kotlin Test + Turbine (Flow assertions) |
+| Repositories | 95% | Kotlin Test + Mockative 3 |
+| ViewModels | 95% | Kotlin Test + Turbine (Flow assertions) |
 | Compose UI | Critical flows | Compose UI Test (Phase 2) |
 
 ---
@@ -123,6 +123,8 @@ All significant architectural decisions are documented in `docs/adr/`.
 | [ADR-006](docs/adr/ADR-006-backend-docker-build-in-ci.md) | Backend Docker Images Built in CI — Not on VPS | ACCEPTED |
 | [ADR-007](docs/adr/ADR-007-database-per-service.md) | Database-Per-Service for Backend Microservices | ACCEPTED |
 | [ADR-008](docs/adr/ADR-008-RS256-Key-Distribution.md) | RS256 Public Key Distribution — Bundle Default + Cache | ACCEPTED |
+| [ADR-009](docs/adr/ADR-009-Admin-Panel-POS-App-Boundary.md) | Admin Panel / POS App Feature Boundary | ACCEPTED |
+| [ADR-010](docs/adr/ADR-010-No-Hardcoded-UI-Strings.md) | No Hardcoded UI Strings — use StringResource via LocalStrings | ACCEPTED |
 
 Before making a structural change (new module, new convention, tech adoption),
 create a new ADR in `docs/adr/ADR-NNN-ShortTitle.md` and get it reviewed.
@@ -142,4 +144,4 @@ refactor(data): rename ProductEntity mapper to align with ADR-002
 
 ---
 
-*Last updated: 2026-03-18*
+*Last updated: 2026-03-28*
