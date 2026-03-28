@@ -1,0 +1,20 @@
+name: VPS Read Env (Temp - Delete After Use)
+on:
+  workflow_dispatch:
+
+jobs:
+  read-env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read VPS .env file
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_USER_KEY }}
+          script: |
+            echo "=== /opt/zyntapos/.env ==="
+            cat /opt/zyntapos/.env 2>/dev/null || echo "NOT FOUND at /opt/zyntapos/.env"
+            echo "=== searching for .env files ==="
+            find /opt/zyntapos -name ".env" 2>/dev/null | head -10
