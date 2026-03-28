@@ -25,6 +25,10 @@ ZYNTA_API_BASE_URL=http://localhost:8080
 ZYNTA_API_CLIENT_ID=dev-client-id
 ZYNTA_API_CLIENT_SECRET=dev-client-secret
 
+# ── License Service ──────────────────────────────────────────────────
+# Not used in dev builds — placeholder satisfies the build system.
+ZYNTA_LICENSE_BASE_URL=http://localhost:8083
+
 # ── BuildConfig fields (must be non-empty for compilation) ───────────
 API_BASE_URL=http://localhost:8080
 DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
@@ -35,8 +39,17 @@ DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
 # Production: generate with  openssl rand -hex 32
 ZYNTA_DB_PASSPHRASE=0000000000000000000000000000000000000000000000000000000000000000
 
-# ── Push Notifications (FCM) — not used in dev ──────────────────────
-ZYNTA_FCM_SERVER_KEY=dev-placeholder-fcm-key
+# ── JWT RS256 Public Key ─────────────────────────────────────────────
+# Not used in dev builds — placeholder satisfies the build system.
+# Production: base64-encoded DER of the RSA public key used by the backend.
+ZYNTA_RS256_PUBLIC_KEY=dev-placeholder-rs256-public-key
+
+# ── Push Notifications (FCM v1) — not used in dev ───────────────────
+# Firebase Legacy Server Key was permanently disabled (June 2024).
+# Use FCM v1 HTTP API via Firebase Admin SDK service account.
+# VAPID keys for Web Push (PWA):
+ZYNTA_FCM_VAPID_PUBLIC_KEY=dev-placeholder-vapid-public-key
+ZYNTA_FCM_VAPID_PRIVATE_KEY=dev-placeholder-vapid-private-key
 
 # ── Maps / Geolocation — not used in dev ────────────────────────────
 ZYNTA_MAPS_API_KEY=dev-placeholder-maps-key
