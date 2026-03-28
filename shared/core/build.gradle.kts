@@ -38,5 +38,8 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.bundles.testing.common)
         }
+        jvmTest.dependencies {
+            implementation(libs.bundles.testing.common)
+        }
     }
 }

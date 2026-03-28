@@ -209,13 +209,10 @@ class LongExtensionsTest {
     }
 
     @Test
-    fun `N - toRelativeDate returns formatted date for a timestamp on the previous calendar day`() {
-        // toRelativeDate computes days = this.daysBetween(now) = this.toDate().daysUntil(now.toDate()).
-        // For a past timestamp, daysUntil returns a positive value (+1 for yesterday),
-        // so the "-1 -> Yesterday" branch is not triggered for past dates.
-        // Actual behaviour: past dates (except today) fall through to toFormattedDate.
-        val previousDayMs = epochMs(2025, 1, 1)
-        assertEquals("01/01/2025", previousDayMs.toRelativeDate(utc))
+    fun `N - toRelativeDate returns Yesterday for a timestamp exactly one calendar day ago`() {
+        // daysBetween(now) = this.date.daysUntil(now.date) → +1 for yesterday
+        val yesterdayMs = Clock.System.now().toEpochMilliseconds() - 24 * 60 * 60 * 1000L
+        assertEquals("Yesterday", yesterdayMs.toRelativeDate(utc))
     }
 
     @Test

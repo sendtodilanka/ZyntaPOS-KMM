@@ -80,18 +80,7 @@ class CurrencyFormatter(
     /**
      * Returns the display symbol for the given ISO 4217 [currencyCode].
      */
-    fun symbolFor(currencyCode: String): String = when (currencyCode.uppercase()) {
-        "LKR" -> "Rs."
-        "USD" -> "$"
-        "EUR" -> "€"
-        "GBP" -> "£"
-        "INR" -> "₹"
-        "JPY" -> "¥"
-        "AUD" -> "A$"
-        "CAD" -> "C$"
-        "SGD" -> "S$"
-        else  -> currencyCode.uppercase()
-    }
+    fun symbolFor(currencyCode: String): String = currencyCodeToSymbol(currencyCode)
 
     /**
      * Returns the full display name for the given [currencyCode].
@@ -117,15 +106,4 @@ class CurrencyFormatter(
         return (value * factor).roundToLong() / factor
     }
 
-    private fun formatThousands(value: Long): String {
-        val str    = value.toString()
-        val groups = mutableListOf<String>()
-        var rem    = str
-        while (rem.length > 3) {
-            groups.add(0, rem.takeLast(3))
-            rem = rem.dropLast(3)
-        }
-        if (rem.isNotEmpty()) groups.add(0, rem)
-        return groups.joinToString(",")
-    }
 }

@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.core.extensions
 
 import com.zyntasolutions.zyntapos.core.config.AppConfig
+import com.zyntasolutions.zyntapos.core.utils.currencyCodeToSymbol
+import com.zyntasolutions.zyntapos.core.utils.formatThousands
 import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.roundToLong
@@ -29,13 +31,14 @@ fun Double.toCurrencyString(
     currencyCode: String = AppConfig.DEFAULT_CURRENCY_CODE,
     decimals: Int = AppConfig.CURRENCY_DECIMAL_PLACES,
 ): String {
-    val symbol = currencySymbol(currencyCode)
+    val symbol = currencyCodeToSymbol(currencyCode)
     val rounded = roundToCurrency(decimals)
-    val intPart = rounded.toLong()
-    val fracPart = ((abs(rounded) - abs(intPart.toDouble())) * 10.0.pow(decimals)).roundToLong()
-    val intFormatted = formatWithThousandsSeparator(intPart)
+    val sign = if (rounded < 0) "-" else ""
+    val absRounded = abs(rounded)
+    val intPart = absRounded.toLong()
+    val fracPart = ((absRounded - intPart.toDouble()) * 10.0.pow(decimals)).roundToLong()
     val fracFormatted = fracPart.toString().padStart(decimals, '0')
-    return "$symbol $intFormatted.$fracFormatted"
+    return "$symbol $sign${formatThousands(intPart)}.$fracFormatted"
 }
 
 /**
@@ -83,29 +86,3 @@ fun Double.isPositive(): Boolean = this > 0.0
  */
 fun Double.isNonNegative(): Boolean = this >= 0.0
 
-// ── Private Helpers ───────────────────────────────────────────────────────────
-
-/** Maps ISO 4217 currency codes to display symbols. */
-private fun currencySymbol(code: String): String = when (code.uppercase()) {
-    "LKR" -> "Rs."
-    "USD" -> "$"
-    "EUR" -> "€"
-    "GBP" -> "£"
-    "INR" -> "₹"
-    "JPY" -> "¥"
-    else  -> code
-}
-
-/** Formats a [Long] with thousands separators (e.g., 1234567 → "1,234,567"). */
-private fun formatWithThousandsSeparator(value: Long): String {
-    val str = abs(value).toString()
-    val sign = if (value < 0) "-" else ""
-    val groups = mutableListOf<String>()
-    var remaining = str
-    while (remaining.length > 3) {
-        groups.add(0, remaining.takeLast(3))
-        remaining = remaining.dropLast(3)
-    }
-    if (remaining.isNotEmpty()) groups.add(0, remaining)
-    return sign + groups.joinToString(",")
-}

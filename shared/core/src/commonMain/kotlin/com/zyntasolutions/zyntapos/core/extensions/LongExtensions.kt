@@ -99,12 +99,18 @@ fun Long.toFormattedDateTime(
 
 /**
  * Returns a relative time label such as "Today", "Yesterday", or the formatted date.
+ *
+ * Uses [daysBetween] with `other = now`, which computes `this.date.daysUntil(now.date)`.
+ * For a past timestamp, `daysUntil` returns a **positive** value:
+ *  - 0  → today
+ *  - 1  → yesterday (one calendar day before now)
+ *  - 2+ → older, return formatted date
  */
 fun Long.toRelativeDate(tz: TimeZone = AppTimezone.current): String {
     val days = daysBetween(Clock.System.now().toEpochMilliseconds(), tz)
     return when (days) {
         0    -> "Today"
-        -1   -> "Yesterday"
+        1    -> "Yesterday"
         else -> toFormattedDate(tz)
     }
 }

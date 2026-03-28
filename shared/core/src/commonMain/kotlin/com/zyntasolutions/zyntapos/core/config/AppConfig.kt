@@ -180,7 +180,13 @@ object AppConfig {
 
     /**
      * Password for the IRD client certificate.
-     * Override at runtime from BuildConfig / secure storage — never hard-code.
+     * Override at runtime from BuildConfig / secure storage — **never hard-code**.
+     *
+     * ⚠️ Security note: This field holds a plain [String] in JVM heap memory.
+     * Callers should zero out the source char array immediately after assigning,
+     * and this field should be cleared after the certificate is loaded into the
+     * [javax.net.ssl.KeyManagerFactory]. Full migration to [CharArray]-based
+     * handling is tracked as a Phase 2 security hardening item.
      */
     var IRD_CLIENT_CERT_PASSWORD: String = ""
 }
