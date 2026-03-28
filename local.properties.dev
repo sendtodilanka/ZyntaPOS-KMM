@@ -1,6 +1,7 @@
 ## ZyntaPOS — Dev Environment Properties
 ## ═══════════════════════════════════════════════════════════════════
 ## Use this file for local development and UI/UX testing.
+## Last updated: 2026-03-28
 ## No real backend, FCM, Maps, Sentry, or IRD needed.
 ##
 ## HOW TO USE:
