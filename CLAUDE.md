@@ -1148,6 +1148,7 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 | ADR-008 | RS256 Key Distribution — Bundle default key + SecurePreferences cache (TOFU); `GET /.well-known/public-key` | ACCEPTED |
 | ADR-009 | Admin Panel / POS App Feature Boundary — admin panel MUST NOT contain store-operational write features | ACCEPTED |
 | ADR-010 | No Hardcoded UI Strings — all user-visible strings must use `StringResource` via `LocalStrings.current` | ACCEPTED |
+| ADR-011 | TLS Certificate Pinning Strategy — SPKI dual-pin (leaf + intermediate CA); Signed Pin List as future evolution | ACCEPTED |
 
 ---
 
