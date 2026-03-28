@@ -43,7 +43,7 @@ data class AppConfig(
     // Generated offline by scripts/generate-tls-signing-key.sh after each Caddy cert renewal.
     // Set via TLS_PINS_JSON_PATH (file) or TLS_PINS_JSON (env var, JSON string).
     // When null, the endpoint returns 404 and clients fall back to stored / backup pins.
-    val tlsPinsJson: String?,
+    val tlsPinsJson: String? = null,
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
