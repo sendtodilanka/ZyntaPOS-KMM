@@ -1,0 +1,74 @@
+name: Extract SPKI Pins (one-off — delete after use)
+on:
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract SPKI pins from api.zyntapos.com
+        run: |
+          echo "=== Fetching full certificate chain from api.zyntapos.com ==="
+          openssl s_client -connect api.zyntapos.com:443 -showcerts </dev/null 2>/dev/null > /tmp/chain.pem
+
+          echo ""
+          echo "=== Certificates in chain ==="
+          grep -c "BEGIN CERTIFICATE" /tmp/chain.pem || echo "No certificates found"
+
+          echo ""
+          echo "=== Leaf certificate subject/issuer ==="
+          openssl s_client -connect api.zyntapos.com:443 </dev/null 2>/dev/null \
+            | openssl x509 -noout -subject -issuer -dates 2>/dev/null
+
+          echo ""
+          echo "=== PRIMARY PIN (leaf certificate public key) ==="
+          LEAF_PIN=$(openssl s_client -connect api.zyntapos.com:443 </dev/null 2>/dev/null \
+            | openssl x509 -pubkey -noout \
+            | openssl pkey -pubin -outform der \
+            | openssl dgst -sha256 -binary \
+            | base64)
+          echo "API_SPKI_PIN_PRIMARY = sha256/${LEAF_PIN}"
+
+          echo ""
+          echo "=== Extracting intermediate CA certificate (cert index 1 in chain) ==="
+          # Split the chain and get the second cert (intermediate CA)
+          awk '/BEGIN CERTIFICATE/{i++} i==2{print}' /tmp/chain.pem > /tmp/intermediate.pem
+
+          if [ -s /tmp/intermediate.pem ]; then
+            echo "=== Intermediate CA subject/issuer ==="
+            openssl x509 -noout -subject -issuer -in /tmp/intermediate.pem 2>/dev/null
+
+            echo ""
+            echo "=== BACKUP PIN (intermediate CA public key) ==="
+            INTERMEDIATE_PIN=$(openssl x509 -pubkey -noout -in /tmp/intermediate.pem \
+              | openssl pkey -pubin -outform der \
+              | openssl dgst -sha256 -binary \
+              | base64)
+            echo "API_SPKI_PIN_BACKUP = sha256/${INTERMEDIATE_PIN}"
+          else
+            echo "WARNING: Only 1 cert in chain — trying root CA as backup pin"
+            # Try getting the root CA from the system trust store that signed this cert
+            echo "Attempting to extract issuer pin via alternate method..."
+            # Use the leaf cert's issuer to find the CA pin from Cloudflare's known CA
+            openssl s_client -connect api.zyntapos.com:443 </dev/null 2>/dev/null \
+              | openssl x509 -noout -text | grep -A5 "Authority Information Access"
+          fi
+
+          echo ""
+          echo "=== Full chain SPKI pins (all certs) ==="
+          i=0
+          while IFS= read -r line; do
+            if [[ "$line" == "-----BEGIN CERTIFICATE-----" ]]; then
+              i=$((i+1))
+              cert=""
+            fi
+            cert+="$line"$'\n'
+            if [[ "$line" == "-----END CERTIFICATE-----" ]]; then
+              PIN=$(echo "$cert" | openssl x509 -pubkey -noout \
+                | openssl pkey -pubin -outform der \
+                | openssl dgst -sha256 -binary \
+                | base64 2>/dev/null)
+              SUBJ=$(echo "$cert" | openssl x509 -noout -subject 2>/dev/null)
+              echo "Cert[$i] pin=sha256/${PIN} | ${SUBJ}"
+            fi
+          done < /tmp/chain.pem
