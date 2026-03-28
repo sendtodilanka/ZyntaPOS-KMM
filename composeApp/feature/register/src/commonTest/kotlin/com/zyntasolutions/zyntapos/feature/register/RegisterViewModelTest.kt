@@ -567,8 +567,9 @@ class RegisterViewModelTest {
 
     @Test
     fun `SubmitCashOutApproval with PIN shorter than 4 digits sets approvalError`() = runTest {
-        // submitCashOutApproval() requires an active session — open one first
-        viewModel.dispatch(RegisterIntent.OpenRegister(registerId, 500.0))
+        // submitCashOutApproval() requires an active session — seed the flow and observe
+        activeSessionFlow.value = testSession
+        viewModel.dispatch(RegisterIntent.ObserveActiveSession)
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.dispatch(RegisterIntent.ShowCashInOutDialog(CashMovement.Type.OUT))
         viewModel.dispatch(RegisterIntent.CashOutApprovalPinChanged("12"))

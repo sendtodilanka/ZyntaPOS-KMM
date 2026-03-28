@@ -486,18 +486,19 @@ class CustomerViewModelTest {
 
     @Test
     fun `SortByColumn with same key toggles sort direction`() = runTest {
-        // First dispatch — sets sortKey
+        // First dispatch — sets sortColumn to "name" (was already "name" so direction toggles)
         viewModel.dispatch(CustomerIntent.SortByColumn("name"))
         testDispatcher.scheduler.advanceUntilIdle()
         val stateAfterFirst = viewModel.state.value
-        assertEquals("name", stateAfterFirst.sortKey)
+        assertEquals("name", stateAfterFirst.sortColumn)
 
-        // Second dispatch with same key — toggles ascending
-        val firstAscending = stateAfterFirst.sortAscending
+        // Second dispatch with same key — toggles direction
+        val firstDir = stateAfterFirst.sortDirection
         viewModel.dispatch(CustomerIntent.SortByColumn("name"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(!firstAscending, viewModel.state.value.sortAscending)
+        val expectedDir = if (firstDir == SortDir.ASC) SortDir.DESC else SortDir.ASC
+        assertEquals(expectedDir, viewModel.state.value.sortDirection)
     }
 
     @Test
@@ -510,8 +511,8 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.SortByColumn("phone"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("phone", viewModel.state.value.sortKey)
-        assertTrue(viewModel.state.value.sortAscending, "New column should start ascending")
+        assertEquals("phone", viewModel.state.value.sortColumn)
+        assertEquals(SortDir.ASC, viewModel.state.value.sortDirection)
     }
 
     // ── UpdateCreditEnabled ────────────────────────────────────────────────────
@@ -521,7 +522,7 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.UpdateCreditEnabled(true))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.state.value.form.creditEnabled)
+        assertTrue(viewModel.state.value.editFormState.creditEnabled)
     }
 
     @Test
@@ -530,7 +531,7 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.UpdateCreditEnabled(false))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.form.creditEnabled)
+        assertFalse(viewModel.state.value.editFormState.creditEnabled)
     }
 
     // ── UpdateIsWalkIn ─────────────────────────────────────────────────────────
@@ -540,7 +541,7 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.UpdateIsWalkIn(true))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.state.value.form.isWalkIn)
+        assertTrue(viewModel.state.value.editFormState.isWalkIn)
     }
 
     @Test
@@ -549,7 +550,7 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.UpdateIsWalkIn(false))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.form.isWalkIn)
+        assertFalse(viewModel.state.value.editFormState.isWalkIn)
     }
 
     // ── TopUpWallet ────────────────────────────────────────────────────────────
@@ -587,7 +588,7 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.ShowBulkImportDialog)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.state.value.showBulkImportDialog)
+        assertTrue(viewModel.state.value.bulkImport.showDialog)
     }
 
     @Test
@@ -596,9 +597,9 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.DismissBulkImportDialog)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.state.value
-        assertFalse(state.showBulkImportDialog)
-        assertNull(state.importFileName)
+        val bulkImport = viewModel.state.value.bulkImport
+        assertFalse(bulkImport.showDialog)
+        assertEquals("", bulkImport.fileName)
     }
 
     @Test
@@ -607,9 +608,9 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.SetImportCsvContent("customers.csv", csv))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        val state = viewModel.state.value
-        assertEquals("customers.csv", state.importFileName)
-        assertTrue(state.importParsedRows.isNotEmpty(), "Parsed rows should be non-empty for valid CSV")
+        val bulkImport = viewModel.state.value.bulkImport
+        assertEquals("customers.csv", bulkImport.fileName)
+        assertTrue(bulkImport.parsedRows.isNotEmpty(), "Parsed rows should be non-empty for valid CSV")
     }
 
     @Test
@@ -617,7 +618,7 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.MapImportColumn("name", "customer_name"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("customer_name", viewModel.state.value.importColumnMapping["name"])
+        assertEquals("customer_name", viewModel.state.value.bulkImport.columnMapping["name"])
     }
 
     // ── MergeCustomers ─────────────────────────────────────────────────────────
@@ -669,7 +670,7 @@ class CustomerViewModelTest {
         viewModel.dispatch(CustomerIntent.UpdateGroupField("name", "VIP Customers"))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("VIP Customers", viewModel.state.value.groupForm["name"])
+        assertEquals("VIP Customers", viewModel.state.value.groupFormState.name)
     }
 
     @Test

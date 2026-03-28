@@ -571,10 +571,10 @@ class AdminViewModelTest {
 
     @Test
     fun `FilterAuditByRole sets auditRoleFilter`() = runTest {
-        viewModel.dispatch(AdminIntent.FilterAuditByRole(Role.MANAGER))
+        viewModel.dispatch(AdminIntent.FilterAuditByRole(Role.STORE_MANAGER))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(Role.MANAGER, viewModel.state.value.auditRoleFilter)
+        assertEquals(Role.STORE_MANAGER, viewModel.state.value.auditRoleFilter)
     }
 
     @Test
