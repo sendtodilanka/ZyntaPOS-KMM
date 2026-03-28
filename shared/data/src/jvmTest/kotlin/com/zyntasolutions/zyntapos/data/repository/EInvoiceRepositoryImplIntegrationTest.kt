@@ -46,7 +46,7 @@ class EInvoiceRepositoryImplIntegrationTest {
     fun setup() {
         db = createTestDatabase()
         // IrdApiClient with blank endpoint — falls back to standard HTTPS (never called in tests)
-        val fakeIrdClient = IrdApiClient(endpoint = "", certPath = "", certPassword = "")
+        val fakeIrdClient = IrdApiClient(endpoint = "", certPath = "", certPassword = CharArray(0))
         repo = EInvoiceRepositoryImpl(db, SyncEnqueuer(db), fakeIrdClient)
     }
 
