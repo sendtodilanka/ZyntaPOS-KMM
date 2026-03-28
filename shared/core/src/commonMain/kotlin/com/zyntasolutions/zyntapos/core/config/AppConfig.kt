@@ -199,41 +199,4 @@ object AppConfig {
     /** Default number of decimal places for currency display. */
     const val CURRENCY_DECIMAL_PLACES: Int = 2
 
-    // ── IRD e-Invoice (Sri Lanka) ─────────────────────────────────────────────
-
-    /**
-     * IRD (Inland Revenue Department) API endpoint for e-invoice submission.
-     *
-     * - Android: overridden from `BuildConfig.ZYNTA_IRD_API_ENDPOINT` at startup.
-     * - Desktop: overridden from the `ZYNTA_IRD_API_ENDPOINT` environment variable.
-     */
-    var IRD_API_ENDPOINT: String = ""
-        set(value) { requireUnsealed("IRD_API_ENDPOINT"); field = value }
-
-    /**
-     * Absolute path to the IRD client certificate (.p12 / PKCS12) used for mTLS.
-     *
-     * - Android: overridden from `BuildConfig.ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` at startup.
-     * - Desktop: overridden from the `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` environment variable.
-     */
-    var IRD_CLIENT_CERT_PATH: String = ""
-        set(value) { requireUnsealed("IRD_CLIENT_CERT_PATH"); field = value }
-
-    /**
-     * Password for the IRD client certificate, stored as a [CharArray] to allow
-     * explicit zeroing after the certificate is loaded into [javax.net.ssl.KeyManagerFactory].
-     *
-     * - Android: assigned as `BuildConfig.ZYNTA_IRD_CERTIFICATE_PASSWORD.toCharArray()`.
-     * - Desktop: assigned as `System.getenv("ZYNTA_IRD_CERTIFICATE_PASSWORD")?.toCharArray()`.
-     *
-     * **Zeroing contract:** [IrdApiClient] zeros this array immediately after
-     * `KeyManagerFactory.init()` completes, so the password does not linger in
-     * heap memory beyond the TLS handshake setup.
-     *
-     * **Sharing:** both [AppConfig] and [IrdApiClient] hold a reference to the
-     * same array object. Zeroing inside [IrdApiClient] also zeroes the value
-     * visible here — this is intentional.
-     */
-    var IRD_CLIENT_CERT_PASSWORD: CharArray = CharArray(0)
-        set(value) { requireUnsealed("IRD_CLIENT_CERT_PASSWORD"); field = value }
 }

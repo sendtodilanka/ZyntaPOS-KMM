@@ -19,9 +19,6 @@ plugins {
     alias(libs.plugins.composeCompiler)
     // Secrets Gradle Plugin — injects local.properties keys into BuildConfig.
     alias(libs.plugins.secretsGradle)
-    // Firebase — google-services.json processed at build time (injected by CI from GOOGLE_SERVICES_JSON secret)
-    alias(libs.plugins.googleServices)
-    alias(libs.plugins.firebaseCrashlytics)
 }
 
 android {
@@ -169,18 +166,6 @@ dependencies {
     // ── Feature: Diagnostic module ────────────────────────────────────────
     implementation(project(":composeApp:feature:diagnostic"))
 
-    // ── Firebase Analytics + Crashlytics (TODO-011) ───────────────────────
-    // google-services.json is CI-injected from GOOGLE_SERVICES_JSON secret.
-    // Placeholder file must exist at androidApp/google-services.json for local builds.
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.analytics.ktx)
-    implementation(libs.firebase.crashlytics.ktx)
-
-    // ── Kermit → Crashlytics log bridge (TODO-011 Phase 2) ─────────────────
-    // Routes Kermit ERROR/ASSERT log events to Firebase Crashlytics as non-fatal
-    // breadcrumbs, giving richer context alongside Sentry crash reports.
-    // Only active in non-debug builds (isCrashlyticsCollectionEnabled = !DEBUG).
-    implementation(libs.kermit.crashlytics)
 }
 
 // ── Secrets Gradle Plugin ────────────────────────────────────

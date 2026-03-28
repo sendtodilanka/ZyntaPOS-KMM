@@ -260,7 +260,6 @@ val AllNavItems: List<NavItem> = listOf(
         featureGate = ZyntaFeature.ACCOUNTING,
         children = listOf(
             NavChildItem(route = ZyntaRoute.AccountingLedger, label = "Ledger"),
-            NavChildItem(route = ZyntaRoute.EInvoiceList, label = "E-Invoices"),
             NavChildItem(route = ZyntaRoute.ChartOfAccounts, label = "Chart of Accounts"),
             NavChildItem(route = ZyntaRoute.JournalEntryList, label = "Journal Entries"),
         ),

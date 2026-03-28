@@ -3,8 +3,6 @@ package com.zyntasolutions.zyntapos
 // CANARY:ZyntaPOS-android-app-i9j0k1l2
 
 import android.app.Application
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.sentry.android.core.SentryAndroid
 import com.zyntasolutions.zyntapos.core.platform.AndroidAppInfoProvider
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
@@ -37,7 +35,6 @@ import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
 import co.touchlab.kermit.Logger
-import co.touchlab.kermit.crashlytics.CrashlyticsLogWriter
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
@@ -88,11 +85,6 @@ class ZyntaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // ── Firebase Analytics + Crashlytics — MUST init before Koin (TODO-011) ─
-        // google-services.json is CI-injected from GOOGLE_SERVICES_JSON secret.
-        FirebaseAnalytics.getInstance(this)
-        FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = !BuildConfig.DEBUG
-
         // ── Sentry crash reporter — MUST init before Koin (ADR-011 rule #4) ───
         // EU ingest endpoint via .ingest.de.sentry.io DSN.
         // DSN injected via Secrets Gradle Plugin (ZYNTA_SENTRY_DSN → BuildConfig).
@@ -107,13 +99,9 @@ class ZyntaApplication : Application() {
         // ── AppConfig bootstrap — MUST run before Koin so modules read correct values ──
         // AppConfig.IS_DEBUG controls TLS cert pinning and HTTP logging (set before securityModule).
         // BASE_URL / LICENSE_BASE_URL are read by ApiClient and LicenseClient during graph build.
-        // IRD vars are read by AccountingModule / IrdSubmissionService at construction time.
         AppConfig.IS_DEBUG = BuildConfig.DEBUG
         if (BuildConfig.ZYNTA_API_BASE_URL.isNotBlank())     AppConfig.BASE_URL         = BuildConfig.ZYNTA_API_BASE_URL
         if (BuildConfig.ZYNTA_LICENSE_BASE_URL.isNotBlank()) AppConfig.LICENSE_BASE_URL = BuildConfig.ZYNTA_LICENSE_BASE_URL
-        AppConfig.IRD_API_ENDPOINT         = BuildConfig.ZYNTA_IRD_API_ENDPOINT
-        AppConfig.IRD_CLIENT_CERT_PATH     = BuildConfig.ZYNTA_IRD_CLIENT_CERTIFICATE_PATH
-        AppConfig.IRD_CLIENT_CERT_PASSWORD = BuildConfig.ZYNTA_IRD_CERTIFICATE_PASSWORD.toCharArray()
 
         // Seal AppConfig — no further writes allowed after this point.
         // Koin modules that read AppConfig fields below will see the sealed values.
@@ -160,7 +148,7 @@ class ZyntaApplication : Application() {
                 settingsModule,      // SettingsViewModel
                 androidSettingsModule(this@ZyntaApplication), // AndroidBackupService
                 staffModule,         // Employee HR, attendance, payroll
-                accountingModule,    // E-Invoice / IRD submission pipeline
+                accountingModule,    // Accounting ledger, chart of accounts, journal entries
                 diagnosticModule,    // Remote diagnostic consent (ENTERPRISE, TODO-006)
             )
         }
@@ -196,19 +184,10 @@ class ZyntaApplication : Application() {
         // queries via the Admin debug console. Must run after dataModule is loaded.
         Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
 
-        // ── Kermit → Crashlytics bridge (TODO-011 Phase 2) ──────────────────────
-        // Routes Kermit ERROR/ASSERT severity events to Firebase Crashlytics as
-        // non-fatal breadcrumb exceptions, enriching crash reports with structured
-        // logs alongside Sentry context. Only active in non-debug builds where
-        // Crashlytics collection is enabled (isCrashlyticsCollectionEnabled = !DEBUG).
-        if (!BuildConfig.DEBUG) {
-            Logger.addLogWriter(CrashlyticsLogWriter())
-        }
-
-        // ── Firebase Remote Config fetch (TODO-011 Phase 2) ─────────────────────
-        // Fetches and activates latest feature flag values from Firebase console.
-        // Runs on IO to avoid blocking the main thread. No-op if Firebase project
-        // is not configured (google-services.json absent in local dev builds).
+        // ── Feature flag cache warm-up (ADR-012) ────────────────────────────────
+        // Refreshes the RemoteConfigService in-memory snapshot from the local
+        // FeatureRegistryRepository (SQLite). Runs on IO to avoid blocking the
+        // main thread. Falls back to defaults if the registry is empty.
         CoroutineScope(Dispatchers.IO).launch {
             koin.koin.get<RemoteConfigService>().fetchAndActivate()
         }

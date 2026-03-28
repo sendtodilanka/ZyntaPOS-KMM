@@ -26,7 +26,7 @@ interface AnalyticsTracker {
 
 /**
  * Standard event names for ZyntaPOS analytics.
- * Follow Firebase recommended event naming: snake_case, max 40 chars.
+ * Follows snake_case convention: max 40 chars, descriptive names.
  */
 object AnalyticsEvents {
     // Authentication

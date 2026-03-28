@@ -584,7 +584,7 @@ ZyntaPOS-KMM/
 | `:composeApp:feature:multistore` | Store selector, central KPI dashboard, inter-store transfers |
 | `:composeApp:feature:admin` | System health, audit-log viewer, DB maintenance, backup management |
 | `:composeApp:feature:media` | Product image picker, crop, compression pipeline |
-| `:composeApp:feature:accounting` | Chart of accounts, general ledger, journal entries, financial statements (P&L, balance sheet, trial balance), E-Invoice creation and IRD (Sri Lanka) submission pipeline |
+| `:composeApp:feature:accounting` | Chart of accounts, general ledger, journal entries, financial statements (P&L, balance sheet, trial balance). IRD e-invoicing deferred to Phase 4. |
 | `:composeApp:feature:diagnostic` | Remote diagnostic consent flow — JIT token decode, operator accept/deny UI, WebSocket relay to technician (ENTERPRISE, TODO-006) |
 
 ### Platform Apps / Tools
@@ -961,20 +961,14 @@ Copy `local.properties.template` and fill in values before first build.
 | `ZYNTA_API_CLIENT_ID` | OAuth2 client ID |
 | `ZYNTA_API_CLIENT_SECRET` | OAuth2 client secret |
 | `ZYNTA_DB_PASSPHRASE` | AES-256 passphrase for SQLCipher (generate: `openssl rand -hex 32`) |
-| `ZYNTA_FCM_VAPID_PUBLIC_KEY` | FCM v1 VAPID public key (Web Push) |
-| `ZYNTA_FCM_VAPID_PRIVATE_KEY` | FCM v1 VAPID private key (Web Push) |
 | `ZYNTA_SENTRY_DSN` | Sentry crash reporting DSN (Android) |
-| `ZYNTA_IRD_API_ENDPOINT` | IRD e-invoice API endpoint (Sri Lanka) |
-| `ZYNTA_IRD_CLIENT_CERTIFICATE_PATH` | Absolute path to IRD `.p12` certificate |
-| `ZYNTA_IRD_CERTIFICATE_PASSWORD` | IRD certificate password |
 | `RESEND_API_KEY` | Resend transactional email API key (TODO-008a) |
 | `EMAIL_FROM_ADDRESS` | Sender email address (e.g. `noreply@zyntapos.com`) |
 
-> **FCM Note:** Firebase Legacy Server Key was permanently disabled by Google (June 2024).
-> `ZYNTA_FCM_SERVER_KEY` is replaced by `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` (GitHub Secret — too large for `local.properties`).
-> Backend services use `firebase-admin` SDK with the service account JSON for FCM v1 HTTP API.
+> **Push Notifications:** FCM/VAPID push notifications have been removed. SMS gateway integration is planned for Phase 4.
+> **IRD e-invoicing:** IRD integration keys (`ZYNTA_IRD_*`) have been removed. IRD implementation is deferred to Phase 4.
 
-**All GitHub Secrets** (28 configured — stored in repository, not `local.properties`):
+**All GitHub Secrets** (26 configured — stored in repository, not `local.properties`):
 
 | Secret | Purpose |
 |--------|---------|
@@ -993,11 +987,6 @@ Copy `local.properties.template` and fill in values before first build.
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token (scoped — no Email Routing perms) |
 | `CF_GLOBAL_API_KEY` | Cloudflare Global API Key (full access — use for Email Routing) |
 | `CF_AUTH_EMAIL` | Cloudflare account email (`mecduino@gmail.com`) — paired with `CF_GLOBAL_API_KEY` |
-| `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
-| `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account (FCM v1 push notifications) |
-| `ZYNTA_FCM_VAPID_PUBLIC_KEY` | VAPID public key for Web Push |
-| `ZYNTA_FCM_VAPID_PRIVATE_KEY` | VAPID private key for Web Push |
-| `GA4_MEASUREMENT_ID` | Google Analytics 4 Measurement ID |
 | `SENTRY_AUTH_TOKEN` | Sentry CLI auth token |
 | `SENTRY_DSN_API` | Sentry DSN for `zyntapos-api` |
 | `SENTRY_DSN_LICENSE` | Sentry DSN for `zyntapos-license` |
@@ -1057,7 +1046,6 @@ All 26 secrets are configured. See "Secrets & Local Configuration" section above
 | `CF_ORIGIN_KEY` | Cloudflare Origin Certificate private key (PEM) | FTS Step 4 |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Cloudflare Tunnel token for Zero Trust access (optional) | FTS Step 4, Step 5 |
 | `SLACK_WEBHOOK_URL` | Slack webhook for Falco security alerts (optional) | FTS Step 4 |
-| `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK service account — FCM v1 push notifications | backend services |
 | `CHATWOOT_API_TOKEN` | Chatwoot API user access token | Chatwoot API integrations |
 | `CHATWOOT_ACCOUNT_ID` | Chatwoot account ID (`1`) | Chatwoot API integrations |
 
@@ -1149,6 +1137,7 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 | ADR-009 | Admin Panel / POS App Feature Boundary — admin panel MUST NOT contain store-operational write features | ACCEPTED |
 | ADR-010 | No Hardcoded UI Strings — all user-visible strings must use `StringResource` via `LocalStrings.current` | ACCEPTED |
 | ADR-011 | TLS Certificate Pinning Strategy — SPKI dual-pin (leaf + intermediate CA); Signed Pin List as future evolution | ACCEPTED |
+| ADR-012 | Firebase Removal — all Firebase components removed; analytics via Kermit, crash reporting via Sentry, feature flags via `FeatureRegistryRepository` | ACCEPTED |
 
 ---
 
@@ -1432,7 +1421,7 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
 | Phase 2 — Growth | ✅ 100% Complete | Multi-store (C1.1–C1.5), CRM, promotions, CRDT sync (C6.1), centralized inventory, full sync pipeline, admin panel replenishment dashboard |
-| Phase 3 — Enterprise | ✅ ~92% Complete (code) | Staff/HR ✅, admin ✅, e-invoicing/IRD ✅, analytics ✅, Firebase RemoteConfig ✅, data-layer integration tests (66 files) ✅. Pending: IRD sandbox validation, FCM push (external deps) |
+| Phase 3 — Enterprise | ✅ ~92% Complete (code) | Staff/HR ✅, admin ✅, analytics ✅, Firebase removed (ADR-012) ✅, data-layer integration tests (66 files) ✅. IRD e-invoicing code removed — deferred to Phase 4. FCM push removed — SMS gateway planned for Phase 4. |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 
@@ -1469,8 +1458,7 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | **API documentation site** | `zyntapos-docs/` — Scalar multi-spec viewer (4 OpenAPI specs), deployed to Cloudflare Pages via `cd-docs.yml`; guides in `zyntapos-docs/guides/` |
 | **OpenAPI specs (docs site)** | `zyntapos-docs/openapi/api-v1.yaml`, `admin-v1.yaml`, `license-v1.yaml`, `sync-v1.yaml` |
 | **Remote Config interface** | `shared/core/src/commonMain/.../core/config/RemoteConfigProvider.kt` — `RemoteConfigProvider` interface + `RemoteEdition` enum + `RemoteConfigKeys` constants |
-| **Remote Config service** | `shared/data/src/[android\|jvm\|common]Main/.../data/remoteconfig/RemoteConfigService.kt` — expect/actual (Firebase RC Android, stub JVM) |
-| **Admin panel Firebase analytics** | `admin-panel/src/lib/firebase.ts` — `initFirebase()`, `logAnalyticsEvent()`, GA4 web analytics |
+| **Remote Config service** | `shared/data/src/commonMain/.../data/remoteconfig/RemoteConfigService.kt` — `FeatureRegistryRepository`-backed (ADR-012: Firebase RC removed) |
 | **OpenAPI specs (embedded)** | `backend/api/src/main/resources/openapi/api-spec.yaml`, `backend/license/.../license-spec.yaml`, `backend/sync/.../sync-spec.yaml` — served as Swagger UI at `/docs` per service |
 
 ---

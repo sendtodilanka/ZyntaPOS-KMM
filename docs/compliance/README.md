@@ -97,62 +97,19 @@ obligation outside the scope of this document.
 
 ---
 
-## 3. IRD E-Invoice (Sri Lanka)
+## 3. IRD E-Invoice (Sri Lanka) — Phase 4
 
-### Overview
-
-ZyntaPOS implements Sri Lanka's Inland Revenue Department (IRD) e-invoicing requirements via the
-`:composeApp:feature:accounting` module and the `EInvoice` domain model.
-
-The IRD e-invoicing API requires merchants to submit structured electronic invoices for each
-taxable transaction. ZyntaPOS generates, submits, and tracks the submission lifecycle.
-
-### EInvoice Domain Model
-
-**File:** `shared/domain/src/commonMain/.../model/EInvoice.kt`
-
-Key fields:
-- `invoiceNumber` — sequential number assigned by the store
-- `customerTaxId` — customer VAT/TIN (nullable; required for B2B transactions)
-- `taxBreakdown` — per-tax-rate breakdown (`List<TaxBreakdownItem>`)
-- `currency` — defaults to `"LKR"` (Sri Lanka Rupee)
-- `status` — `DRAFT | SUBMITTED | ACCEPTED | REJECTED | CANCELLED`
-- `irdReferenceNumber` — assigned by IRD on acceptance (null until accepted)
-
-### Submission Lifecycle
-
-```
-DRAFT ──► SUBMITTED ──► ACCEPTED
-                  └────► REJECTED
-          └──────────────► CANCELLED
-```
-
-Use cases in `:shared:domain`:
-- `CreateEInvoiceUseCase`
-- `SubmitEInvoiceToIrdUseCase`
-- `CancelEInvoiceUseCase`
-- `GetEInvoicesUseCase`
-- `GetEInvoiceByOrderUseCase`
-
-### IRD API Configuration
-
-The IRD API endpoint and client certificate are configured via `local.properties`:
-
-```properties
-ZYNTA_IRD_API_ENDPOINT=https://einvoice.ird.gov.lk/api/v1
-ZYNTA_IRD_CLIENT_CERTIFICATE_PATH=/path/to/certificate.p12
-ZYNTA_IRD_CERTIFICATE_PASSWORD=<password>
-```
-
-These values are injected into `BuildConfig` at build time via the Gradle Secrets Plugin.
-
-### Tax Compliance
-
-ZyntaPOS supports:
-- Multiple tax rates per order (via `TaxGroup` domain model and `tax_groups` SQLite table)
-- Per-line-item tax calculation
-- Per-tax-rate breakdown in e-invoices (as required by IRD format)
-- VAT/TIN tracking for business customers (`customerTaxId` field)
+> **Status:** IRD e-invoice integration has been deferred to **Phase 4**.
+> The implementation code has been removed from the codebase pending IRD sandbox access and
+> finalisation of the XML invoice format specification.
+>
+> ZyntaPOS still supports the underlying tax infrastructure required for IRD compliance:
+> - Multiple tax rates per order (via `TaxGroup` domain model and `tax_groups` SQLite table)
+> - Per-line-item tax calculation
+> - VAT/TIN tracking for business customers
+>
+> Full IRD e-invoicing (mTLS client certificate, submission lifecycle, IRD reference number tracking)
+> will be implemented in Phase 4.
 
 ---
 
@@ -232,7 +189,7 @@ Session timeouts are currently hardcoded constants. Configurable per-role timeou
 | Customers | Indefinite | Phase 2: GDPR erasure workflow |
 | Audit logs | Not persisted (MERGED-D2 gap) | Phase 2: configurable purge (90 days minimum) |
 | Sync queue | SYNCED rows kept indefinitely | `pruneSynced()` available, not scheduled |
-| E-invoices | Indefinite | Per IRD regulations (Sri Lanka: 5 years) |
+| E-invoices | N/A (Phase 4) | IRD e-invoice integration deferred to Phase 4 |
 | Session tokens | Cleared on logout | Immediate |
 
 ---

@@ -85,13 +85,9 @@ fun main() {
     // ── AppConfig bootstrap — MUST run before Koin so modules read correct values ──
     // AppConfig.IS_DEBUG controls TLS cert pinning and HTTP logging (set before securityModule).
     // BASE_URL / LICENSE_BASE_URL are read by ApiClient and LicenseClient during graph build.
-    // IRD vars are read by AccountingModule / IrdSubmissionService at construction time.
     AppConfig.IS_DEBUG = System.getProperty("app.debug")?.toBoolean() ?: false
     System.getenv("ZYNTA_API_BASE_URL")?.takeIf { it.isNotBlank() }?.let     { AppConfig.BASE_URL         = it }
     System.getenv("ZYNTA_LICENSE_BASE_URL")?.takeIf { it.isNotBlank() }?.let { AppConfig.LICENSE_BASE_URL = it }
-    AppConfig.IRD_API_ENDPOINT         = System.getenv("ZYNTA_IRD_API_ENDPOINT")            ?: ""
-    AppConfig.IRD_CLIENT_CERT_PATH     = System.getenv("ZYNTA_IRD_CLIENT_CERTIFICATE_PATH") ?: ""
-    AppConfig.IRD_CLIENT_CERT_PASSWORD = System.getenv("ZYNTA_IRD_CERTIFICATE_PASSWORD")?.toCharArray() ?: CharArray(0)
 
     // Seal AppConfig — no further writes allowed after this point.
     // Koin modules that read AppConfig fields below will see the sealed values.
@@ -160,9 +156,9 @@ fun main() {
     // queries via the Admin debug console. Must run after dataModule is loaded.
     Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
 
-    // ── Firebase Remote Config fetch (TODO-011 Phase 2) ─────────────────────
-    // JVM stub — fetchAndActivate() is a no-op that returns false immediately.
-    // Included for symmetry with Android; Desktop edition gating uses license server.
+    // ── Feature flag cache warm-up (ADR-012) ────────────────────────────────────
+    // Refreshes the RemoteConfigService in-memory snapshot from the local
+    // FeatureRegistryRepository (SQLite). Runs on IO to avoid blocking the main thread.
     CoroutineScope(Dispatchers.IO).launch {
         koin.koin.get<RemoteConfigService>().fetchAndActivate()
     }

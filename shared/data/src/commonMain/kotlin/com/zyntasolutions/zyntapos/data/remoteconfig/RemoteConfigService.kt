@@ -1,30 +1,70 @@
 package com.zyntasolutions.zyntapos.data.remoteconfig
 
+import co.touchlab.kermit.Logger
+import com.zyntasolutions.zyntapos.core.config.RemoteConfigKeys
 import com.zyntasolutions.zyntapos.core.config.RemoteConfigProvider
 import com.zyntasolutions.zyntapos.core.config.RemoteEdition
+import com.zyntasolutions.zyntapos.domain.model.ZyntaFeature
+import com.zyntasolutions.zyntapos.domain.repository.FeatureRegistryRepository
 
 /**
- * Cross-platform Firebase Remote Config service (TODO-011 Phase 2).
+ * Feature flag service backed by the local [FeatureRegistryRepository].
  *
- * Implements [RemoteConfigProvider] from `:shared:core` so feature modules can
- * depend on the interface without pulling in `:shared:data`.
+ * Implements [RemoteConfigProvider] so that feature modules depending on
+ * `:shared:core` can inject this via Koin without pulling in `:shared:data`.
  *
- * Platform implementations:
- * - **Android:** Firebase Remote Config SDK — live fetches from Firebase console.
- * - **Desktop JVM:** No-op stub — returns all defaults (Firebase RC has no JVM SDK).
+ * **Architecture (ADR-012):** Firebase Remote Config has been removed. Feature
+ * flags are now managed via the Admin Panel (`/admin/config/feature-flags`) and
+ * pushed to devices through the sync engine, which populates the local
+ * [FeatureRegistryRepository] (SQLite). This service reads from that local store.
  *
- * Architecture constraint (TODO-011 rule #1): Firebase SDK must only be used in
- * `androidMain` — never in `commonMain`.
+ * **Cache strategy:** [fetchAndActivate] populates an in-memory snapshot from
+ * the local [FeatureRegistryRepository]. Subsequent [getBoolean] / [getString] /
+ * [getLong] calls read from this snapshot synchronously. The snapshot is
+ * refreshed every time [fetchAndActivate] is called (once per app startup).
+ *
+ * **Fallback:** When [fetchAndActivate] has not yet been called, all getters
+ * return their supplied [defaultValue], which is always the most restrictive
+ * / safest option.
  */
-expect class RemoteConfigService : RemoteConfigProvider {
+class RemoteConfigService(
+    private val featureRegistry: FeatureRegistryRepository,
+) : RemoteConfigProvider {
 
-    override suspend fun fetchAndActivate(): Boolean
+    private val log = Logger.withTag("RemoteConfigService")
 
-    override fun getString(key: String, defaultValue: String): String
+    // In-memory snapshot populated by fetchAndActivate()
+    private val boolCache  = mutableMapOf<String, Boolean>()
+    private val stringCache = mutableMapOf<String, String>()
 
-    override fun getBoolean(key: String, defaultValue: Boolean): Boolean
+    override suspend fun fetchAndActivate(): Boolean {
+        return try {
+            boolCache[RemoteConfigKeys.MULTI_STORE_ENABLED]  = featureRegistry.isEnabled(ZyntaFeature.MULTISTORE)
+            boolCache[RemoteConfigKeys.ACCOUNTING_ENABLED]   = featureRegistry.isEnabled(ZyntaFeature.ACCOUNTING)
+            boolCache[RemoteConfigKeys.STAFF_MODULE_ENABLED] = featureRegistry.isEnabled(ZyntaFeature.STAFF_HR)
+            boolCache[RemoteConfigKeys.DIAGNOSTIC_ENABLED]   = featureRegistry.isEnabled(ZyntaFeature.REMOTE_DIAGNOSTICS)
+            boolCache[RemoteConfigKeys.MAINTENANCE_MODE]     = false  // Not stored in FeatureRegistry; default safe
 
-    override fun getLong(key: String, defaultValue: Long): Long
+            log.d { "RemoteConfigService: cache refreshed from FeatureRegistry" }
+            true
+        } catch (e: Exception) {
+            log.w { "RemoteConfigService: fetchAndActivate failed — ${e.message}" }
+            false
+        }
+    }
 
-    override fun getEdition(): RemoteEdition
+    override fun getString(key: String, defaultValue: String): String =
+        stringCache[key] ?: defaultValue
+
+    override fun getBoolean(key: String, defaultValue: Boolean): Boolean =
+        boolCache[key] ?: defaultValue
+
+    override fun getLong(key: String, defaultValue: Long): Long = defaultValue
+
+    override fun getEdition(): RemoteEdition {
+        // Edition is authoritative from the license server (LicenseManager / FeatureRegistry).
+        // RemoteConfigService returns STARTER as a safe default; the navigation layer
+        // enforces edition gating via FeatureRegistryRepository directly.
+        return RemoteEdition.STARTER
+    }
 }

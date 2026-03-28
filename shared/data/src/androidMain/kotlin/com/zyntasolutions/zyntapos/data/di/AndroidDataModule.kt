@@ -2,16 +2,11 @@ package com.zyntasolutions.zyntapos.data.di
 
 import android.content.Context
 import android.provider.Settings
-import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.config.AppConfig
-import com.zyntasolutions.zyntapos.core.config.RemoteConfigProvider
-import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
 import com.zyntasolutions.zyntapos.data.email.EmailPortImpl
-import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
-import com.zyntasolutions.zyntapos.data.remote.ird.IrdApiClient
 import com.zyntasolutions.zyntapos.data.sync.NetworkMonitor
 import com.zyntasolutions.zyntapos.domain.port.EmailPort
 import org.koin.android.ext.koin.androidContext
@@ -71,35 +66,11 @@ val androidDataModule = module {
     // a fallback to filesDir/backups when external storage is unavailable.
     single { BackupFileManager(context = androidContext()) }
 
-    // ── IRD e-Invoice API client (mTLS, platform expect/actual) ───────────────
-    // Reads endpoint + cert config from AppConfig (set at app startup from
-    // BuildConfig.ZYNTA_IRD_* secrets injected by the Gradle Secrets Plugin).
-    single {
-        IrdApiClient(
-            endpoint     = AppConfig.IRD_API_ENDPOINT,
-            certPath     = AppConfig.IRD_CLIENT_CERT_PATH,
-            certPassword = AppConfig.IRD_CLIENT_CERT_PASSWORD,
-        )
-    }
-
     // ── Network Monitoring (platform expect/actual) ───────────────────
     // Android actual uses ConnectivityManager.NetworkCallback.
     // Call NetworkMonitor.start() from Application.onCreate() or the
     // app-level ViewModel initialization.
     single { NetworkMonitor(context = androidContext()) }
-
-    // ── Analytics (platform expect/actual) ──────────────────────────────
-    // Android actual uses Firebase Analytics SDK.
-    // Bound as both concrete type and AnalyticsTracker interface so feature
-    // modules can depend on the interface from :shared:core.
-    single { AnalyticsService(context = androidContext()) }
-    single<AnalyticsTracker> { get<AnalyticsService>() }
-
-    // ── Remote Config (platform expect/actual) ───────────────────────────
-    // Android actual uses Firebase Remote Config SDK (TODO-011 Phase 2).
-    // Bound as both concrete type and RemoteConfigProvider interface.
-    single { RemoteConfigService() }
-    single<RemoteConfigProvider> { get<RemoteConfigService>() }
 
     // ── Email port (platform expect/actual) ───────────────────────────────────
     // Android actual opens the system email chooser via Intent.ACTION_SENDTO.

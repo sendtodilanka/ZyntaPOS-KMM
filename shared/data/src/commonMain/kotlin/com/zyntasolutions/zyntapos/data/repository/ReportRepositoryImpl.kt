@@ -14,7 +14,6 @@ import com.zyntasolutions.zyntapos.domain.model.report.CustomerSpendData
 import com.zyntasolutions.zyntapos.domain.model.report.DailySalesSummaryData
 import com.zyntasolutions.zyntapos.domain.model.report.DeptExpenseData
 import com.zyntasolutions.zyntapos.domain.model.report.DiscountVoidData
-import com.zyntasolutions.zyntapos.domain.model.report.EInvoiceStatusData
 import com.zyntasolutions.zyntapos.domain.model.report.GrossMarginData
 import com.zyntasolutions.zyntapos.domain.model.report.HourlySalesData
 import com.zyntasolutions.zyntapos.domain.model.report.InventoryValuationData
@@ -562,25 +561,6 @@ class ReportRepositoryImpl(
         }
 
     // ── Enterprise Reports — Finance ──────────────────────────────────────────
-
-    override suspend fun getEInvoiceStatus(
-        from: Instant,
-        to: Instant,
-    ): List<EInvoiceStatusData> =
-        withContext(Dispatchers.IO) {
-            q.eInvoiceStatus(
-                from.toEpochMilliseconds(),
-                to.toEpochMilliseconds(),
-            ).executeAsList().map { row ->
-                EInvoiceStatusData(
-                    invoiceId   = row.invoice_id,
-                    orderId     = row.order_id,
-                    status      = row.status,
-                    submittedAt = row.submitted_at?.let { Instant.fromEpochMilliseconds(it) },
-                    totalAmount = row.total_amount,
-                )
-            }
-        }
 
     override suspend fun getAccountingLedger(
         from: Instant,

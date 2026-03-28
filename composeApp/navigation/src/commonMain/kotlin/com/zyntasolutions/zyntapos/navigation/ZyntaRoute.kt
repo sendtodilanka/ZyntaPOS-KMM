@@ -546,22 +546,6 @@ sealed class ZyntaRoute {
     @Serializable
     data class AccountDetail(val accountCode: String, val fiscalPeriod: String) : ZyntaRoute()
 
-    /** E-Invoice list — status filter (DRAFT, SUBMITTED, ACCEPTED, REJECTED). */
-    @Serializable
-    data object EInvoiceList : ZyntaRoute()
-
-    /**
-     * E-Invoice detail / creation screen.
-     *
-     * @param invoiceId Existing invoice ID for detail view; `null` to create from an order.
-     * @param orderId   Source order ID when creating a new invoice.
-     */
-    @Serializable
-    data class EInvoiceDetail(
-        val invoiceId: String? = null,
-        val orderId: String? = null,
-    ) : ZyntaRoute()
-
     // ── Wave 4B — Chart of Accounts, Journal Entries, Financial Statements ─────
 
     /** Chart of Accounts — master list of all accounts for the store. */

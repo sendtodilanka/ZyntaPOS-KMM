@@ -12,7 +12,6 @@ import com.zyntasolutions.zyntapos.domain.model.report.CustomerSpendData
 import com.zyntasolutions.zyntapos.domain.model.report.DailySalesSummaryData
 import com.zyntasolutions.zyntapos.domain.model.report.DeptExpenseData
 import com.zyntasolutions.zyntapos.domain.model.report.DiscountVoidData
-import com.zyntasolutions.zyntapos.domain.model.report.EInvoiceStatusData
 import com.zyntasolutions.zyntapos.domain.model.report.GrossMarginData
 import com.zyntasolutions.zyntapos.domain.model.report.HourlySalesData
 import com.zyntasolutions.zyntapos.domain.model.report.InventoryValuationData
@@ -190,12 +189,6 @@ interface ReportRepository {
     suspend fun getReturnRefundSummary(from: Instant, to: Instant): ReturnRefundData
 
     // ── Enterprise Reports — Finance ────────────────────────────────────────
-
-    /**
-     * Returns e-invoice submission status records for the given date range,
-     * ordered by [EInvoiceStatusData.submittedAt] ascending.
-     */
-    suspend fun getEInvoiceStatus(from: Instant, to: Instant): List<EInvoiceStatusData>
 
     /**
      * Returns accounting ledger entries for the given date range,

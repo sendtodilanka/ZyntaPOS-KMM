@@ -6,11 +6,11 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
 import { queryClient } from './lib/query-client';
-import { initFirebase } from './lib/firebase';
 import './globals.css';
 
 // Sentry error tracking — DSN injected via VITE_SENTRY_DSN env var.
 // No-ops gracefully when DSN is empty (local dev).
+// Analytics tracking is handled via @sentry/react (ADR-012: Firebase removed).
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN || '',
   environment: import.meta.env.MODE,
@@ -18,11 +18,6 @@ Sentry.init({
   tracesSampleRate: import.meta.env.PROD ? 0.1 : 0,
   enabled: !!import.meta.env.VITE_SENTRY_DSN,
 });
-
-// Firebase Analytics (GA4) — config injected via VITE_FIREBASE_* env vars.
-// No-ops gracefully when not configured (local dev without Firebase project).
-// TODO-011 Phase 2: unified GA4 dashboard across Android, Desktop, and Web.
-initFirebase();
 
 const router = createRouter({
   routeTree,

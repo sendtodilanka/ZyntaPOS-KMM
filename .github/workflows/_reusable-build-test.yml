@@ -23,10 +23,6 @@ name: "Reusable: Build & Test"
 
 on:
   workflow_call:
-    secrets:
-      GOOGLE_SERVICES_JSON:
-        description: 'Firebase google-services.json content (injected into androidApp/ before build)'
-        required: false
     inputs:
       # ── Behaviour toggles ─────────────────────────────────────────────────
       run-tests:
@@ -103,19 +99,6 @@ jobs:
       # DevApiService (no-op stub) so backend secrets are never consumed.
       - name: Create local.properties from dev template
         run: ./scripts/setup-local-properties.sh
-
-      # ── Firebase google-services.json ────────────────────────────────────
-      # Injected from GitHub Secret. Falls back gracefully if secret is absent
-      # (e.g., forks or non-Firebase builds) — Gradle will warn but not fail.
-      # NOTE: secrets context cannot be used in step if: conditions inside
-      # workflow_call workflows — check emptiness inside the shell script instead.
-      - name: Inject google-services.json
-        env:
-          GOOGLE_SERVICES_JSON_CONTENT: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: |
-          if [ -n "$GOOGLE_SERVICES_JSON_CONTENT" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON_CONTENT" > androidApp/google-services.json
-          fi
 
       # ── Build (single Gradle invocation) ──────────────────────────────────
       # Previous pipeline invoked ./gradlew 7 times (once per module + APK + JAR),

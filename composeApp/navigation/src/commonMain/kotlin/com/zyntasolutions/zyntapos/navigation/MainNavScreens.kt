@@ -287,15 +287,6 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
-    val eInvoiceList: @Composable (
-        onNavigateToDetail: (invoiceId: String) -> Unit,
-    ) -> Unit,
-
-    val eInvoiceDetail: @Composable (
-        invoiceId: String?,
-        onNavigateUp: () -> Unit,
-    ) -> Unit,
-
     // ── Wave 4B: Chart of Accounts, Journal Entries, Financial Statements ──────
     val chartOfAccounts: @Composable (
         onNavigateToAccountDetail: (accountId: String?) -> Unit,

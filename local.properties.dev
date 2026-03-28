@@ -2,7 +2,7 @@
 ## ═══════════════════════════════════════════════════════════════════
 ## Use this file for local development and UI/UX testing.
 ## Last updated: 2026-03-28
-## No real backend, FCM, Maps, Sentry, or IRD needed.
+## No real backend, Maps, or Sentry needed.
 ##
 ## HOW TO USE:
 ##   cp local.properties.dev local.properties
@@ -45,20 +45,9 @@ ZYNTA_DB_PASSPHRASE=000000000000000000000000000000000000000000000000000000000000
 # Production: base64-encoded DER of the RSA public key used by the backend.
 ZYNTA_RS256_PUBLIC_KEY=dev-placeholder-rs256-public-key
 
-# ── Push Notifications (FCM v1) — not used in dev ───────────────────
-# Firebase Legacy Server Key was permanently disabled (June 2024).
-# Use FCM v1 HTTP API via Firebase Admin SDK service account.
-# VAPID keys for Web Push (PWA):
-ZYNTA_FCM_VAPID_PUBLIC_KEY=dev-placeholder-vapid-public-key
-ZYNTA_FCM_VAPID_PRIVATE_KEY=dev-placeholder-vapid-private-key
-
 # ── Maps / Geolocation — not used in dev ────────────────────────────
 ZYNTA_MAPS_API_KEY=dev-placeholder-maps-key
 
 # ── Crash Reporting — not used in dev ───────────────────────────────
 ZYNTA_SENTRY_DSN=dev-placeholder-sentry-dsn
 
-# ── E-Invoicing / IRD — not used in dev ─────────────────────────────
-ZYNTA_IRD_API_ENDPOINT=http://localhost:8080/ird
-ZYNTA_IRD_CLIENT_CERTIFICATE_PATH=/dev/null
-ZYNTA_IRD_CERTIFICATE_PASSWORD=dev-placeholder

@@ -24,7 +24,6 @@ import com.zyntasolutions.zyntapos.domain.model.report.CustomerSpendData
 import com.zyntasolutions.zyntapos.domain.model.report.DailySalesSummaryData
 import com.zyntasolutions.zyntapos.domain.model.report.DeptExpenseData
 import com.zyntasolutions.zyntapos.domain.model.report.DiscountVoidData
-import com.zyntasolutions.zyntapos.domain.model.report.EInvoiceStatusData
 import com.zyntasolutions.zyntapos.domain.model.report.GrossMarginData
 import com.zyntasolutions.zyntapos.domain.model.report.HourlySalesData
 import com.zyntasolutions.zyntapos.domain.model.report.InventoryValuationData
@@ -279,7 +278,6 @@ class ReplenishmentViewModelTest {
         override suspend fun getSupplierPurchases(from: Instant, to: Instant): List<SupplierPurchaseData> = emptyList()
         override suspend fun getReturnRefundSummary(from: Instant, to: Instant): ReturnRefundData =
             ReturnRefundData(0, 0.0, emptyList())
-        override suspend fun getEInvoiceStatus(from: Instant, to: Instant): List<EInvoiceStatusData> = emptyList()
         override suspend fun getAccountingLedger(from: Instant, to: Instant): List<AccountingLedgerRecord> = emptyList()
         override suspend fun getHourlySales(date: LocalDate): List<HourlySalesData> = emptyList()
         override suspend fun getCustomerLoyaltySummary(from: Instant, to: Instant): List<CustomerLoyaltyData> = emptyList()

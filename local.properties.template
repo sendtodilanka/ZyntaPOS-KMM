@@ -26,29 +26,12 @@ ZYNTA_LICENSE_BASE_URL=https://license.zyntapos.com
 #     | openssl base64 -A
 ZYNTA_RS256_PUBLIC_KEY=YOUR_BASE64_DER_RSA_PUBLIC_KEY_HERE
 
-# ── Push Notifications (FCM v1) ─────────────────────────────────────
-# Firebase Legacy Server Key was permanently disabled (June 2024).
-# Use FCM v1 HTTP API via Firebase Admin SDK service account.
-#
-# ZYNTA_FCM_SERVICE_ACCOUNT_JSON — set as GitHub Secret only (too large for local.properties)
-#
-# NOTE: VAPID keys (Web Push for the admin panel PWA) are NOT consumed by the
-# KMM Android/Desktop app and do NOT belong here.
-# → Public key: add to admin-panel/.env as VITE_VAPID_PUBLIC_KEY
-# → Private key: store as GitHub Secret ZYNTA_FCM_VAPID_PRIVATE_KEY only
-
 # ── Crash Reporting (Sentry) ─────────────────────────────────────────
 # Android DSN — from Sentry project "zyntapos-android" (EU ingest region).
 # Injected into BuildConfig.ZYNTA_SENTRY_DSN via Secrets Gradle Plugin.
 # Backend DSNs (api / license / sync) are set as GitHub Secrets and
 # passed to docker-compose via SENTRY_DSN_API / SENTRY_DSN_LICENSE / SENTRY_DSN_SYNC.
 ZYNTA_SENTRY_DSN=YOUR_ANDROID_SENTRY_DSN_HERE
-
-# ── E-Invoicing / IRD ───────────────────────────────────────────────
-# Injected into AppConfig.IRD_* at app startup (ZyntaApplication.onCreate / main()).
-ZYNTA_IRD_API_ENDPOINT=https://ird-staging.gov.lk/api/v1
-ZYNTA_IRD_CLIENT_CERTIFICATE_PATH=/path/to/ird_cert.p12
-ZYNTA_IRD_CERTIFICATE_PASSWORD=YOUR_IRD_CERT_PASSWORD_HERE
 
 # ── NOTE: Backend-only keys ─────────────────────────────────────────
 # The following variables are consumed by the Ktor backend services via
@@ -58,6 +41,5 @@ ZYNTA_IRD_CERTIFICATE_PASSWORD=YOUR_IRD_CERT_PASSWORD_HERE
 #
 #   RESEND_API_KEY          — transactional email (Resend.com)
 #   EMAIL_FROM_ADDRESS      — sender address (e.g. noreply@zyntapos.com)
-#   ZYNTA_FCM_SERVICE_ACCOUNT_JSON — Firebase Admin SDK service account
 #   SENTRY_DSN_API / SENTRY_DSN_LICENSE / SENTRY_DSN_SYNC
 #   CHATWOOT_API_TOKEN / CHATWOOT_ACCOUNT_ID

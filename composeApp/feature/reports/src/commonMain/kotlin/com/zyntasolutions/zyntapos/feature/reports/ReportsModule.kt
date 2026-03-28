@@ -12,7 +12,6 @@ import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateBac
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateCOGSReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateCustomerLoyaltyReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateCustomerRetentionReportUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateEInvoiceStatusReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateExpenseSummaryByDeptReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateGrossMarginReportUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.reports.enterprise.GenerateHourlySalesReportUseCase
@@ -90,7 +89,6 @@ val reportsModule = module {
     factory { GenerateCOGSReportUseCase(get()) }
     factory { GenerateCustomerLoyaltyReportUseCase(get()) }
     factory { GenerateCustomerRetentionReportUseCase(get()) }
-    factory { GenerateEInvoiceStatusReportUseCase(get()) }
     factory { GenerateExpenseSummaryByDeptReportUseCase(get()) }
     factory { GenerateGrossMarginReportUseCase(get()) }
     factory { GenerateHourlySalesReportUseCase(get()) }

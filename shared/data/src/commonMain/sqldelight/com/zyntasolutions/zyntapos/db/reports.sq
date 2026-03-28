@@ -6,7 +6,7 @@
 -- products.sq, categories.sq, registers.sq (cash_movements),
 -- employees.sq, attendance_records.sq, payroll_records.sq,
 -- shift_schedules.sq, leave_records.sq, coupons.sq,
--- expenses.sq, accounting_entries.sq, e_invoices.sq,
+-- expenses.sq, accounting_entries.sq,
 -- stock_transfers.sq, warehouses.sq, warehouse_racks.sq,
 -- reward_points.sq, customer_wallets.sq, customers.sq,
 -- suppliers.sq, tax_groups.sq, users.sq.
@@ -455,18 +455,6 @@ WHERE o.type = 'RETURN'
   AND o.created_at >= ? AND o.created_at < ?
 GROUP BY p.id, p.name
 ORDER BY return_count DESC;
-
--- ── Enterprise: E-Invoice status ─────────────────────────────────────────────
-eInvoiceStatus:
-SELECT
-    ei.id           AS invoice_id,
-    ei.order_id,
-    ei.status,
-    ei.submitted_at,
-    ei.total        AS total_amount
-FROM e_invoices ei
-WHERE ei.created_at >= ? AND ei.created_at < ?
-ORDER BY ei.created_at ASC;
 
 -- ── Enterprise: Accounting ledger ────────────────────────────────────────────
 accountingLedger:
