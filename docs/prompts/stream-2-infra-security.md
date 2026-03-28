@@ -41,25 +41,24 @@
 
 ## What's STILL MISSING (implement these)
 
-### 1. A5 — Firebase Analytics & Sentry KMP Integration (P1-HIGH)
+### 1. A5 — Analytics & Sentry KMP Integration (COMPLETED — ADR-012 2026-03-28)
 
-**Status:** ~40% Complete — secrets configured, SDKs not wired
+**Status:** ✅ COMPLETE — Firebase removed; Kermit + Sentry active on all platforms
 
 **What EXISTS:**
-- `GOOGLE_SERVICES_JSON`, `GA4_MEASUREMENT_ID`, `SENTRY_DSN_*` secrets in GitHub
-- Backend Sentry integration partial
+- `SENTRY_DSN_*` secrets in GitHub (GOOGLE_SERVICES_JSON and GA4_MEASUREMENT_ID removed per ADR-012)
+- Sentry active on Android, Desktop JVM, all 3 Ktor backends, admin panel
+- `AnalyticsTracker` interface + `AnalyticsService` (commonMain, Kermit-only) in `:shared:core` / `:shared:data`
+- `RemoteConfigService` (commonMain) backed by `FeatureRegistryRepository` (no Firebase RC)
 
-**What's MISSING:**
-- [ ] Firebase Android SDK dependency in `androidApp/build.gradle.kts`
-- [ ] `google-services.json` decode step in CI (base64 → file)
-- [ ] `FirebaseAnalytics` initialization in Android `ZyntaApplication.kt`
-- [ ] `AnalyticsTracker` expect/actual interface in `:shared:core`
-  - `expect`: `fun trackScreen(name: String)`, `fun trackEvent(name: String, params: Map<String, String>)`
-  - `actual` Android: Firebase Analytics SDK
-  - `actual` JVM: GA4 Measurement Protocol HTTP POST (or no-op stub)
-- [ ] Screen view events in feature module ViewModels (POS, Auth, Dashboard, Inventory)
-- [ ] Sentry initialization in all 3 backend services (api, license, sync)
-- [ ] Sentry error boundary in admin panel (`ErrorBoundary` component)
+**Resolved (ADR-012, 2026-03-28):**
+- ~~Firebase Android SDK dependency~~ — removed; Kermit handles analytics events
+- ~~`google-services.json` decode step in CI~~ — removed; no Firebase config file needed
+- ~~`FirebaseAnalytics` initialization~~ — removed; Sentry breadcrumbs via sentry-android
+- ~~`AnalyticsTracker` expect/actual~~ — replaced with single commonMain class
+- [x] Screen view events wired in feature module ViewModels via `AnalyticsTracker` | 2026-03-27
+- [x] Sentry initialization in all 3 backend services (api, license, sync) | 2026-03-27
+- [x] Sentry `@sentry/react` active in admin panel | 2026-03-27
 
 **Key Files:**
 - `androidApp/build.gradle.kts`
@@ -98,7 +97,7 @@
 ### 6. E1 — CI Pipeline Enhancements (partial)
 
 - [ ] Test coverage threshold in CI (fail if < 60%) — Kover installed but not enforced
-- [ ] `google-services.json` decode step in CI workflows
+- ~~[ ] `google-services.json` decode step in CI workflows~~ — **REMOVED (ADR-012, 2026-03-28)**
 - [ ] Playwright E2E tests for admin panel in CI
 
 ---
@@ -126,10 +125,9 @@ These were in the original plan but explicitly deferred:
 ```bash
 git fetch origin main && git merge origin/main --no-edit
 git add -A
-git commit -m "feat(analytics): add Firebase Analytics + Sentry KMP integration [A5]
+git commit -m "feat(analytics): add Kermit + Sentry analytics integration [A5]
 
-- AnalyticsTracker expect/actual interface in :shared:core
-- Firebase SDK wiring in androidApp
+- AnalyticsTracker interface + AnalyticsService (commonMain, Kermit-only)
 - Screen view events in POS, Auth, Dashboard ViewModels
 - Sentry initialization in backend services
 

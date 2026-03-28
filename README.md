@@ -76,7 +76,7 @@ ZyntaPOS is a fully offline-capable, multi-store POS system built with Kotlin Mu
 | `:composeApp:feature:multistore` | Store selector, central KPI dashboard, inter-store transfers |
 | `:composeApp:feature:admin` | System health, audit-log viewer, DB maintenance, backup management |
 | `:composeApp:feature:media` | Product image picker, crop, compression pipeline |
-| `:composeApp:feature:accounting` | E-Invoice creation, chart of accounts, general ledger, IRD (Sri Lanka) submission pipeline |
+| `:composeApp:feature:accounting` | Chart of accounts, general ledger, journal entries, financial statements (P&L, balance sheet, trial balance). IRD e-invoicing deferred to Phase 4. |
 
 ---
 
@@ -136,8 +136,6 @@ Open `local.properties` and fill in the required values:
 | `ZYNTA_API_CLIENT_SECRET` | OAuth2 client secret |
 | `ZYNTA_RS256_PUBLIC_KEY` | Base64-encoded DER of the RS256 public key used to sign JWTs |
 | `ZYNTA_DB_PASSPHRASE` | AES-256 passphrase for SQLCipher (64 hex chars) |
-| `ZYNTA_FCM_VAPID_PUBLIC_KEY` | FCM v1 VAPID public key (Web Push) |
-| `ZYNTA_FCM_VAPID_PRIVATE_KEY` | FCM v1 VAPID private key (Web Push) |
 | `ZYNTA_SENTRY_DSN` | Sentry crash reporting DSN (Android) |
 | `ZYNTA_LICENSE_BASE_URL` | License service base URL |
 | `ZYNTA_IRD_API_ENDPOINT` | IRD e-invoice API endpoint (Sri Lanka) |
@@ -149,7 +147,6 @@ Generate a secure DB passphrase:
 openssl rand -hex 32
 ```
 
-> **FCM note:** `ZYNTA_FCM_SERVICE_ACCOUNT_JSON` (Firebase Admin SDK service account) is stored as a GitHub Secret — it is too large for `local.properties`. The old `ZYNTA_FCM_SERVER_KEY` (Firebase Legacy Server Key) was permanently disabled by Google in June 2024.
 
 ### 3. Build & Run
 
@@ -236,7 +233,7 @@ openssl rand -hex 32
 | Phase 0 | Foundation | ✅ Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 (MVP) | Months 1–6 | ✅ Complete | Single-store POS, offline sync, core features |
 | Phase 2 (Growth) | Months 7–12 | ✅ 100% Complete | Multi-store (C1.1–C1.5), CRM, promotions, CRDT sync (C6.1), centralized inventory, full sync pipeline, admin panel replenishment |
-| Phase 3 (Enterprise) | Months 13–18 | 🟡 ~92% Complete (code) | Staff/HR, admin, e-invoicing (IRD), analytics, Firebase RemoteConfig. Pending: IRD sandbox validation, FCM push (external deps) |
+| Phase 3 (Enterprise) | Months 13–18 | 🟡 ~92% Complete (code) | Staff/HR, admin, analytics (Kermit + Sentry), Firebase removed (ADR-012). Pending: IRD sandbox validation (Phase 4), SMS gateway (Phase 4) |
 
 > **Last status update:** 2026-03-28. See `docs/ai_workflows/execution_log.md` for the full implementation summary and known gaps.
 

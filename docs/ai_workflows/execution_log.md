@@ -61,27 +61,30 @@
 
 ---
 
-## ✅ TODO-011 Phase 2 — Firebase JS SDK + RemoteConfigService + Documentation Cleanup (2026-03-27)
+## ✅ TODO-011 Phase 2 — RemoteConfigService + Documentation Cleanup (2026-03-27, Firebase removed 2026-03-28)
 
 > **Scope:** Execute next priorities from `docs/todo/missing_implementation_plan.md`.
-> **Result:** Phase 3 code completion advanced to ~90%. Firebase Phase 2 analytics complete.
+> **Result:** Phase 3 code completion advanced to ~90%.
 > **Branch:** `claude/execute-next-priorities-58otU`
+> **⚠ NOTE:** Firebase components added in this session were fully removed on 2026-03-28 (ADR-012).
+> The `RemoteConfigProvider` interface and `RemoteConfigService` remain — Firebase implementation replaced
+> with `FeatureRegistryRepository`-backed commonMain class. See `docs/adr/ADR-012-firebase-removal.md`.
 
 ### New Files Created
 
-- [x] `admin-panel/src/lib/firebase.ts` — Firebase JS SDK initialisation; `initFirebase()`, `logAnalyticsEvent()`, `setAnalyticsUserId()`, `setAnalyticsUserProperties()`; graceful no-op when `VITE_FIREBASE_*` env vars absent | 2026-03-27
+- [x] ~~`admin-panel/src/lib/firebase.ts`~~ — **REMOVED 2026-03-28 (ADR-012)** | 2026-03-27
 - [x] `shared/core/src/commonMain/.../core/config/RemoteConfigProvider.kt` — `RemoteConfigProvider` interface + `RemoteEdition` enum + `RemoteConfigKeys` constants; feature modules depend on this interface from `:shared:core` | 2026-03-27
-- [x] `shared/data/src/commonMain/.../data/remoteconfig/RemoteConfigService.kt` — expect class implementing `RemoteConfigProvider` | 2026-03-27
-- [x] `shared/data/src/androidMain/.../data/remoteconfig/RemoteConfigService.kt` — Firebase Remote Config SDK actual; in-code defaults for all `RemoteConfigKeys`; `fetchAndActivate()` via `CompletableDeferred` | 2026-03-27
-- [x] `shared/data/src/jvmMain/.../data/remoteconfig/RemoteConfigService.kt` — JVM no-op stub (no Firebase RC JVM SDK); returns all defaults | 2026-03-27
+- [x] `shared/data/src/commonMain/.../data/remoteconfig/RemoteConfigService.kt` — commonMain class backed by `FeatureRegistryRepository` (Firebase RC implementation removed 2026-03-28, ADR-012) | 2026-03-27
+- [x] ~~`shared/data/src/androidMain/.../data/remoteconfig/RemoteConfigService.kt`~~ — **REMOVED 2026-03-28 (ADR-012)** Firebase RC actual | 2026-03-27
+- [x] ~~`shared/data/src/jvmMain/.../data/remoteconfig/RemoteConfigService.kt`~~ — **REMOVED 2026-03-28 (ADR-012)** JVM no-op stub | 2026-03-27
 
 ### Modified Files
 
-- [x] `admin-panel/package.json` — added `firebase ^11.6.0` dependency | 2026-03-27
-- [x] `admin-panel/src/main.tsx` — added `initFirebase()` call after Sentry init | 2026-03-27
-- [x] `admin-panel/.env.example` — added `VITE_FIREBASE_*` env var documentation | 2026-03-27
-- [x] `gradle/libs.versions.toml` — added `firebase-config = "22.0.1"` version + `firebase-config-ktx-versioned` library entry | 2026-03-27
-- [x] `shared/data/build.gradle.kts` — added `firebase.config.ktx.versioned` to androidMain deps | 2026-03-27
+- [x] ~~`admin-panel/package.json` — added `firebase ^11.6.0` dependency~~ | **REMOVED 2026-03-28 (ADR-012)** | 2026-03-27
+- [x] ~~`admin-panel/src/main.tsx` — added `initFirebase()` call after Sentry init~~ | **REMOVED 2026-03-28 (ADR-012)** | 2026-03-27
+- [x] ~~`admin-panel/.env.example` — added `VITE_FIREBASE_*` env var documentation~~ | **REMOVED 2026-03-28 (ADR-012)** | 2026-03-27
+- [x] ~~`gradle/libs.versions.toml` — added `firebase-config = "22.0.1"` version + `firebase-config-ktx-versioned` library entry~~ | **REMOVED 2026-03-28 (ADR-012)** | 2026-03-27
+- [x] ~~`shared/data/build.gradle.kts` — added `firebase.config.ktx.versioned` to androidMain deps~~ | **REMOVED 2026-03-28 (ADR-012)** | 2026-03-27
 - [x] `shared/data/src/androidMain/.../di/AndroidDataModule.kt` — added `RemoteConfigService` + `RemoteConfigProvider` bindings | 2026-03-27
 - [x] `shared/data/src/jvmMain/.../di/DesktopDataModule.kt` — added `RemoteConfigService` + `RemoteConfigProvider` bindings | 2026-03-27
 - [x] `CLAUDE.md` — module count 26→29, feature modules 16→17, domain models 38+→104+, Phase 3 ~80%→~90%, backend audit Phase C/E updated | 2026-03-27
@@ -93,7 +96,7 @@
 - [x] TODO-012 Task 6 (agent email reply): implemented via `POST /admin/tickets/{id}/comments` with `replyToCustomer` flag in `AdminTicketService.addComment()` | verified 2026-03-27
 - [x] TODO-012 Advanced filtering: `GET /admin/tickets` supports `tag`, `assignee`, `priority`, `category`, `search`, `searchBody`, `createdAfter`, `createdBefore` params | verified 2026-03-27
 - [x] TODO-012 SLA bug fix: `InboundEmailProcessor` delegates SLA to `AdminTicketService.createTicket()` — not hardcoded | verified 2026-03-27
-- [x] Firebase Crashlytics Android: dep declared + `FirebaseCrashlytics.getInstance()` initialized in `ZyntaApplication` | verified 2026-03-27
+- [x] ~~Firebase Crashlytics Android: dep declared + `FirebaseCrashlytics.getInstance()` initialized in `ZyntaApplication`~~ | **REMOVED 2026-03-28 (ADR-012)** — Sentry is the sole crash reporter | verified 2026-03-27
 
 ---
 
@@ -4305,7 +4308,7 @@ The OTA update management page remains deferred. It requires a device management
 ### Domain + ViewModel Test Coverage (Sessions 1–3)
 - [x] Domain use case coverage: all 104+ domain use cases tested (auth, crm, coupons, einvoice, inventory, multistore, pos, rbac, register, reports, admin, staff, accounting, expenses, license, rack, enterprise reports)
 - [x] ViewModel coverage: all 35 ViewModels confirmed tested (no gaps found)
-- [x] Firebase code items: RemoteConfigService, CrashlyticsLogWriter, Firebase JS SDK — all implemented
+- [x] ~~Firebase code items: RemoteConfigService, CrashlyticsLogWriter, Firebase JS SDK — all implemented~~ | **ALL FIREBASE REMOVED 2026-03-28 (ADR-012)** — replaced with Kermit + Sentry + FeatureRegistryRepository
 - [x] TODO-012 gaps: Task 4, Task 6, Bug fix — all verified implemented
 - [x] License use cases: ActivateLicenseUseCase, GetLicenseStatusUseCase, SendHeartbeatUseCase — added coverage
 - [x] Rack use cases: GetWarehouseRacksUseCase, GetRackProductsUseCase, SaveRackProductUseCase, DeleteRackProductUseCase — added coverage
@@ -4321,3 +4324,55 @@ Session 4 additions (19 files): SupplierRepositoryImpl, LabelTemplateRepositoryI
 Session 5 additions (31 files): SystemRepositoryImpl, AttendanceRepositoryImpl, ShiftRepositoryImpl, LeaveRepositoryImpl, PayrollRepositoryImpl, CompoundTaxRepositoryImpl, CustomerSegmentRepositoryImpl, CustomerWalletRepositoryImpl, EmployeeStoreAssignmentRepositoryImpl, ExchangeRateRepositoryImpl, FeatureRegistryRepositoryImpl, OperationalLogRepositoryImpl, ProductVariantRepositoryImpl, RackProductRepositoryImpl, RegionalTaxOverrideRepositoryImpl, StoreProductOverrideRepositoryImpl, UserStoreAccessRepositoryImpl, WarehouseRackRepositoryImpl, PayrollEntryRepositoryImpl, ShiftSwapRepositoryImpl, AccountRepositoryImpl, JournalRepositoryImpl, AccountingPeriodRepositoryImpl, AuditRepositoryImpl, BudgetRepositoryImpl, FulfillmentRepositoryImpl, MediaRepositoryImpl, InstallmentRepositoryImpl, FinancialStatementRepositoryImpl, AccountingRepositoryImpl, ProductRepositoryImpl
 
 Excluded (4): BackupRepositoryImpl (BackupFileManager), DiagnosticConsentRepositoryImpl (ApiService), LicenseRepositoryImpl (ApiService), ReportRepositoryImpl (aggregations only)
+
+---
+
+## Session 2026-03-28 — Firebase Removal + IRD/FCM Cleanup (ADR-012)
+
+> **Branch:** `claude/remove-fcm-ird-code-B4Oy9`
+> **PR:** #588 (squash-merged to main 2026-03-28T18:06:30Z)
+> **ADR:** `docs/adr/ADR-012-firebase-removal.md` — ACCEPTED
+
+### FCM Removal (from previous session on same branch)
+- [x] `ZYNTA_FCM_*` keys removed from `local.properties.template`
+- [x] `ZYNTA_IRD_*` keys removed (deferred to Phase 4)
+- [x] `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS` added to replace FCM
+- [x] `docs/todo/011` + CLAUDE.md + `local.properties.template` updated
+
+### Firebase Full Removal (ADR-012)
+- [x] `gradle/libs.versions.toml` — removed firebase-bom, firebase-analytics, firebase-config, firebase-crashlytics, kermit-crashlytics, google-services plugin versions + library + plugin entries
+- [x] `build.gradle.kts` (root) — removed `googleServices` + `firebaseCrashlytics` plugin aliases
+- [x] `androidApp/build.gradle.kts` — removed Google Services + Crashlytics plugins; removed Firebase BOM + Analytics + Crashlytics + kermit-crashlytics deps
+- [x] `shared/data/build.gradle.kts` — removed `firebase.analytics.ktx.versioned` + `firebase.config.ktx.versioned` from androidMain
+- [x] `shared/data/src/androidMain/.../analytics/AnalyticsService.kt` — **DELETED** (Firebase SDK actual)
+- [x] `shared/data/src/jvmMain/.../analytics/AnalyticsService.kt` — **DELETED** (GA4 Measurement Protocol actual)
+- [x] `shared/data/src/androidMain/.../remoteconfig/RemoteConfigService.kt` — **DELETED** (Firebase RC actual)
+- [x] `shared/data/src/jvmMain/.../remoteconfig/RemoteConfigService.kt` — **DELETED** (JVM stub)
+- [x] `shared/data/src/jvmTest/.../remoteconfig/RemoteConfigServiceJvmTest.kt` — **DELETED** (stub tests)
+- [x] `shared/data/src/commonMain/.../analytics/AnalyticsService.kt` — converted `expect class` → regular `class` (Kermit-only)
+- [x] `shared/data/src/commonMain/.../remoteconfig/RemoteConfigService.kt` — converted `expect class` → regular `class` (`FeatureRegistryRepository`-backed)
+- [x] `shared/data/src/androidMain/.../di/AndroidDataModule.kt` — removed Firebase-dependent bindings
+- [x] `shared/data/src/jvmMain/.../di/DesktopDataModule.kt` — removed Firebase-dependent bindings
+- [x] `shared/data/src/commonMain/.../di/DataModule.kt` — added `AnalyticsService` + `RemoteConfigService` bindings
+- [x] `androidApp/src/main/.../ZyntaApplication.kt` — removed Firebase init, `FirebaseCrashlytics`, `CrashlyticsLogWriter`
+- [x] `admin-panel/src/lib/firebase.ts` — **DELETED**
+- [x] `admin-panel/src/main.tsx` — removed `initFirebase()` import + call
+- [x] `admin-panel/package.json` — removed `firebase ^11.6.0`
+- [x] `admin-panel/.env.example` — removed all `VITE_FIREBASE_*` vars
+- [x] `.github/workflows/_reusable-build-test.yml` — removed `GOOGLE_SERVICES_JSON` secret + inject step
+- [x] `.github/workflows/ci-branch-validate.yml` + `ci-pr-gate.yml` + `ci-push-main.yml` — removed `GOOGLE_SERVICES_JSON` secret passthrough
+- [x] `.gitignore` — removed `google-services.json` entry
+- [x] `docs/adr/ADR-012-firebase-removal.md` — created (ACCEPTED)
+
+### CI Bug Fixes (stale IRD test references)
+- [x] `shared/data/src/commonMain/sqldelight/.../reports.sq` — removed `eInvoiceStatus` query (referenced deleted `e_invoices` table)
+- [x] `shared/domain/src/commonTest/.../GetMultiStoreKPIsUseCaseTest.kt` — removed stale `getEInvoiceStatus` override
+- [x] `composeApp/feature/multistore/src/commonTest/.../MultiStoreDashboardViewModelTest.kt` — removed stale `getEInvoiceStatus` override
+- [x] `composeApp/feature/inventory/src/commonTest/.../ReplenishmentViewModelTest.kt` — removed stale `getEInvoiceStatus` override + `EInvoiceStatusData` import
+
+### Pipeline Result
+- Step[1] Branch Validate #1058 ✅
+- Step[2] Auto PR #588 ✅
+- Step[3] PR Gate #277 ✅
+- PR #588 squash-merged to main at 2026-03-28T18:06:30Z ✅
+- Step[4] Build Images & Deploy #70 triggered on main ✅

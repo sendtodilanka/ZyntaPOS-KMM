@@ -4,7 +4,7 @@
 > See `docs/todo/missing_implementation_plan.md` for the current implementation status.
 >
 > Resolved items include: TODO-007g sync engine ✅, TODO-006 remote diagnostics ✅,
-> TODO-008a email/Stalwart ✅, TODO-011 Firebase Analytics ~95% ✅, TODO-007e API docs ✅.
+> TODO-008a email/Stalwart ✅, TODO-011 Analytics ✅ (Firebase fully removed ADR-012 2026-03-28; Kermit + Sentry active), TODO-007e API docs ✅.
 
 **Scope:** Actual codebase implementation vs. `docs/todo/` documentation (TODO-000 through TODO-011 + sub-tasks).
 **Branch:** `claude/audit-todo-docs-gap-UnJU4`
@@ -358,8 +358,7 @@ CRITICAL (blocks multiple features / ongoing operations):
      Blocking: Password reset, receipt delivery, support ticketing
 
 HIGH (significant user/product impact):
-  4. TODO-011 — Add Firebase Analytics SDK to Android
-     Blocking: Product telemetry, funnel analysis, feature flag experiments
+  4. ~~TODO-011 — Add Firebase Analytics SDK to Android~~ — **RESOLVED (ADR-012, 2026-03-28)**: Firebase removed; Kermit + Sentry active; feature flags via `FeatureRegistryRepository`
 
   5. TODO-007e — Create API documentation site
      Blocking: External developer adoption, partner integrations

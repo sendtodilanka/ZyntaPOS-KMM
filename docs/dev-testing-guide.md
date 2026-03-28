@@ -1,7 +1,6 @@
 # ZyntaPOS — Dev Testing Guide
 
-> **Audience:** Engineers and QA testers who need to run the full app **without** a live backend API,
-> Firebase, or Sentry DSN.
+> **Audience:** Engineers and QA testers who need to run the full app **without** a live backend API or Sentry DSN.
 > **Scope:** Android (emulator/device) and Desktop JVM.
 > **Last updated:** 2026-03-18
 
