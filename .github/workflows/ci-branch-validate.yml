@@ -50,8 +50,6 @@ jobs:
   validate:
     name: "Step[1]: Branch Validate"
     uses: ./.github/workflows/_reusable-build-test.yml
-    secrets:
-      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
     with:
       run-tests: false
       run-lint: false

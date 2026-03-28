@@ -156,9 +156,9 @@ fun main() {
     // queries via the Admin debug console. Must run after dataModule is loaded.
     Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
 
-    // ── Firebase Remote Config fetch (TODO-011 Phase 2) ─────────────────────
-    // JVM stub — fetchAndActivate() is a no-op that returns false immediately.
-    // Included for symmetry with Android; Desktop edition gating uses license server.
+    // ── Feature flag cache warm-up (ADR-012) ────────────────────────────────────
+    // Refreshes the RemoteConfigService in-memory snapshot from the local
+    // FeatureRegistryRepository (SQLite). Runs on IO to avoid blocking the main thread.
     CoroutineScope(Dispatchers.IO).launch {
         koin.koin.get<RemoteConfigService>().fetchAndActivate()
     }

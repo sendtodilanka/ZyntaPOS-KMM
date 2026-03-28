@@ -3,8 +3,6 @@ package com.zyntasolutions.zyntapos
 // CANARY:ZyntaPOS-android-app-i9j0k1l2
 
 import android.app.Application
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import io.sentry.android.core.SentryAndroid
 import com.zyntasolutions.zyntapos.core.platform.AndroidAppInfoProvider
 import com.zyntasolutions.zyntapos.core.platform.AppInfoProvider
@@ -37,7 +35,6 @@ import com.zyntasolutions.zyntapos.hal.di.halModule
 import com.zyntasolutions.zyntapos.navigation.navigationModule
 import com.zyntasolutions.zyntapos.security.di.securityModule
 import co.touchlab.kermit.Logger
-import co.touchlab.kermit.crashlytics.CrashlyticsLogWriter
 import com.zyntasolutions.zyntapos.data.local.db.SecurePreferencesKeyMigration
 import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.job.AuditIntegrityJob
@@ -87,11 +84,6 @@ class ZyntaApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
-        // ── Firebase Analytics + Crashlytics — MUST init before Koin (TODO-011) ─
-        // google-services.json is CI-injected from GOOGLE_SERVICES_JSON secret.
-        FirebaseAnalytics.getInstance(this)
-        FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = !BuildConfig.DEBUG
 
         // ── Sentry crash reporter — MUST init before Koin (ADR-011 rule #4) ───
         // EU ingest endpoint via .ingest.de.sentry.io DSN.
@@ -192,19 +184,10 @@ class ZyntaApplication : Application() {
         // queries via the Admin debug console. Must run after dataModule is loaded.
         Logger.addLogWriter(koin.koin.get<KermitSqliteAdapter>())
 
-        // ── Kermit → Crashlytics bridge (TODO-011 Phase 2) ──────────────────────
-        // Routes Kermit ERROR/ASSERT severity events to Firebase Crashlytics as
-        // non-fatal breadcrumb exceptions, enriching crash reports with structured
-        // logs alongside Sentry context. Only active in non-debug builds where
-        // Crashlytics collection is enabled (isCrashlyticsCollectionEnabled = !DEBUG).
-        if (!BuildConfig.DEBUG) {
-            Logger.addLogWriter(CrashlyticsLogWriter())
-        }
-
-        // ── Firebase Remote Config fetch (TODO-011 Phase 2) ─────────────────────
-        // Fetches and activates latest feature flag values from Firebase console.
-        // Runs on IO to avoid blocking the main thread. No-op if Firebase project
-        // is not configured (google-services.json absent in local dev builds).
+        // ── Feature flag cache warm-up (ADR-012) ────────────────────────────────
+        // Refreshes the RemoteConfigService in-memory snapshot from the local
+        // FeatureRegistryRepository (SQLite). Runs on IO to avoid blocking the
+        // main thread. Falls back to defaults if the registry is empty.
         CoroutineScope(Dispatchers.IO).launch {
             koin.koin.get<RemoteConfigService>().fetchAndActivate()
         }

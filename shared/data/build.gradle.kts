@@ -43,11 +43,6 @@ kotlin {
             implementation(libs.androidx.work.runtime)
             // koin-android required by AndroidDataModule.androidContext() extension
             implementation(libs.koin.android)
-            // Firebase Analytics SDK — used by AnalyticsService androidMain actual (TODO-011)
-            // Uses versioned ref directly (platform() is removed in Kotlin 2.3 KMP)
-            implementation(libs.firebase.analytics.ktx.versioned)
-            // Firebase Remote Config SDK — used by RemoteConfigService androidMain actual (TODO-011)
-            implementation(libs.firebase.config.ktx.versioned)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.client.cio)

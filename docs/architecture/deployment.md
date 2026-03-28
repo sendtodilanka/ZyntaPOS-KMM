@@ -230,10 +230,11 @@ All 26 secrets below are configured in the repository. **Never commit any of the
 |--------|---------|
 | ~~`GOOGLE_OAUTH_CLIENT_ID`~~ | ~~Google SSO OAuth2 Client ID~~ — **removed 2026-03-14** (Google OAuth removed; admin auth is email/password + TOTP only) |
 | ~~`GOOGLE_OAUTH_CLIENT_SECRET`~~ | ~~Google SSO OAuth2 Client Secret~~ — **removed 2026-03-14** |
-| `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
-| `GA4_MEASUREMENT_ID` | Google Analytics 4 Measurement ID |
+| ~~`GOOGLE_SERVICES_JSON`~~ | ~~`google-services.json` for Firebase Android SDK~~ — **removed 2026-03-28** (ADR-012: Firebase removed) |
+| ~~`GA4_MEASUREMENT_ID`~~ | ~~Google Analytics 4 Measurement ID~~ — **removed 2026-03-28** (ADR-012: Firebase removed) |
 
 > **Push Notifications:** FCM/VAPID push notifications have been removed. SMS gateway integration is planned for Phase 4.
+> **Firebase:** All Firebase components removed (ADR-012, 2026-03-28). Analytics via Kermit + Sentry. Remote Config via `FeatureRegistryRepository`.
 
 #### Monitoring / Alerting
 

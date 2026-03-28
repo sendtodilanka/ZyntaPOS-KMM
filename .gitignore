@@ -113,6 +113,3 @@ backend/*/gradle/
 backend/*/.gradle/
 backend/*/.kotlin/
 
-# Firebase — contains API keys; injected by CI from GitHub Secret
-# Developers: download from Firebase Console → Project Settings → Your apps
-google-services.json

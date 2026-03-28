@@ -1,18 +1,17 @@
 package com.zyntasolutions.zyntapos.core.config
 
 /**
- * Abstraction for runtime feature flags sourced from Firebase Remote Config.
+ * Abstraction for runtime feature flags.
  *
  * Feature modules depend on `:shared:core` and inject this interface via Koin.
- * The platform-specific [com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService]
- * in `:shared:data` implements it.
+ * The [com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService] in
+ * `:shared:data` implements it, reading from the local [FeatureRegistryRepository]
+ * which is kept in sync with the Admin Panel (`/admin/config/feature-flags`).
  *
  * This separation keeps feature modules free of `:shared:data` dependencies
  * while allowing runtime configuration reads from any ViewModel.
  *
- * TODO-011 Phase 2: edition feature flags — runtime overrides without an app update.
- *
- * Default values (when Remote Config is not available or key is absent) are
+ * Default values (when the cache has not been populated or a key is absent) are
  * always the most restrictive / safest option:
  * - `getString` → ""
  * - `getBoolean` → false
@@ -22,9 +21,9 @@ package com.zyntasolutions.zyntapos.core.config
 interface RemoteConfigProvider {
 
     /**
-     * Fetch latest values from Firebase Remote Config and activate them.
-     * Returns true if new values were fetched and activated; false if defaults are used.
-     * Should be called once at app startup (e.g. in Application.onCreate or main.kt).
+     * Refresh the in-memory snapshot from the local feature registry.
+     * Returns true if new values were loaded; false if defaults are used.
+     * Should be called once at app startup.
      */
     suspend fun fetchAndActivate(): Boolean
 
@@ -38,24 +37,24 @@ interface RemoteConfigProvider {
     fun getLong(key: String, defaultValue: Long = 0L): Long
 
     /**
-     * Resolve the activated app edition from the [EDITION_KEY] config flag.
+     * Resolve the activated app edition.
      * Falls back to [RemoteEdition.STARTER] on parse error or missing value.
      */
     fun getEdition(): RemoteEdition
 }
 
 /**
- * App edition as reported by Firebase Remote Config.
+ * App edition as reported by the feature flag system.
  *
  * Maps to the [com.zyntasolutions.zyntapos.domain.model.Edition] domain model
  * once the value is validated and persisted by the license layer.
- * Remote Config is the *override channel* — the license server is the source of truth.
+ * The license server is the authoritative source of truth.
  */
 enum class RemoteEdition { STARTER, PROFESSIONAL, ENTERPRISE }
 
 /**
- * Standard Remote Config key names for ZyntaPOS feature flags.
- * Keep keys in sync with the Firebase console parameter definitions.
+ * Standard feature flag key names for ZyntaPOS.
+ * Keep keys in sync with the Admin Panel feature flags configuration.
  */
 object RemoteConfigKeys {
     /** Current app edition: "STARTER" | "PROFESSIONAL" | "ENTERPRISE" */
@@ -64,10 +63,10 @@ object RemoteConfigKeys {
     /** Minimum supported app version — force-update gate (semver string). */
     const val MIN_APP_VERSION = "min_app_version"
 
-    /** Whether the multi-store module is enabled for this license. */
+    /** Whether the multi-store module is enabled for this licence. */
     const val MULTI_STORE_ENABLED = "feature_multi_store"
 
-    /** Whether the accounting / e-invoice module is enabled. */
+    /** Whether the accounting module is enabled. */
     const val ACCOUNTING_ENABLED = "feature_accounting"
 
     /** Whether the staff / HR module is enabled. */

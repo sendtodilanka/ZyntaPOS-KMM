@@ -968,7 +968,7 @@ Copy `local.properties.template` and fill in values before first build.
 > **Push Notifications:** FCM/VAPID push notifications have been removed. SMS gateway integration is planned for Phase 4.
 > **IRD e-invoicing:** IRD integration keys (`ZYNTA_IRD_*`) have been removed. IRD implementation is deferred to Phase 4.
 
-**All GitHub Secrets** (28 configured — stored in repository, not `local.properties`):
+**All GitHub Secrets** (26 configured — stored in repository, not `local.properties`):
 
 | Secret | Purpose |
 |--------|---------|
@@ -987,8 +987,6 @@ Copy `local.properties.template` and fill in values before first build.
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API Token (scoped — no Email Routing perms) |
 | `CF_GLOBAL_API_KEY` | Cloudflare Global API Key (full access — use for Email Routing) |
 | `CF_AUTH_EMAIL` | Cloudflare account email (`mecduino@gmail.com`) — paired with `CF_GLOBAL_API_KEY` |
-| `GOOGLE_SERVICES_JSON` | `google-services.json` for Firebase Android SDK |
-| `GA4_MEASUREMENT_ID` | Google Analytics 4 Measurement ID |
 | `SENTRY_AUTH_TOKEN` | Sentry CLI auth token |
 | `SENTRY_DSN_API` | Sentry DSN for `zyntapos-api` |
 | `SENTRY_DSN_LICENSE` | Sentry DSN for `zyntapos-license` |
@@ -1139,6 +1137,7 @@ All structural decisions are documented in `docs/adr/`. Create a new ADR before 
 | ADR-009 | Admin Panel / POS App Feature Boundary — admin panel MUST NOT contain store-operational write features | ACCEPTED |
 | ADR-010 | No Hardcoded UI Strings — all user-visible strings must use `StringResource` via `LocalStrings.current` | ACCEPTED |
 | ADR-011 | TLS Certificate Pinning Strategy — SPKI dual-pin (leaf + intermediate CA); Signed Pin List as future evolution | ACCEPTED |
+| ADR-012 | Firebase Removal — all Firebase components removed; analytics via Kermit, crash reporting via Sentry, feature flags via `FeatureRegistryRepository` | ACCEPTED |
 
 ---
 
@@ -1422,7 +1421,7 @@ A comprehensive audit was completed on 2026-03-12. See `docs/audit/backend-modul
 | Phase 0 — Foundation | Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 — MVP | Complete | Single-store POS, offline sync, core features |
 | Phase 2 — Growth | ✅ 100% Complete | Multi-store (C1.1–C1.5), CRM, promotions, CRDT sync (C6.1), centralized inventory, full sync pipeline, admin panel replenishment dashboard |
-| Phase 3 — Enterprise | ✅ ~92% Complete (code) | Staff/HR ✅, admin ✅, analytics ✅, Firebase RemoteConfig ✅, data-layer integration tests (66 files) ✅. IRD e-invoicing code removed — deferred to Phase 4. FCM push removed — SMS gateway planned for Phase 4. |
+| Phase 3 — Enterprise | ✅ ~92% Complete (code) | Staff/HR ✅, admin ✅, analytics ✅, Firebase removed (ADR-012) ✅, data-layer integration tests (66 files) ✅. IRD e-invoicing code removed — deferred to Phase 4. FCM push removed — SMS gateway planned for Phase 4. |
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 
@@ -1459,8 +1458,7 @@ See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 | **API documentation site** | `zyntapos-docs/` — Scalar multi-spec viewer (4 OpenAPI specs), deployed to Cloudflare Pages via `cd-docs.yml`; guides in `zyntapos-docs/guides/` |
 | **OpenAPI specs (docs site)** | `zyntapos-docs/openapi/api-v1.yaml`, `admin-v1.yaml`, `license-v1.yaml`, `sync-v1.yaml` |
 | **Remote Config interface** | `shared/core/src/commonMain/.../core/config/RemoteConfigProvider.kt` — `RemoteConfigProvider` interface + `RemoteEdition` enum + `RemoteConfigKeys` constants |
-| **Remote Config service** | `shared/data/src/[android\|jvm\|common]Main/.../data/remoteconfig/RemoteConfigService.kt` — expect/actual (Firebase RC Android, stub JVM) |
-| **Admin panel Firebase analytics** | `admin-panel/src/lib/firebase.ts` — `initFirebase()`, `logAnalyticsEvent()`, GA4 web analytics |
+| **Remote Config service** | `shared/data/src/commonMain/.../data/remoteconfig/RemoteConfigService.kt` — `FeatureRegistryRepository`-backed (ADR-012: Firebase RC removed) |
 | **OpenAPI specs (embedded)** | `backend/api/src/main/resources/openapi/api-spec.yaml`, `backend/license/.../license-spec.yaml`, `backend/sync/.../sync-spec.yaml` — served as Swagger UI at `/docs` per service |
 
 ---

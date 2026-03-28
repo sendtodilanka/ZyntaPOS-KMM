@@ -503,6 +503,22 @@ val dataModule = module {
     single<ApiService> { KtorApiService(client = get()) }
     single { get<ApiService>() as KtorApiService }
 
+    // ── Analytics (ADR-012: Firebase removed, Kermit-backed) ─────────────
+    single { com.zyntasolutions.zyntapos.data.analytics.AnalyticsService() }
+    single<com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker> {
+        get<com.zyntasolutions.zyntapos.data.analytics.AnalyticsService>()
+    }
+
+    // ── Remote Config (ADR-012: Firebase removed, FeatureRegistry-backed) ─
+    single {
+        com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService(
+            featureRegistry = get(),
+        )
+    }
+    single<com.zyntasolutions.zyntapos.core.config.RemoteConfigProvider> {
+        get<com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService>()
+    }
+
     /**
      * [SyncEngine] — offline-first push/pull coordinator.
      *

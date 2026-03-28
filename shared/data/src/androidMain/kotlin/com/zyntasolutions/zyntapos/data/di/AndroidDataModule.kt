@@ -2,12 +2,8 @@ package com.zyntasolutions.zyntapos.data.di
 
 import android.content.Context
 import android.provider.Settings
-import com.zyntasolutions.zyntapos.core.analytics.AnalyticsTracker
 import com.zyntasolutions.zyntapos.core.config.AppConfig
-import com.zyntasolutions.zyntapos.core.config.RemoteConfigProvider
-import com.zyntasolutions.zyntapos.data.analytics.AnalyticsService
 import com.zyntasolutions.zyntapos.data.email.EmailPortImpl
-import com.zyntasolutions.zyntapos.data.remoteconfig.RemoteConfigService
 import com.zyntasolutions.zyntapos.data.backup.BackupFileManager
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseDriverFactory
 import com.zyntasolutions.zyntapos.data.local.db.DatabaseKeyProvider
@@ -75,19 +71,6 @@ val androidDataModule = module {
     // Call NetworkMonitor.start() from Application.onCreate() or the
     // app-level ViewModel initialization.
     single { NetworkMonitor(context = androidContext()) }
-
-    // ── Analytics (platform expect/actual) ──────────────────────────────
-    // Android actual uses Firebase Analytics SDK.
-    // Bound as both concrete type and AnalyticsTracker interface so feature
-    // modules can depend on the interface from :shared:core.
-    single { AnalyticsService(context = androidContext()) }
-    single<AnalyticsTracker> { get<AnalyticsService>() }
-
-    // ── Remote Config (platform expect/actual) ───────────────────────────
-    // Android actual uses Firebase Remote Config SDK (TODO-011 Phase 2).
-    // Bound as both concrete type and RemoteConfigProvider interface.
-    single { RemoteConfigService() }
-    single<RemoteConfigProvider> { get<RemoteConfigService>() }
 
     // ── Email port (platform expect/actual) ───────────────────────────────────
     // Android actual opens the system email chooser via Intent.ACTION_SENDTO.
