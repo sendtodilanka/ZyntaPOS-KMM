@@ -52,6 +52,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import org.koin.core.context.startKoin
+import com.zyntasolutions.zyntapos.core.config.AppConfig
 
 /**
  * Desktop (JVM) entry point for ZyntaPOS.
@@ -80,6 +81,17 @@ fun main() {
         options.environment = System.getenv("SENTRY_ENVIRONMENT") ?: "production"
         options.release     = "zyntapos-desktop@1.0.0"
     }
+
+    // ── AppConfig bootstrap — MUST run before Koin so modules read correct values ──
+    // AppConfig.IS_DEBUG controls TLS cert pinning and HTTP logging (set before securityModule).
+    // BASE_URL / LICENSE_BASE_URL are read by ApiClient and LicenseClient during graph build.
+    // IRD vars are read by AccountingModule / IrdSubmissionService at construction time.
+    AppConfig.IS_DEBUG = System.getProperty("app.debug")?.toBoolean() ?: false
+    System.getenv("ZYNTA_API_BASE_URL")?.takeIf { it.isNotBlank() }?.let     { AppConfig.BASE_URL           = it }
+    System.getenv("ZYNTA_LICENSE_BASE_URL")?.takeIf { it.isNotBlank() }?.let { AppConfig.LICENSE_BASE_URL   = it }
+    AppConfig.IRD_API_ENDPOINT         = System.getenv("ZYNTA_IRD_API_ENDPOINT")            ?: ""
+    AppConfig.IRD_CLIENT_CERT_PATH     = System.getenv("ZYNTA_IRD_CLIENT_CERTIFICATE_PATH") ?: ""
+    AppConfig.IRD_CLIENT_CERT_PASSWORD = System.getenv("ZYNTA_IRD_CERTIFICATE_PASSWORD")    ?: ""
 
     // Load order: core → security → hal → data → domain → feature modules
     val koin = startKoin {

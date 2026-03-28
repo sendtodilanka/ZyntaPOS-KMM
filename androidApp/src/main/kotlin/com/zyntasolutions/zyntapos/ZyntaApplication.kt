@@ -60,6 +60,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
+import com.zyntasolutions.zyntapos.core.config.AppConfig
 
 /**
  * Android [Application] entry point for ZyntaPOS.
@@ -102,6 +103,17 @@ class ZyntaApplication : Application() {
             options.isEnableAutoSessionTracking = true
             options.isAnrEnabled = true
         }
+
+        // ── AppConfig bootstrap — MUST run before Koin so modules read correct values ──
+        // AppConfig.IS_DEBUG controls TLS cert pinning and HTTP logging (set before securityModule).
+        // BASE_URL / LICENSE_BASE_URL are read by ApiClient and LicenseClient during graph build.
+        // IRD vars are read by AccountingModule / IrdSubmissionService at construction time.
+        AppConfig.IS_DEBUG = BuildConfig.DEBUG
+        if (BuildConfig.ZYNTA_API_BASE_URL.isNotBlank())     AppConfig.BASE_URL            = BuildConfig.ZYNTA_API_BASE_URL
+        if (BuildConfig.ZYNTA_LICENSE_BASE_URL.isNotBlank()) AppConfig.LICENSE_BASE_URL    = BuildConfig.ZYNTA_LICENSE_BASE_URL
+        AppConfig.IRD_API_ENDPOINT         = BuildConfig.ZYNTA_IRD_API_ENDPOINT
+        AppConfig.IRD_CLIENT_CERT_PATH     = BuildConfig.ZYNTA_IRD_CLIENT_CERTIFICATE_PATH
+        AppConfig.IRD_CLIENT_CERT_PASSWORD = BuildConfig.ZYNTA_IRD_CERTIFICATE_PASSWORD
 
         val koin = startKoin {
             androidContext(this@ZyntaApplication)
