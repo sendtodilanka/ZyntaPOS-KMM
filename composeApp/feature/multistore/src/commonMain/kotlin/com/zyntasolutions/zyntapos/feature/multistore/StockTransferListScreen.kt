@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaEmptyState
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTransferStatusBadge
 import com.zyntasolutions.zyntapos.domain.model.StockTransfer
 import com.zyntasolutions.zyntapos.domain.model.Warehouse
 import org.koin.compose.viewmodel.koinViewModel
@@ -164,16 +165,10 @@ private fun StockTransferCard(
                     text = "${s[StringResource.MULTISTORE_QTY]}: ${transfer.quantity}",
                     style = MaterialTheme.typography.titleMedium,
                 )
-                Text(
-                    text = transfer.status.name,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = when (transfer.status) {
-                        StockTransfer.Status.PENDING    -> MaterialTheme.colorScheme.tertiary
-                        StockTransfer.Status.APPROVED   -> MaterialTheme.colorScheme.secondary
-                        StockTransfer.Status.IN_TRANSIT -> MaterialTheme.colorScheme.primary
-                        StockTransfer.Status.RECEIVED   -> MaterialTheme.colorScheme.primary
-                        StockTransfer.Status.COMMITTED  -> MaterialTheme.colorScheme.primary
-                        StockTransfer.Status.CANCELLED  -> MaterialTheme.colorScheme.onSurfaceVariant
+                ZyntaTransferStatusBadge(
+                    statusString = when (transfer.status) {
+                        StockTransfer.Status.COMMITTED -> "RECEIVED" // legacy alias
+                        else -> transfer.status.name
                     },
                 )
             }
