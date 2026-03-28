@@ -134,6 +134,7 @@ Open `local.properties` and fill in the required values:
 | `ZYNTA_API_BASE_URL` | Backend REST API base URL |
 | `ZYNTA_API_CLIENT_ID` | OAuth2 client ID |
 | `ZYNTA_API_CLIENT_SECRET` | OAuth2 client secret |
+| `ZYNTA_RS256_PUBLIC_KEY` | Base64-encoded DER of the RS256 public key used to sign JWTs |
 | `ZYNTA_DB_PASSPHRASE` | AES-256 passphrase for SQLCipher (64 hex chars) |
 | `ZYNTA_FCM_VAPID_PUBLIC_KEY` | FCM v1 VAPID public key (Web Push) |
 | `ZYNTA_FCM_VAPID_PRIVATE_KEY` | FCM v1 VAPID private key (Web Push) |
@@ -223,8 +224,8 @@ openssl rand -hex 32
 
 1. Branch from `main` — follow the naming convention `feature/M##-short-description`.
 2. All new public APIs must include KDoc comments.
-3. Unit test coverage targets: **95 %** for use cases, **80 %** for repositories and ViewModels.
-4. Run `./gradlew detekt` (once configured in Phase 1 CI) before opening a PR.
+3. Unit test coverage targets: **95 %** for use cases, repositories, and ViewModels. Kover enforces this threshold in CI.
+4. Run `./gradlew detekt` before opening a PR.
 
 ---
 
@@ -235,9 +236,9 @@ openssl rand -hex 32
 | Phase 0 | Foundation | ✅ Complete | Build system, module scaffold, secrets, CI skeleton |
 | Phase 1 (MVP) | Months 1–6 | ✅ Complete | Single-store POS, offline sync, core features |
 | Phase 2 (Growth) | Months 7–12 | ✅ 100% Complete | Multi-store (C1.1–C1.5), CRM, promotions, CRDT sync (C6.1), centralized inventory, full sync pipeline, admin panel replenishment |
-| Phase 3 (Enterprise) | Months 13–18 | 🟡 ~80% implemented | Staff/HR, admin, e-invoicing (IRD), analytics (IRD mTLS API, advanced charts, i18n pending) |
+| Phase 3 (Enterprise) | Months 13–18 | 🟡 ~92% Complete (code) | Staff/HR, admin, e-invoicing (IRD), analytics, Firebase RemoteConfig. Pending: IRD sandbox validation, FCM push (external deps) |
 
-> **Last status update:** 2026-03-20. See `docs/ai_workflows/execution_log.md` for the full implementation summary and known gaps.
+> **Last status update:** 2026-03-28. See `docs/ai_workflows/execution_log.md` for the full implementation summary and known gaps.
 
 See `docs/ai_workflows/execution_log.md` for the granular task checklist.
 

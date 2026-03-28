@@ -63,7 +63,7 @@ dependencyResolutionManagement {
 // in this project. The local JDK (Java 21/Temurin) is used directly.
 
 // ════════════════════════════════════════════════════════════
-// MODULE REGISTRY — 26 modules
+// MODULE REGISTRY — 29 modules
 // ════════════════════════════════════════════════════════════
 
 // ── Application Shell ─────────────────────────────────────────
