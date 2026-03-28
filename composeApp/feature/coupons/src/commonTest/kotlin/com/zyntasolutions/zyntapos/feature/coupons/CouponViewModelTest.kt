@@ -487,4 +487,90 @@ class CouponViewModelTest {
         assertTrue("cat-1" in form.scopeIds)
         assertTrue("cat-3" in form.scopeIds)
     }
+
+    // ── SelectCoupon(null) resets form ────────────────────────────────────────
+
+    @Test
+    fun `SelectCoupon null resets form and emits NavigateToDetail with null`() = runTest {
+        viewModel.effects.test {
+            viewModel.dispatch(CouponIntent.SelectCoupon(null))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is CouponEffect.NavigateToDetail)
+            assertNull((effect as CouponEffect.NavigateToDetail).couponId)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertFalse(viewModel.state.value.formState.isEditing)
+        assertNull(viewModel.state.value.selectedCoupon)
+    }
+
+    @Test
+    fun `SelectCoupon non-existent id emits ShowError`() = runTest {
+        viewModel.effects.test {
+            viewModel.dispatch(CouponIntent.SelectCoupon("does-not-exist"))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is CouponEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── UpdateIsActive ────────────────────────────────────────────────────────
+
+    @Test
+    fun `UpdateIsActive false sets isActive to false in formState`() = runTest {
+        viewModel.dispatch(CouponIntent.UpdateIsActive(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.formState.isActive)
+    }
+
+    @Test
+    fun `UpdateIsActive true sets isActive to true in formState`() = runTest {
+        viewModel.dispatch(CouponIntent.UpdateIsActive(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(CouponIntent.UpdateIsActive(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.formState.isActive)
+    }
+
+    // ── LoadAnalytics — no redemptions ────────────────────────────────────────
+
+    @Test
+    fun `LoadAnalytics with no usage returns zero totals`() = runTest {
+        couponsFlow.value = listOf(testCoupon)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(CouponIntent.LoadAnalytics)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.state.value.totalRedemptions)
+        assertEquals(0.0, viewModel.state.value.totalDiscountGiven)
+        assertTrue(viewModel.state.value.topRedeemedCoupons.isEmpty())
+        assertFalse(viewModel.state.value.isAnalyticsLoading)
+    }
+
+    // ── ToggleCouponActive — enable a coupon ──────────────────────────────────
+
+    @Test
+    fun `ToggleCouponActive enabling a coupon emits ShowSuccess`() = runTest {
+        val inactiveCoupon = testCoupon.copy(id = "coupon-inactive", isActive = false)
+        couponsFlow.value = listOf(inactiveCoupon)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.dispatch(CouponIntent.ToggleCouponActive(inactiveCoupon.id, true))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is CouponEffect.ShowSuccess)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertTrue(couponsFlow.value.first().isActive)
+    }
 }

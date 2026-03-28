@@ -508,4 +508,110 @@ class AdminViewModelTest {
         assertNotNull(viewModel.state.value.databaseStats)
         assertEquals(500L, viewModel.state.value.databaseStats!!.totalRows)
     }
+
+    // ── Backup Scheduling ─────────────────────────────────────────────────────
+
+    @Test
+    fun `ToggleBackupSchedule true enables backup schedule`() = runTest {
+        viewModel.dispatch(AdminIntent.ToggleBackupSchedule(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.backupScheduleEnabled)
+    }
+
+    @Test
+    fun `ToggleBackupSchedule false disables backup schedule`() = runTest {
+        viewModel.dispatch(AdminIntent.ToggleBackupSchedule(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(AdminIntent.ToggleBackupSchedule(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.backupScheduleEnabled)
+    }
+
+    @Test
+    fun `SetBackupFrequency updates backupFrequency`() = runTest {
+        viewModel.dispatch(AdminIntent.SetBackupFrequency(BackupFrequency.WEEKLY))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(BackupFrequency.WEEKLY, viewModel.state.value.backupFrequency)
+    }
+
+    @Test
+    fun `SetBackupScheduleHour clamps value between 0 and 23`() = runTest {
+        viewModel.dispatch(AdminIntent.SetBackupScheduleHour(25))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(23, viewModel.state.value.backupScheduleHour)
+
+        viewModel.dispatch(AdminIntent.SetBackupScheduleHour(-1))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(0, viewModel.state.value.backupScheduleHour)
+    }
+
+    @Test
+    fun `SetBackupRetentionCount clamps value between 1 and 30`() = runTest {
+        viewModel.dispatch(AdminIntent.SetBackupRetentionCount(50))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(30, viewModel.state.value.backupRetentionCount)
+
+        viewModel.dispatch(AdminIntent.SetBackupRetentionCount(0))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.state.value.backupRetentionCount)
+    }
+
+    // ── Audit filters ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `FilterAuditByEventType sets auditEventTypeFilter`() = runTest {
+        viewModel.dispatch(AdminIntent.FilterAuditByEventType(AuditEventType.LOGIN_ATTEMPT))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(AuditEventType.LOGIN_ATTEMPT, viewModel.state.value.auditEventTypeFilter)
+    }
+
+    @Test
+    fun `FilterAuditByRole sets auditRoleFilter`() = runTest {
+        viewModel.dispatch(AdminIntent.FilterAuditByRole(Role.STORE_MANAGER))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(Role.STORE_MANAGER, viewModel.state.value.auditRoleFilter)
+    }
+
+    @Test
+    fun `FilterAuditBySuccess sets auditSuccessFilter`() = runTest {
+        viewModel.dispatch(AdminIntent.FilterAuditBySuccess(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(true, viewModel.state.value.auditSuccessFilter)
+    }
+
+    // ── Conflict filters ──────────────────────────────────────────────────────
+
+    @Test
+    fun `FilterConflictsByEntityType sets conflictEntityTypeFilter`() = runTest {
+        viewModel.dispatch(AdminIntent.FilterConflictsByEntityType("Product"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Product", viewModel.state.value.conflictEntityTypeFilter)
+    }
+
+    // ── Crash log filters ─────────────────────────────────────────────────────
+
+    @Test
+    fun `FilterCrashLogsBySeverity sets crashLogFilter`() = runTest {
+        viewModel.dispatch(AdminIntent.FilterCrashLogsBySeverity(CrashLogSeverity.ERROR))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(CrashLogSeverity.ERROR, viewModel.state.value.crashLogFilter)
+    }
+
+    @Test
+    fun `FilterCrashLogsBySeverity null clears crashLogFilter`() = runTest {
+        viewModel.dispatch(AdminIntent.FilterCrashLogsBySeverity(CrashLogSeverity.FATAL))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(AdminIntent.FilterCrashLogsBySeverity(null))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.crashLogFilter)
+    }
 }

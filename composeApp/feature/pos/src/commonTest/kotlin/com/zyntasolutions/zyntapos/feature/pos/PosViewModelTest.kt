@@ -1204,4 +1204,99 @@ class PosViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
     }
+
+    // ── Email Dialog (G14) ────────────────────────────────────────────────────
+
+    @Test
+    fun `OpenEmailDialog sets emailDialogOpen and emailDialogOrderId`() = runTest {
+        viewModel.dispatch(PosIntent.OpenEmailDialog("order-001"))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.emailDialogOpen)
+        assertEquals("order-001", viewModel.state.value.emailDialogOrderId)
+    }
+
+    @Test
+    fun `DismissEmailDialog clears emailDialogOpen and emailDialogOrderId`() = runTest {
+        viewModel.dispatch(PosIntent.OpenEmailDialog("order-001"))
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.DismissEmailDialog)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.emailDialogOpen)
+        assertNull(viewModel.state.value.emailDialogOrderId)
+    }
+
+    // ── Return Lookup Dialog (G16) ─────────────────────────────────────────────
+
+    @Test
+    fun `ShowReturnLookupDialog opens dialog and clears query`() = runTest {
+        viewModel.dispatch(PosIntent.ShowReturnLookupDialog)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showReturnLookupDialog)
+        assertEquals("", viewModel.state.value.returnLookupQuery)
+    }
+
+    @Test
+    fun `DismissReturnLookupDialog closes dialog`() = runTest {
+        viewModel.dispatch(PosIntent.ShowReturnLookupDialog)
+        advanceUntilIdle()
+        viewModel.dispatch(PosIntent.DismissReturnLookupDialog)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showReturnLookupDialog)
+    }
+
+    @Test
+    fun `SetReturnLookupQuery updates query and clears error`() = runTest {
+        viewModel.dispatch(PosIntent.SetReturnLookupQuery("ORDER-001"))
+        advanceUntilIdle()
+
+        assertEquals("ORDER-001", viewModel.state.value.returnLookupQuery)
+        assertNull(viewModel.state.value.returnLookupError)
+    }
+
+    // ── Gift Card ─────────────────────────────────────────────────────────────
+
+    @Test
+    fun `GiftCardCodeChanged updates giftCardCode and clears error`() = runTest {
+        viewModel.dispatch(PosIntent.GiftCardCodeChanged("GC-1234"))
+        advanceUntilIdle()
+
+        assertEquals("GC-1234", viewModel.state.value.giftCardCode)
+        assertNull(viewModel.state.value.giftCardError)
+    }
+
+    // ── Cross-Store Return ────────────────────────────────────────────────────
+
+    @Test
+    fun `ToggleCrossStoreReturnMode toggles crossStoreReturnMode`() = runTest {
+        val before = viewModel.state.value.crossStoreReturnMode
+        viewModel.dispatch(PosIntent.ToggleCrossStoreReturnMode)
+        advanceUntilIdle()
+
+        assertEquals(!before, viewModel.state.value.crossStoreReturnMode)
+    }
+
+    @Test
+    fun `CrossStoreOrderIdChanged updates crossStoreOrderId`() = runTest {
+        viewModel.dispatch(PosIntent.CrossStoreOrderIdChanged("CS-ORDER-001"))
+        advanceUntilIdle()
+
+        assertEquals("CS-ORDER-001", viewModel.state.value.crossStoreOrderId)
+    }
+
+    @Test
+    fun `CancelCrossStoreReturn resets cross-store return state`() = runTest {
+        viewModel.dispatch(PosIntent.ToggleCrossStoreReturnMode)
+        viewModel.dispatch(PosIntent.CrossStoreOrderIdChanged("CS-ORDER-001"))
+        advanceUntilIdle()
+
+        viewModel.dispatch(PosIntent.CancelCrossStoreReturn)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.crossStoreReturnMode)
+        assertEquals("", viewModel.state.value.crossStoreOrderId)
+    }
 }

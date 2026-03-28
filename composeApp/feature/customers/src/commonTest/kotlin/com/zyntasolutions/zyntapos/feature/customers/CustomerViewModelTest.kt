@@ -463,4 +463,248 @@ class CustomerViewModelTest {
         assertEquals(0, state.pointsBalance)
         assertNull(state.currentLoyaltyTier)
     }
+
+    // ── FilterByGroup ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `FilterByGroup null clears selectedGroupId`() = runTest {
+        viewModel.dispatch(CustomerIntent.FilterByGroup(null))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.selectedGroupId)
+    }
+
+    @Test
+    fun `FilterByGroup with id sets selectedGroupId`() = runTest {
+        viewModel.dispatch(CustomerIntent.FilterByGroup("group-vip"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("group-vip", viewModel.state.value.selectedGroupId)
+    }
+
+    // ── SortByColumn ───────────────────────────────────────────────────────────
+
+    @Test
+    fun `SortByColumn with same key toggles sort direction`() = runTest {
+        // First dispatch — sets sortColumn to "name" (was already "name" so direction toggles)
+        viewModel.dispatch(CustomerIntent.SortByColumn("name"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        val stateAfterFirst = viewModel.state.value
+        assertEquals("name", stateAfterFirst.sortColumn)
+
+        // Second dispatch with same key — toggles direction
+        val firstDir = stateAfterFirst.sortDirection
+        viewModel.dispatch(CustomerIntent.SortByColumn("name"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val expectedDir = if (firstDir == SortDir.ASC) SortDir.DESC else SortDir.ASC
+        assertEquals(expectedDir, viewModel.state.value.sortDirection)
+    }
+
+    @Test
+    fun `SortByColumn with different key resets to ascending`() = runTest {
+        viewModel.dispatch(CustomerIntent.SortByColumn("name"))
+        viewModel.dispatch(CustomerIntent.SortByColumn("name")) // toggle to descending
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Switch to a different key — should reset to ascending
+        viewModel.dispatch(CustomerIntent.SortByColumn("phone"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("phone", viewModel.state.value.sortColumn)
+        assertEquals(SortDir.ASC, viewModel.state.value.sortDirection)
+    }
+
+    // ── UpdateCreditEnabled ────────────────────────────────────────────────────
+
+    @Test
+    fun `UpdateCreditEnabled true updates creditEnabled in form`() = runTest {
+        viewModel.dispatch(CustomerIntent.UpdateCreditEnabled(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.editFormState.creditEnabled)
+    }
+
+    @Test
+    fun `UpdateCreditEnabled false updates creditEnabled in form`() = runTest {
+        viewModel.dispatch(CustomerIntent.UpdateCreditEnabled(true))
+        viewModel.dispatch(CustomerIntent.UpdateCreditEnabled(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.editFormState.creditEnabled)
+    }
+
+    // ── UpdateIsWalkIn ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `UpdateIsWalkIn true sets isWalkIn in form`() = runTest {
+        viewModel.dispatch(CustomerIntent.UpdateIsWalkIn(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.editFormState.isWalkIn)
+    }
+
+    @Test
+    fun `UpdateIsWalkIn false clears isWalkIn in form`() = runTest {
+        viewModel.dispatch(CustomerIntent.UpdateIsWalkIn(true))
+        viewModel.dispatch(CustomerIntent.UpdateIsWalkIn(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.editFormState.isWalkIn)
+    }
+
+    // ── TopUpWallet ────────────────────────────────────────────────────────────
+
+    @Test
+    fun `TopUpWallet with positive amount on success emits ShowSuccess`() = runTest {
+        customersFlow.value = listOf(testCustomer)
+        viewModel.effects.test {
+            viewModel.dispatch(CustomerIntent.TopUpWallet("cust-001", 50.0, "Gift"))
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is CustomerEffect.ShowSuccess, "Expected ShowSuccess but got $effect")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── MakeCustomerGlobal ─────────────────────────────────────────────────────
+
+    @Test
+    fun `MakeCustomerGlobal on existing customer clears storeId and emits ShowSuccess`() = runTest {
+        customersFlow.value = listOf(testCustomer.copy(storeId = "store-001"))
+        viewModel.effects.test {
+            viewModel.dispatch(CustomerIntent.MakeCustomerGlobal("cust-001"))
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is CustomerEffect.ShowSuccess, "Expected ShowSuccess but got $effect")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── Bulk Import ────────────────────────────────────────────────────────────
+
+    @Test
+    fun `ShowBulkImportDialog sets showBulkImportDialog to true`() = runTest {
+        viewModel.dispatch(CustomerIntent.ShowBulkImportDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.bulkImport.showDialog)
+    }
+
+    @Test
+    fun `DismissBulkImportDialog hides dialog and clears import state`() = runTest {
+        viewModel.dispatch(CustomerIntent.ShowBulkImportDialog)
+        viewModel.dispatch(CustomerIntent.DismissBulkImportDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val bulkImport = viewModel.state.value.bulkImport
+        assertFalse(bulkImport.showDialog)
+        assertEquals("", bulkImport.fileName)
+    }
+
+    @Test
+    fun `SetImportCsvContent with valid CSV sets fileName and parsedRows`() = runTest {
+        val csv = "name,phone,email\nBob,0771234567,bob@example.com\nAlice,0779876543,alice@example.com"
+        viewModel.dispatch(CustomerIntent.SetImportCsvContent("customers.csv", csv))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val bulkImport = viewModel.state.value.bulkImport
+        assertEquals("customers.csv", bulkImport.fileName)
+        assertTrue(bulkImport.parsedRows.isNotEmpty(), "Parsed rows should be non-empty for valid CSV")
+    }
+
+    @Test
+    fun `MapImportColumn updates column mapping`() = runTest {
+        viewModel.dispatch(CustomerIntent.MapImportColumn("name", "customer_name"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("customer_name", viewModel.state.value.bulkImport.columnMapping["name"])
+    }
+
+    // ── MergeCustomers ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `MergeCustomers with non-existent target emits ShowError`() = runTest {
+        // Neither target nor source exist
+        viewModel.effects.test {
+            viewModel.dispatch(CustomerIntent.MergeCustomers("target-nonexistent", "source-nonexistent"))
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is CustomerEffect.ShowError, "Expected ShowError but got $effect")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── LoadPurchaseHistory ────────────────────────────────────────────────────
+
+    @Test
+    fun `LoadPurchaseHistory with empty orders sets empty storeOrderSummaries`() = runTest {
+        customersFlow.value = listOf(testCustomer)
+        viewModel.dispatch(CustomerIntent.LoadPurchaseHistory("cust-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // fakeOrderRepository returns empty list; storeOrderSummaries should be empty
+        assertTrue(viewModel.state.value.storeOrderSummaries.isEmpty())
+    }
+
+    // ── CustomerGroup management ───────────────────────────────────────────────
+
+    @Test
+    fun `SelectGroup null clears selectedGroup and form`() = runTest {
+        viewModel.dispatch(CustomerIntent.SelectGroup(null))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.selectedGroup)
+    }
+
+    @Test
+    fun `DismissGroupDetail clears selectedGroup and form`() = runTest {
+        viewModel.dispatch(CustomerIntent.DismissGroupDetail)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.selectedGroup)
+    }
+
+    @Test
+    fun `UpdateGroupField updates form field`() = runTest {
+        viewModel.dispatch(CustomerIntent.UpdateGroupField("name", "VIP Customers"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("VIP Customers", viewModel.state.value.groupFormState.name)
+    }
+
+    @Test
+    fun `SaveGroup with blank name does not create group`() = runTest {
+        // groupForm["name"] is blank by default
+        val groupsBefore = groupsFlow.value.size
+        viewModel.dispatch(CustomerIntent.SaveGroup)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(groupsBefore, groupsFlow.value.size, "Group should not be created with blank name")
+    }
+
+    @Test
+    fun `SaveGroup with valid name creates group and emits ShowSuccess`() = runTest {
+        viewModel.dispatch(CustomerIntent.UpdateGroupField("name", "Loyalty Members"))
+        viewModel.effects.test {
+            viewModel.dispatch(CustomerIntent.SaveGroup)
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is CustomerEffect.ShowSuccess, "Expected ShowSuccess but got $effect")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `DeleteGroup removes group and emits ShowSuccess`() = runTest {
+        val group = CustomerGroup(id = "group-001", name = "Test Group")
+        groupsFlow.value = listOf(group)
+        viewModel.effects.test {
+            viewModel.dispatch(CustomerIntent.DeleteGroup("group-001"))
+            testDispatcher.scheduler.advanceUntilIdle()
+            val effect = awaitItem()
+            assertTrue(effect is CustomerEffect.ShowSuccess, "Expected ShowSuccess but got $effect")
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }

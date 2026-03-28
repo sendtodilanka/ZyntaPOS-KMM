@@ -887,4 +887,83 @@ class StaffViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         assertNull(viewModel.state.value.successMessage)
     }
+
+    // ── ToggleShowInactive ────────────────────────────────────────────────────
+
+    @Test
+    fun `ToggleShowInactive true sets showInactive flag`() = runTest {
+        viewModel.dispatch(StaffIntent.ToggleShowInactive(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showInactive)
+    }
+
+    @Test
+    fun `ToggleShowInactive false clears showInactive flag`() = runTest {
+        viewModel.dispatch(StaffIntent.ToggleShowInactive(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(StaffIntent.ToggleShowInactive(false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showInactive)
+    }
+
+    // ── UpdateEmployeeSalaryType ──────────────────────────────────────────────
+
+    @Test
+    fun `UpdateEmployeeSalaryType updates salaryType in employeeForm`() = runTest {
+        viewModel.dispatch(StaffIntent.UpdateEmployeeSalaryType(SalaryType.HOURLY))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(SalaryType.HOURLY, viewModel.state.value.employeeForm.salaryType)
+    }
+
+    // ── ToggleEmployeeActive ──────────────────────────────────────────────────
+
+    @Test
+    fun `ToggleEmployeeActive toggles isActive in employeeForm`() = runTest {
+        val initial = viewModel.state.value.employeeForm.isActive
+        viewModel.dispatch(StaffIntent.ToggleEmployeeActive)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(!initial, viewModel.state.value.employeeForm.isActive)
+    }
+
+    // ── Leave form ────────────────────────────────────────────────────────────
+
+    @Test
+    fun `UpdateLeaveType sets leaveType in leaveForm`() = runTest {
+        viewModel.dispatch(StaffIntent.UpdateLeaveType(LeaveType.SICK))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(LeaveType.SICK, viewModel.state.value.leaveForm.leaveType)
+    }
+
+    @Test
+    fun `UpdateLeaveFormField employeeId updates leaveForm`() = runTest {
+        viewModel.dispatch(StaffIntent.UpdateLeaveFormField("employeeId", "emp-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("emp-001", viewModel.state.value.leaveForm.employeeId)
+    }
+
+    // ── Shift form ────────────────────────────────────────────────────────────
+
+    @Test
+    fun `ShowShiftForm sets showShiftForm true`() = runTest {
+        viewModel.dispatch(StaffIntent.ShowShiftForm)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showShiftForm)
+    }
+
+    @Test
+    fun `HideShiftForm clears showShiftForm`() = runTest {
+        viewModel.dispatch(StaffIntent.ShowShiftForm)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(StaffIntent.HideShiftForm)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showShiftForm)
+    }
 }

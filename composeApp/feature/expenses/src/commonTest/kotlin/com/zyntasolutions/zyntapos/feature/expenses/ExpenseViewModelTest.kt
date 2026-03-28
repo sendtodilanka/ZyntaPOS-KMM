@@ -542,4 +542,193 @@ class ExpenseViewModelTest {
         assertNull(viewModel.state.value.error)
         assertNull(viewModel.state.value.successMessage)
     }
+
+    // ── SelectExpense ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `SelectExpense null resets form and emits NavigateToDetail with null`() = runTest {
+        viewModel.effects.test {
+            viewModel.dispatch(ExpenseIntent.SelectExpense(null))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is ExpenseEffect.NavigateToDetail)
+            assertNull((effect as ExpenseEffect.NavigateToDetail).expenseId)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertFalse(viewModel.state.value.expenseForm.isEditing)
+        assertNull(viewModel.state.value.selectedExpense)
+    }
+
+    @Test
+    fun `SelectExpense with existing id loads expense into form`() = runTest {
+        expensesFlow.value = listOf(testExpense)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.effects.test {
+            viewModel.dispatch(ExpenseIntent.SelectExpense(testExpense.id))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is ExpenseEffect.NavigateToDetail)
+            assertEquals(testExpense.id, (effect as ExpenseEffect.NavigateToDetail).expenseId)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        val form = viewModel.state.value.expenseForm
+        assertTrue(form.isEditing)
+        assertEquals(testExpense.description, form.description)
+    }
+
+    @Test
+    fun `SelectExpense with non-existent id emits ShowError`() = runTest {
+        viewModel.effects.test {
+            viewModel.dispatch(ExpenseIntent.SelectExpense("does-not-exist"))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is ExpenseEffect.ShowError)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    // ── DeleteCategory ────────────────────────────────────────────────────────
+
+    @Test
+    fun `DeleteCategory removes category from repository`() = runTest {
+        val cat = ExpenseCategory(id = "cat-001", name = "Transport")
+        categoriesFlow.value = listOf(cat)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dispatch(ExpenseIntent.DeleteCategory(cat.id))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(categoriesFlow.value.isEmpty())
+    }
+
+    // ── DismissCategoryDetail ─────────────────────────────────────────────────
+
+    @Test
+    fun `DismissCategoryDetail clears showCategoryDetail and selected category`() = runTest {
+        viewModel.dispatch(ExpenseIntent.DismissCategoryDetail)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showCategoryDetail)
+        assertNull(viewModel.state.value.selectedCategory)
+    }
+
+    // ── FilterByStatus(null) ──────────────────────────────────────────────────
+
+    @Test
+    fun `FilterByStatus null clears statusFilter`() = runTest {
+        viewModel.dispatch(ExpenseIntent.FilterByStatus(Expense.Status.PENDING))
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(ExpenseIntent.FilterByStatus(null))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.statusFilter)
+    }
+
+    // ── Budget — SetCategoryBudget ────────────────────────────────────────────
+
+    @Test
+    fun `SetCategoryBudget updates categoryBudgets and emits ShowSuccess`() = runTest {
+        viewModel.effects.test {
+            viewModel.dispatch(ExpenseIntent.SetCategoryBudget("cat-001", 500.0))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is ExpenseEffect.ShowSuccess)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(500.0, viewModel.state.value.categoryBudgets["cat-001"])
+    }
+
+    // ── Budget — UpdateApprovalThreshold ──────────────────────────────────────
+
+    @Test
+    fun `UpdateApprovalThreshold sets approvalThreshold and emits ShowSuccess`() = runTest {
+        viewModel.effects.test {
+            viewModel.dispatch(ExpenseIntent.UpdateApprovalThreshold(2000.0))
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val effect = awaitItem()
+            assertTrue(effect is ExpenseEffect.ShowSuccess)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        assertEquals(2000.0, viewModel.state.value.approvalThreshold)
+    }
+
+    // ── Recurring Expenses ────────────────────────────────────────────────────
+
+    @Test
+    fun `ShowRecurringDialog sets showRecurringDialog to true`() = runTest {
+        viewModel.dispatch(ExpenseIntent.ShowRecurringDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showRecurringDialog)
+    }
+
+    @Test
+    fun `DismissRecurringDialog hides dialog and resets recurringForm`() = runTest {
+        viewModel.dispatch(ExpenseIntent.ShowRecurringDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(ExpenseIntent.DismissRecurringDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showRecurringDialog)
+    }
+
+    @Test
+    fun `UpdateRecurringField sets description in recurringForm`() = runTest {
+        viewModel.dispatch(ExpenseIntent.UpdateRecurringField("description", "Monthly rent"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Monthly rent", viewModel.state.value.recurringForm.description)
+    }
+
+    @Test
+    fun `SetRecurringFrequency updates frequency in recurringForm`() = runTest {
+        viewModel.dispatch(ExpenseIntent.SetRecurringFrequency(RecurringFrequency.WEEKLY))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(RecurringFrequency.WEEKLY, viewModel.state.value.recurringForm.frequency)
+    }
+
+    @Test
+    fun `SaveRecurringExpense with blank description sets validationError`() = runTest {
+        // description left blank — should fail validation
+        viewModel.dispatch(ExpenseIntent.UpdateRecurringField("amount", "500"))
+        viewModel.dispatch(ExpenseIntent.SaveRecurringExpense)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.recurringForm.validationErrors["description"])
+        assertFalse(viewModel.state.value.successMessage != null)
+    }
+
+    @Test
+    fun `SaveRecurringExpense with zero amount sets validationError`() = runTest {
+        viewModel.dispatch(ExpenseIntent.UpdateRecurringField("description", "Office cleaning"))
+        viewModel.dispatch(ExpenseIntent.UpdateRecurringField("amount", "0"))
+        viewModel.dispatch(ExpenseIntent.SaveRecurringExpense)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.recurringForm.validationErrors["amount"])
+    }
+
+    @Test
+    fun `SaveRecurringExpense with valid fields sets successMessage and hides dialog`() = runTest {
+        viewModel.dispatch(ExpenseIntent.ShowRecurringDialog)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.dispatch(ExpenseIntent.UpdateRecurringField("description", "Office cleaning"))
+        viewModel.dispatch(ExpenseIntent.UpdateRecurringField("amount", "200.0"))
+        viewModel.dispatch(ExpenseIntent.SaveRecurringExpense)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showRecurringDialog)
+        assertNotNull(viewModel.state.value.successMessage)
+    }
 }

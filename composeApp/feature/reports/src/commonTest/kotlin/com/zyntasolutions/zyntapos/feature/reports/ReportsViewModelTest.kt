@@ -731,4 +731,85 @@ class ReportsViewModelTest {
 
         assertEquals(2, viewModel.state.value.stockReport.allProducts.size)
     }
+
+    // ── SortStock ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `SortStock updates sortColumn and sortAscending`() = runTest {
+        viewModel.dispatch(ReportsIntent.SortStock(StockSortColumn.QTY, ascending = false))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(StockSortColumn.QTY, viewModel.state.value.stockReport.sortColumn)
+        assertFalse(viewModel.state.value.stockReport.sortAscending)
+    }
+
+    // ── SetReportTimezone ──────────────────────────────────────────────────────
+
+    @Test
+    fun `SetReportTimezone updates reportTimezone`() = runTest {
+        viewModel.dispatch(ReportsIntent.SetReportTimezone("Asia/Colombo"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Asia/Colombo", viewModel.state.value.reportTimezone)
+    }
+
+    // ── Report Scheduling ──────────────────────────────────────────────────────
+
+    @Test
+    fun `SetScheduleReportType updates scheduling reportType`() = runTest {
+        viewModel.dispatch(ReportsIntent.SetScheduleReportType(ScheduledReportType.EXPENSE))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(ScheduledReportType.EXPENSE, viewModel.state.value.scheduling.reportType)
+    }
+
+    @Test
+    fun `SetScheduleFrequency updates scheduling frequency`() = runTest {
+        viewModel.dispatch(ReportsIntent.SetScheduleFrequency(ReportScheduleFrequency.WEEKLY))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(ReportScheduleFrequency.WEEKLY, viewModel.state.value.scheduling.frequency)
+    }
+
+    @Test
+    fun `SetScheduleEmailRecipient updates scheduling emailRecipient`() = runTest {
+        viewModel.dispatch(ReportsIntent.SetScheduleEmailRecipient("manager@store.com"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("manager@store.com", viewModel.state.value.scheduling.emailRecipient)
+    }
+
+    @Test
+    fun `SetScheduleHour updates scheduling scheduleHour`() = runTest {
+        viewModel.dispatch(ReportsIntent.SetScheduleHour(9))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(9, viewModel.state.value.scheduling.scheduleHour)
+    }
+
+    // ── SetCustomSalesRange ────────────────────────────────────────────────────
+
+    @Test
+    fun `SetCustomSalesRange sets customFrom and customTo on salesReport`() = runTest {
+        val from = Instant.fromEpochMilliseconds(1_000_000_000L)
+        val to = Instant.fromEpochMilliseconds(2_000_000_000L)
+        viewModel.dispatch(ReportsIntent.SetCustomSalesRange(from, to))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(from, viewModel.state.value.salesReport.customFrom)
+        assertEquals(to, viewModel.state.value.salesReport.customTo)
+    }
+
+    // ── SetCustomExpenseRange ─────────────────────────────────────────────────
+
+    @Test
+    fun `SetCustomExpenseRange sets customFrom and customTo on expenseReport`() = runTest {
+        val from = Instant.fromEpochMilliseconds(1_000_000_000L)
+        val to = Instant.fromEpochMilliseconds(2_000_000_000L)
+        viewModel.dispatch(ReportsIntent.SetCustomExpenseRange(from, to))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(from, viewModel.state.value.expenseReport.customFrom)
+        assertEquals(to, viewModel.state.value.expenseReport.customTo)
+    }
 }
