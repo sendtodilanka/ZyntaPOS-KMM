@@ -496,4 +496,189 @@ class RegisterViewModelTest {
 
         assertNull(viewModel.state.value.successMessage)
     }
+
+    // ── Open Cash Drawer (G5) ─────────────────────────────────────────────────
+
+    @Test
+    fun `OpenCashDrawer on success sets successMessage`() = runTest {
+        viewModel.dispatch(RegisterIntent.OpenCashDrawer)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Cash drawer opened", viewModel.state.value.successMessage)
+    }
+
+    // ── Manager Approval — ManagerApprovalPinChanged ──────────────────────────
+
+    @Test
+    fun `ManagerApprovalPinChanged updates managerPin in closeRegisterForm`() = runTest {
+        viewModel.dispatch(RegisterIntent.ManagerApprovalPinChanged("1234"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("1234", viewModel.state.value.closeRegisterForm.managerPin)
+    }
+
+    @Test
+    fun `ManagerApprovalPinChanged clears prior managerApprovalError`() = runTest {
+        viewModel.dispatch(RegisterIntent.ManagerApprovalPinChanged("12"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.closeRegisterForm.managerApprovalError)
+    }
+
+    @Test
+    fun `SubmitManagerApproval with PIN shorter than 4 digits sets error`() = runTest {
+        viewModel.dispatch(RegisterIntent.ManagerApprovalPinChanged("12"))
+        viewModel.dispatch(RegisterIntent.SubmitManagerApproval)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.closeRegisterForm.managerApprovalError)
+    }
+
+    @Test
+    fun `CancelManagerApproval clears awaitingManagerApproval state`() = runTest {
+        viewModel.dispatch(RegisterIntent.CancelManagerApproval)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val form = viewModel.state.value.closeRegisterForm
+        assertFalse(form.awaitingManagerApproval)
+        assertEquals("", form.managerPin)
+        assertNull(form.managerApprovalError)
+    }
+
+    // ── Cash Out Approval (G5) ────────────────────────────────────────────────
+
+    @Test
+    fun `CashOutApprovalPinChanged updates approvalPin in dialog state`() = runTest {
+        viewModel.dispatch(RegisterIntent.ShowCashInOutDialog(CashMovement.Type.OUT))
+        viewModel.dispatch(RegisterIntent.CashOutApprovalPinChanged("5678"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("5678", viewModel.state.value.cashInOutDialog?.approvalPin)
+    }
+
+    @Test
+    fun `CashOutApprovalPinChanged clears prior approvalError`() = runTest {
+        viewModel.dispatch(RegisterIntent.ShowCashInOutDialog(CashMovement.Type.OUT))
+        viewModel.dispatch(RegisterIntent.CashOutApprovalPinChanged("1"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.cashInOutDialog?.approvalError)
+    }
+
+    @Test
+    fun `SubmitCashOutApproval with PIN shorter than 4 digits sets approvalError`() = runTest {
+        viewModel.dispatch(RegisterIntent.ShowCashInOutDialog(CashMovement.Type.OUT))
+        viewModel.dispatch(RegisterIntent.CashOutApprovalPinChanged("12"))
+        viewModel.dispatch(RegisterIntent.SubmitCashOutApproval)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.cashInOutDialog?.approvalError)
+    }
+
+    @Test
+    fun `CancelCashOutApproval clears approval state in dialog`() = runTest {
+        viewModel.dispatch(RegisterIntent.ShowCashInOutDialog(CashMovement.Type.OUT))
+        viewModel.dispatch(RegisterIntent.CancelCashOutApproval)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val dialog = viewModel.state.value.cashInOutDialog
+        // dialog is still open, but approval fields are cleared
+        assertEquals("", dialog?.approvalPin ?: "")
+        assertFalse(dialog?.awaitingCashOutApproval ?: false)
+        assertNull(dialog?.approvalError)
+    }
+
+    // ── Shift Handoff (G5) ────────────────────────────────────────────────────
+
+    @Test
+    fun `DismissShiftHandoff hides dialog and clears handoff state`() = runTest {
+        viewModel.dispatch(RegisterIntent.DismissShiftHandoff)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertFalse(state.showHandoffDialog)
+        assertNull(state.handoffTargetUserId)
+        assertEquals("", state.handoffPin)
+        assertNull(state.handoffError)
+    }
+
+    @Test
+    fun `SelectHandoffTarget sets handoffTargetUserId`() = runTest {
+        viewModel.dispatch(RegisterIntent.SelectHandoffTarget("user-cashier-002"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("user-cashier-002", viewModel.state.value.handoffTargetUserId)
+    }
+
+    @Test
+    fun `SelectHandoffTarget clears prior handoffError`() = runTest {
+        viewModel.dispatch(RegisterIntent.SelectHandoffTarget("user-002"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.handoffError)
+    }
+
+    @Test
+    fun `HandoffPinChanged updates handoffPin`() = runTest {
+        viewModel.dispatch(RegisterIntent.HandoffPinChanged("4321"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("4321", viewModel.state.value.handoffPin)
+    }
+
+    @Test
+    fun `HandoffPinChanged clears prior handoffError`() = runTest {
+        viewModel.dispatch(RegisterIntent.HandoffPinChanged("4"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.handoffError)
+    }
+
+    @Test
+    fun `ConfirmShiftHandoff without selected target sets handoffError`() = runTest {
+        // No target selected — confirm should set error
+        viewModel.dispatch(RegisterIntent.ConfirmShiftHandoff)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.handoffError)
+    }
+
+    @Test
+    fun `ConfirmShiftHandoff with target but short PIN sets handoffError`() = runTest {
+        viewModel.dispatch(RegisterIntent.SelectHandoffTarget("user-002"))
+        viewModel.dispatch(RegisterIntent.HandoffPinChanged("12"))  // < 4 digits
+        viewModel.dispatch(RegisterIntent.ConfirmShiftHandoff)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.handoffError)
+    }
+
+    // ── Z-Report ──────────────────────────────────────────────────────────────
+
+    @Test
+    fun `LoadZReport when zReportSession is null does not crash`() = runTest {
+        // zReportSession is null initially
+        assertNull(viewModel.state.value.zReportSession)
+        viewModel.dispatch(RegisterIntent.LoadZReport("sess-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        // Should not crash; isLoading returns to false
+        assertFalse(viewModel.state.value.isLoading)
+    }
+
+    @Test
+    fun `PrintZReport when zReportSession is null does not crash`() = runTest {
+        assertNull(viewModel.state.value.zReportSession)
+        viewModel.dispatch(RegisterIntent.PrintZReport("sess-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        // No-op when session is null; no error
+        assertNull(viewModel.state.value.error)
+    }
+
+    @Test
+    fun `PrintZReport with non-matching session ID is a no-op`() = runTest {
+        assertNull(viewModel.state.value.zReportSession)
+        viewModel.dispatch(RegisterIntent.PrintZReport("wrong-session-id"))
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNull(viewModel.state.value.error)
+    }
 }
