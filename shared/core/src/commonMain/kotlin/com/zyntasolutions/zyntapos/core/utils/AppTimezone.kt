@@ -29,7 +29,14 @@ object AppTimezone {
 
     private val DEFAULT = TimeZone.of("Asia/Colombo")
 
-    /** The IANA timezone identifier to use throughout the app for display. */
+    /**
+     * The IANA timezone identifier to use throughout the app for display.
+     *
+     * Marked `@Volatile` so that any background thread reading this field (e.g.,
+     * a sync coroutine formatting a timestamp) always sees the latest value written
+     * by [SettingsViewModel] on the main thread.
+     */
+    @Volatile
     private var _current: TimeZone = DEFAULT
 
     val current: TimeZone

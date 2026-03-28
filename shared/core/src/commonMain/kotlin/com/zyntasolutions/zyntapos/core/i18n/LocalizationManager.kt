@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.core.i18n
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,7 +78,12 @@ class LocalizationManager {
     fun getString(key: StringResource, vararg args: Any): String {
         val locale = _currentLocale.value
         val table = tables[locale] ?: tables[SupportedLocale.EN]
-        var result = table?.get(key) ?: return key.name
+        var result = table?.get(key) ?: run {
+            Logger.w("LocalizationManager") {
+                "Missing translation for key '${key.name}' in locale '${locale.tag}' — falling back to key name"
+            }
+            return key.name
+        }
 
         args.forEachIndexed { index, arg ->
             result = result.replace("%${index + 1}", arg.toString())
