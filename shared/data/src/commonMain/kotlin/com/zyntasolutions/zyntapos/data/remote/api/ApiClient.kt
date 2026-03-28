@@ -27,12 +27,18 @@ import kotlinx.serialization.json.Json
  * - **HttpTimeout** — connect: 10 s | request: 30 s | socket: 30 s
  * - **HttpRequestRetry** — 3 attempts, exponential backoff: 1 s → 2 s → 4 s
  * - **Logging** — Kermit-backed; active **only in DEBUG builds** (controlled by [AppConfig.isDebug])
+ * - **TLS Pinning** — pins sourced from [SecureStoragePort] (set by [PinListFetcher] on
+ *   startup); falls back to [API_SPKI_PIN_BACKUP] when no verified pins are stored.
  *
  * MERGED-F3 (2026-02-22): [prefs] parameter type changed from `SecurePreferences`
  * (`:shared:security`) to [SecureStoragePort] (`:shared:domain`) so `:shared:data`
  * holds no compile-time dependency on `:shared:security`.
  *
- * @param prefs [SecureStoragePort] used to load/store the JWT access & refresh tokens.
+ * ADR-011 (Signed Pin List): [PinListFetcher.resolveActivePins] should be called before
+ * this function so that [prefs] contains the latest verified pins. If called before the
+ * fetcher has run (first cold start), the backup pin provides connectivity.
+ *
+ * @param prefs   [SecureStoragePort] used to load/store JWT tokens and verified TLS pins.
  * @param baseUrl Override for the server base URL (defaults to [AppConfig.BASE_URL]).
  *                Useful for injecting a [MockEngine] base URL in integration tests.
  */
@@ -41,15 +47,24 @@ fun buildApiClient(
     baseUrl: String = AppConfig.BASE_URL,
 ): HttpClient = HttpClient {
 
-    // ── TLS Certificate Pinning (SEC-02) ───────────────────────────────
+    // ── TLS Certificate Pinning (SEC-02 / ADR-011) ─────────────────────
     // Enforced in production builds only. Development/debug builds skip
     // pinning so local servers and HTTP inspection proxies work normally.
+    //
+    // Pin resolution order (ADR-011 Signed Pin List):
+    //   1. Verified pins stored in prefs by PinListFetcher.resolveActivePins()
+    //   2. Emergency fallback: API_SPKI_PIN_BACKUP (Let's Encrypt E7 intermediate CA)
     if (!AppConfig.IS_DEBUG) {
         val host = baseUrl
             .removePrefix("https://")
             .removePrefix("http://")
             .substringBefore("/")
-        installCertificatePinning(host, API_SPKI_PIN_PRIMARY, API_SPKI_PIN_BACKUP)
+        val storedPins = prefs.get(SecureStorageKeys.KEY_TLS_PINS)
+            ?.split(",")
+            ?.filter { it.startsWith("sha256/") }
+            ?.takeIf { it.isNotEmpty() }
+        val activePins = storedPins ?: listOf(API_SPKI_PIN_BACKUP)
+        installCertificatePinning(host, *activePins.toTypedArray())
     }
 
     // ── JSON Serialization ─────────────────────────────────────────────

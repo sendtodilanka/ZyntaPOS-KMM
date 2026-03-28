@@ -39,6 +39,11 @@ data class AppConfig(
     val chatwootApiToken: String,
     val chatwootAccountId: String,
     val chatwootInboxId: String,
+    // TLS Signed Pin List (ADR-011) — pre-signed JSON served at /.well-known/tls-pins.json.
+    // Generated offline by scripts/generate-tls-signing-key.sh after each Caddy cert renewal.
+    // Set via TLS_PINS_JSON_PATH (file) or TLS_PINS_JSON (env var, JSON string).
+    // When null, the endpoint returns 404 and clients fall back to stored / backup pins.
+    val tlsPinsJson: String?,
 ) {
     companion object {
         fun fromEnvironment(): AppConfig {
@@ -98,6 +103,8 @@ data class AppConfig(
                 chatwootApiToken = System.getenv("CHATWOOT_API_TOKEN") ?: "",
                 chatwootAccountId = System.getenv("CHATWOOT_ACCOUNT_ID") ?: "",
                 chatwootInboxId = System.getenv("CHATWOOT_INBOX_ID") ?: "",
+                tlsPinsJson = JwtDefaults.readKeyFile("TLS_PINS_JSON_PATH")
+                    ?: System.getenv("TLS_PINS_JSON"),
             )
         }
 
