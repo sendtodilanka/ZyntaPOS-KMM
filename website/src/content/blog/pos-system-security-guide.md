@@ -52,7 +52,7 @@ ZyntaPOS uses SQLCipher 4.5 with AES-256-GCM encryption. The database passphrase
 Data moving between your POS device and the cloud must be encrypted. At minimum:
 - TLS 1.2 or higher for all API communications
 - Valid, trusted SSL certificates
-- Certificate pinning (prevents man-in-the-middle attacks)
+- Certificate pinning (prevents man-in-the-middle attacks — see [ADR-011](../../docs/adr/ADR-011-TLS-Certificate-Pinning-Strategy.md))
 
 Never use a POS system that communicates with its backend over unencrypted HTTP.
 
@@ -173,7 +173,7 @@ Watch out for these security warning signs when evaluating POS software:
 |---------------|------------------------|
 | At-rest encryption | AES-256-GCM via SQLCipher 4.5 |
 | Key storage | Android Keystore hardware (non-extractable) |
-| In-transit encryption | TLS 1.3, certificate pinning |
+| In-transit encryption | TLS 1.3, SPKI dual-pin certificate pinning (ADR-011) |
 | Authentication | Per-user PIN + biometric (optional) |
 | Session timeout | Configurable auto-lock (2–30 minutes) |
 | Access control | RBAC — 5 roles, enforced at API layer |
