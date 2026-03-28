@@ -1,45 +1,62 @@
 package com.zyntasolutions.zyntapos.core.config
 
 /**
- * ZyntaPOS global application constants.
+ * ZyntaPOS global application configuration.
  *
- * All values are compile-time constants (`const val`) so they can be used in
- * annotation arguments and inlined by the compiler.
+ * Fields fall into two categories:
  *
- * Override individual values at runtime via [SettingsRepository] (Sprint 6).
- * This object provides safe defaults used before settings are loaded.
+ * - **`const val`** — compile-time constants (never change across environments).
+ *   Used for timeouts, batch sizes, pagination limits, and other fixed tuning values.
+ *
+ * - **`var`** — runtime-overridable fields set during app startup **before** Koin
+ *   initialises. Android entry point: [ZyntaApplication.onCreate]; Desktop: `main()`.
+ *   Default values are used in unit tests and are production-safe fallbacks.
+ *
+ * **Mutation contract:** all `var` fields are assigned exactly once, at app startup,
+ * before the first Koin module is loaded. After startup they are effectively immutable.
  */
 object AppConfig {
 
     // ── Build ─────────────────────────────────────────────────────────────────
 
     /**
-     * Set to `true` during application startup in debug builds.
-     * Android: read from `BuildConfig.DEBUG` in the androidApp module.
-     * Desktop: set via a Gradle `buildkonfig` flag.
-     * Controls verbose Ktor logging and other debug-only behavior.
+     * `true` in debug builds, `false` in release builds.
+     *
+     * - Android: assigned from `BuildConfig.DEBUG` in [ZyntaApplication.onCreate].
+     * - Desktop: assigned from the `app.debug` JVM system property in `main()`.
+     *
+     * Controls:
+     * - TLS certificate pinning (disabled when `true` to allow proxy inspection)
+     * - Ktor HTTP request/response logging (enabled when `true`)
      */
     var IS_DEBUG: Boolean = false
 
     // ── API ───────────────────────────────────────────────────────────────────
 
     /**
-     * Base URL for the ZyntaPOS backend API.
-     * Override via `local.properties` / BuildKonfig in production builds.
+     * Base URL for the ZyntaPOS backend REST API.
+     *
+     * - Android: overridden from `BuildConfig.ZYNTA_API_BASE_URL` at startup
+     *   (injected by the Secrets Gradle Plugin from `local.properties`).
+     * - Desktop: overridden from the `ZYNTA_API_BASE_URL` environment variable.
+     * - Default: production endpoint — safe fallback when no override is supplied.
      */
-    const val BASE_URL: String = "https://api.zyntapos.com"
+    var BASE_URL: String = "https://api.zyntapos.com"
 
     /**
-     * Base URL for the ZyntaPOS license service.
-     * Override via `local.properties` / BuildKonfig in production builds.
+     * Base URL for the ZyntaPOS license validation service.
+     *
+     * - Android: overridden from `BuildConfig.ZYNTA_LICENSE_BASE_URL` at startup.
+     * - Desktop: overridden from the `ZYNTA_LICENSE_BASE_URL` environment variable.
+     * - Default: production endpoint — safe fallback when no override is supplied.
      */
-    const val LICENSE_BASE_URL: String = "https://license.zyntapos.com"
+    var LICENSE_BASE_URL: String = "https://license.zyntapos.com"
 
-    /** API version prefix appended to [BASE_URL] for all endpoint calls. */
+    /** API version prefix appended to [BASE_URL] for all versioned endpoint calls. */
     const val API_VERSION: String = "v1"
 
-    /** Fully qualified API root: `https://api.zyntapos.com/api/v1` */
-    const val API_ROOT: String = "$BASE_URL/api/$API_VERSION"
+    /** Fully qualified API root, e.g. `https://api.zyntapos.com/api/v1`. Computed at runtime. */
+    val API_ROOT: String get() = "$BASE_URL/api/$API_VERSION"
 
     // ── Database ──────────────────────────────────────────────────────────────
 

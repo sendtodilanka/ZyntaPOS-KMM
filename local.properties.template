@@ -3,21 +3,16 @@
 ## `local.properties` is git-ignored and must NEVER be committed.
 ## ═══════════════════════════════════════════════════════════════════
 
-# Android SDK path (set automatically by Android Studio)
-sdk.dir=/Users/dilanka/Library/Android/sdk
+# Android SDK path (set automatically by Android Studio; override for CI / custom installs)
+sdk.dir=/path/to/your/android/sdk
 
 # ── Backend API ─────────────────────────────────────────────────────
+# Override the production default in AppConfig.BASE_URL for local dev / staging.
 ZYNTA_API_BASE_URL=https://api.your-backend.com
-ZYNTA_API_CLIENT_ID=YOUR_CLIENT_ID_HERE
-ZYNTA_API_CLIENT_SECRET=YOUR_CLIENT_SECRET_HERE
 
 # ── License Service ──────────────────────────────────────────────────
+# Override the production default in AppConfig.LICENSE_BASE_URL for local dev / staging.
 ZYNTA_LICENSE_BASE_URL=https://license.zyntapos.com
-
-# ── BuildConfig fields consumed by Secrets Gradle Plugin ────────────
-# These MUST have non-empty values or the generated Java will not compile.
-API_BASE_URL=https://localhost/api
-DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
 
 # ── JWT RS256 Public Key ─────────────────────────────────────────────
 # Base64-encoded DER of the RSA public key used by the backend to sign JWTs.
@@ -30,10 +25,6 @@ DB_ENCRYPTION_PASSWORD=dev-only-not-for-production
 #     | openssl base64 -A
 ZYNTA_RS256_PUBLIC_KEY=YOUR_BASE64_DER_RSA_PUBLIC_KEY_HERE
 
-# ── Database Encryption ─────────────────────────────────────────────
-# Generate: openssl rand -hex 32
-ZYNTA_DB_PASSPHRASE=YOUR_64_CHAR_HEX_PASSPHRASE_HERE
-
 # ── Push Notifications (FCM v1) ─────────────────────────────────────
 # Firebase Legacy Server Key was permanently disabled (June 2024).
 # Use FCM v1 HTTP API via Firebase Admin SDK service account.
@@ -43,9 +34,6 @@ ZYNTA_DB_PASSPHRASE=YOUR_64_CHAR_HEX_PASSPHRASE_HERE
 ZYNTA_FCM_VAPID_PUBLIC_KEY=YOUR_VAPID_PUBLIC_KEY_HERE
 ZYNTA_FCM_VAPID_PRIVATE_KEY=YOUR_VAPID_PRIVATE_KEY_HERE
 
-# ── Maps / Geolocation ──────────────────────────────────────────────
-ZYNTA_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY_HERE
-
 # ── Crash Reporting (Sentry) ─────────────────────────────────────────
 # Android DSN — from Sentry project "zyntapos-android" (EU ingest region).
 # Injected into BuildConfig.ZYNTA_SENTRY_DSN via Secrets Gradle Plugin.
@@ -54,13 +42,19 @@ ZYNTA_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY_HERE
 ZYNTA_SENTRY_DSN=YOUR_ANDROID_SENTRY_DSN_HERE
 
 # ── E-Invoicing / IRD ───────────────────────────────────────────────
+# Injected into AppConfig.IRD_* at app startup (ZyntaApplication.onCreate / main()).
 ZYNTA_IRD_API_ENDPOINT=https://ird-staging.gov.lk/api/v1
 ZYNTA_IRD_CLIENT_CERTIFICATE_PATH=/path/to/ird_cert.p12
 ZYNTA_IRD_CERTIFICATE_PASSWORD=YOUR_IRD_CERT_PASSWORD_HERE
 
-# ── Security Monitoring ────────────────────────────────────────────────────────
-# Canary tokens (create at canarytokens.org)
-# Token A: embed as plausible internal URL in backend Application.kt
-CANARY_TOKEN_A_URL=https://canarytokens.org/generate#replace-with-real-token-a
-# Token B: embed as fake AWS key comment in config files
-CANARY_TOKEN_B_KEY=AKIAIOSFODNN7EXAMPLE-replace-with-real-token-b
+# ── NOTE: Backend-only keys ─────────────────────────────────────────
+# The following variables are consumed by the Ktor backend services via
+# System.getenv() — they are NOT injected into Android BuildConfig and
+# do NOT belong here.  Configure them in backend/.env (local dev) or as
+# GitHub Secrets (CI/CD):
+#
+#   RESEND_API_KEY          — transactional email (Resend.com)
+#   EMAIL_FROM_ADDRESS      — sender address (e.g. noreply@zyntapos.com)
+#   ZYNTA_FCM_SERVICE_ACCOUNT_JSON — Firebase Admin SDK service account
+#   SENTRY_DSN_API / SENTRY_DSN_LICENSE / SENTRY_DSN_SYNC
+#   CHATWOOT_API_TOKEN / CHATWOOT_ACCOUNT_ID
