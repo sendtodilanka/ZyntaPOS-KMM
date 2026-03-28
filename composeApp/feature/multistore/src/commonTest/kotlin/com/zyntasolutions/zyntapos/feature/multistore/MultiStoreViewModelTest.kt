@@ -698,4 +698,94 @@ class MultiStoreViewModelTest {
         assertNull(viewModel.state.value.error)
         assertNull(viewModel.state.value.successMessage)
     }
+
+    // ── Transfer Form ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `InitTransferForm sets sourceWarehouseId in transferForm`() = runTest {
+        viewModel.dispatch(WarehouseIntent.InitTransferForm("wh-src-001"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("wh-src-001", viewModel.state.value.transferForm.sourceWarehouseId)
+    }
+
+    @Test
+    fun `UpdateTransferField destWarehouseId updates transferForm`() = runTest {
+        viewModel.dispatch(WarehouseIntent.UpdateTransferField("destWarehouseId", "wh-dest-002"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("wh-dest-002", viewModel.state.value.transferForm.destWarehouseId)
+    }
+
+    @Test
+    fun `UpdateTransferField notes updates transferForm`() = runTest {
+        viewModel.dispatch(WarehouseIntent.UpdateTransferField("notes", "Urgent restock"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("Urgent restock", viewModel.state.value.transferForm.notes)
+    }
+
+    // ── Product Search ────────────────────────────────────────────────────────
+
+    @Test
+    fun `SearchProducts blank query clears results`() = runTest {
+        viewModel.dispatch(WarehouseIntent.SearchProducts(""))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("", viewModel.state.value.productSearchQuery)
+        assertTrue(viewModel.state.value.productSearchResults.isEmpty())
+    }
+
+    // ── Warehouse Image ────────────────────────────────────────────────────────
+
+    @Test
+    fun `UpdateWarehouseImage sets imageUrl in warehouseForm`() = runTest {
+        viewModel.dispatch(WarehouseIntent.UpdateWarehouseImage("/storage/img/wh.jpg"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("/storage/img/wh.jpg", viewModel.state.value.warehouseForm.imageUrl)
+    }
+
+    // ── UpdateIsDefault ────────────────────────────────────────────────────────
+
+    @Test
+    fun `UpdateIsDefault true sets isDefault in warehouseForm`() = runTest {
+        viewModel.dispatch(WarehouseIntent.UpdateIsDefault(true))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.warehouseForm.isDefault)
+    }
+
+    // ── Stock Search ──────────────────────────────────────────────────────────
+
+    @Test
+    fun `SearchStock updates stockSearchQuery`() = runTest {
+        viewModel.dispatch(WarehouseIntent.SearchStock("laptop"))
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("laptop", viewModel.state.value.stockSearchQuery)
+    }
+
+    // ── DismissPickList ───────────────────────────────────────────────────────
+
+    @Test
+    fun `DismissPickList clears pickList in state`() = runTest {
+        viewModel.dispatch(WarehouseIntent.DismissPickList)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.pickList)
+    }
+
+    // ── Transit event form ────────────────────────────────────────────────────
+
+    @Test
+    fun `DismissTransitEventForm resets transitEventForm to default`() = runTest {
+        viewModel.dispatch(WarehouseIntent.DismissTransitEventForm)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val form = viewModel.state.value.transitEventForm
+        assertEquals("", form.transferId)
+        assertEquals("", form.location)
+        assertTrue(form.validationErrors.isEmpty())
+    }
 }
