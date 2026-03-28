@@ -60,24 +60,21 @@ These are intentionally deferred and are not blockers for Phase 2 launch. They r
 
 ---
 
-### 1.3 Firebase Analytics — Remaining External Steps
+### 1.3 Analytics — RESOLVED (ADR-012: Firebase removed 2026-03-28)
 
-`docs/todo/011-firebase-analytics-sentry-integration.md` (Status: ~95% code-complete) has these unchecked items requiring external console actions:
+All Firebase analytics code was added on 2026-03-27 then fully removed on 2026-03-28 per **ADR-012**. The analytics system now uses Kermit structured logging + Sentry breadcrumbs. No external Firebase Console setup is required.
 
-| Item | Type | Action needed |
-|------|------|---------------|
-| Firebase project creation | External | Create project in Firebase Console, link GA4 property |
-| `google-services.json` linking | External | Download and add to repo via CI secret injection (already set up) |
-| Google Cloud OAuth client | External | Create in Google Cloud Console for admin panel SSO |
-| Firebase Remote Config | Code | ✅ IMPLEMENTED 2026-03-27 — `RemoteConfigProvider` interface + `RemoteConfigService` expect/actual in `shared/data` (Android: Firebase RC SDK; JVM: defaults stub) |
-| Firebase Crashlytics (Android) | Code | ✅ IMPLEMENTED 2026-03-27 — `CrashlyticsLogWriter` added to `ZyntaApplication` (production-only) |
-| GA4 BigQuery export | External | Enable in Firebase Console |
-| Firebase JS SDK for admin panel | Code | ✅ IMPLEMENTED 2026-03-27 — `admin-panel/src/lib/firebase.ts` with `initFirebase()`, `logAnalyticsEvent()`; called from `main.tsx` |
+| Item | Status |
+|------|--------|
+| ~~Firebase project creation~~ | **N/A** — Firebase removed (ADR-012) |
+| ~~`google-services.json` linking~~ | **N/A** — Firebase removed (ADR-012) |
+| ~~Firebase Remote Config~~ | **REPLACED** — `RemoteConfigService` backed by `FeatureRegistryRepository` (SQLite, offline-first) |
+| ~~Firebase Crashlytics (Android)~~ | **REPLACED** — Sentry Android SDK is the sole crash reporter |
+| ~~GA4 BigQuery export~~ | **N/A** — Firebase removed (ADR-012) |
+| ~~Firebase JS SDK for admin panel~~ | **REPLACED** — `@sentry/react` active |
+| `RemoteConfigProvider` interface + `RemoteConfigService` (commonMain) | ✅ ACTIVE |
 
-**Action required (code items):**
-- [x] `RemoteConfigService` expect/actual in `shared/data` — IMPLEMENTED 2026-03-27
-- [x] Firebase Crashlytics integration in Android app (`androidApp/`) — IMPLEMENTED 2026-03-27
-- [x] Firebase JS SDK initialization in `admin-panel/src/main.tsx` — IMPLEMENTED 2026-03-27
+See `docs/adr/ADR-012-firebase-removal.md` for full rationale.
 
 ---
 
@@ -174,7 +171,7 @@ Phase F: PARTIAL (S4-9 CSP nonce)
 - TODO-007g (sync engine): ✅ fully implemented (SyncProcessor, EntityApplier, 17+ entity types)
 - TODO-006 (remote diagnostics): ✅ DiagnosticRelay.kt, DiagnosticWebSocketRoutes.kt, DiagnosticConsentRoutes.kt, AdminDiagnosticRoutes.kt all exist
 - TODO-008a (email): ✅ Stalwart live, EmailService, AdminTicketService email integration, settings/email.tsx route
-- TODO-011 (Firebase Analytics): ✅ ~95% code-complete (AnalyticsService expect/actual, Firebase BOM, Android + JVM actuals)
+- TODO-011 (Analytics): ✅ 100% complete — Firebase fully removed (ADR-012, 2026-03-28); Kermit + Sentry active
 - TODO-007e (API docs): ✅ 100% complete (all 4 OpenAPI specs, guides, build.js, Cloudflare Pages deploy)
 
 **Action:** Add a notice at the top of `gap_analysis_2026-03-09.md` marking it as superseded:
@@ -240,7 +237,7 @@ Items that are implemented but documentation has not been updated to reflect com
 |----------|-------|----------|
 | Genuinely unimplemented (Phase 3 deferred — externally blocked) | 7 items | Low — Phase 3 scope |
 | TODO-012 gaps | ✅ 0 remaining | All verified implemented |
-| Firebase code gaps | ✅ 0 remaining | All implemented 2026-03-27 |
+| Firebase code gaps | ✅ 0 remaining | Firebase fully removed (ADR-012, 2026-03-28) |
 | `:shared:domain` test coverage gaps | ✅ 0 remaining | All gaps addressed — LicenseUseCasesTest, RackUseCasesTest, EnterpriseReportUseCasesTest added 2026-03-27 |
 | External/infrastructure (user action only) | 9 items | Varies |
 | Documentation staleness | ✅ Resolved | CLAUDE.md, gap_analysis, plan updated |
@@ -265,9 +262,9 @@ All previously identified code priorities have been implemented:
 - ✅ TODO-012 Task 6 (agent email reply) — verified implemented
 - ✅ TODO-012 Advanced filtering — verified implemented
 - ✅ TODO-012 SLA bug fix — verified implemented
-- ✅ Firebase RemoteConfig expect/actual — implemented 2026-03-27
-- ✅ Firebase Crashlytics (Android) — implemented 2026-03-27
-- ✅ Firebase JS SDK for admin panel — implemented 2026-03-27
+- ✅ ~~Firebase RemoteConfig expect/actual~~ — replaced with `FeatureRegistryRepository`-backed `RemoteConfigService` (ADR-012, 2026-03-28)
+- ✅ ~~Firebase Crashlytics (Android)~~ — removed (ADR-012, 2026-03-28); Sentry is sole crash reporter
+- ✅ ~~Firebase JS SDK for admin panel~~ — removed (ADR-012, 2026-03-28); `@sentry/react` active
 - ✅ EmailPort implementations + SendReceiptByEmailUseCase wiring — implemented 2026-03-27
 - ✅ License use case tests (ActivateLicenseUseCase, GetLicenseStatusUseCase, SendHeartbeatUseCase) — implemented 2026-03-27
 - ✅ FakeRackProductRepository + RackUseCasesTest (GetWarehouseRacksUseCase, GetRackProductsUseCase, SaveRackProductUseCase, DeleteRackProductUseCase) — implemented 2026-03-27
