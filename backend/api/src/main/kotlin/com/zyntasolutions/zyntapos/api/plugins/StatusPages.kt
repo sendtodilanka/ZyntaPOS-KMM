@@ -14,9 +14,16 @@ private val logger = LoggerFactory.getLogger("StatusPages")
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<IllegalArgumentException> { call, cause ->
+            // SECURITY FIX: do not echo cause.message to the client. IllegalArgumentException is
+            // thrown by Exposed ORM on constraint violations, UUID parsing, and Kotlin require()
+            // calls throughout the codebase — messages routinely contain table names, column
+            // names, and value hints (e.g. "Check constraint failed: products_price_positive",
+            // "Invalid UUID string: ..."). Log internally for diagnostics; return a generic
+            // message to the caller.
+            logger.warn("Bad request on ${call.request.local.method.value} ${call.request.local.uri}: ${cause.message}")
             call.respond(
                 HttpStatusCode.BadRequest,
-                ErrorResponse(code = "INVALID_REQUEST", message = cause.message ?: "Invalid request")
+                ErrorResponse(code = "INVALID_REQUEST", message = "Invalid request")
             )
         }
         exception<AdminAuthorizationException> { call, cause ->
