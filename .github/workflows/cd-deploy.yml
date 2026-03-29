@@ -310,7 +310,6 @@ jobs:
     needs: deploy
     if: needs.deploy.result == 'success'
     uses: ./.github/workflows/cd-smoke-rollback.yml
-    environment: production
     with:
       sha: ${{ needs.deploy.outputs.deploy_sha }}
       title: ${{ github.event.client_payload.title || github.event.inputs.reason || '' }}
