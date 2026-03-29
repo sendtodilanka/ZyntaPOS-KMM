@@ -33,11 +33,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ── Check API availability before scanning ──────────────────────────────
+      # ZAP fails hard when the target is unreachable (VPS not deployed / down).
+      # This step probes the /health endpoint; if unavailable the scan is skipped
+      # gracefully so the job still passes (green) rather than blocking the pipeline.
+      - name: Check API availability
+        id: api-check
+        run: |
+          TARGET="${{ github.event.inputs.target || 'https://api.zyntapos.com' }}"
+          echo "Probing $TARGET/health ..."
+          if curl --fail --silent --max-time 15 --retry 2 --retry-delay 5 \
+               "$TARGET/health" > /dev/null 2>&1; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "API is available — proceeding with ZAP scan."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::API is unreachable at $TARGET — ZAP scan will be skipped gracefully."
+          fi
+
       # ── Run ZAP API scan ────────────────────────────────────────────────────
       # Uses the official ZAP GitHub Action which runs the ZAP Docker image
       # in API scan mode (passive + active rules against an OpenAPI target).
-      # exit-code: 2 → fail only on HIGH severity alerts (WARN = medium, INFO = low)
+      # Skipped when API availability check reports unavailable.
       - name: OWASP ZAP API Scan
+        if: steps.api-check.outputs.available == 'true'
         uses: zaproxy/action-api-scan@v0.9.0
         with:
           target: ${{ github.event.inputs.target || 'https://api.zyntapos.com' }}
@@ -92,15 +111,23 @@ jobs:
         if: always()
         run: |
           TARGET="${{ github.event.inputs.target || 'https://api.zyntapos.com' }}"
+          AVAILABLE="${{ steps.api-check.outputs.available }}"
           {
             echo "## OWASP ZAP API Scan"
             echo ""
             echo "**Target:** \`$TARGET\`"
             echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo "**Trigger:** ${{ github.event_name }}"
+            echo "**API Available:** $AVAILABLE"
             echo ""
-            echo "SARIF results uploaded to **Security → Code scanning alerts** (category: \`zap-api\`)."
-            echo ""
-            echo "> ZAP runs in report-only mode — alerts do not fail the build."
-            echo "> Review findings in the Security tab and triage accordingly."
+            if [ "$AVAILABLE" = "true" ]; then
+              echo "SARIF results uploaded to **Security → Code scanning alerts** (category: \`zap-api\`)."
+              echo ""
+              echo "> ZAP runs in report-only mode — alerts do not fail the build."
+              echo "> Review findings in the Security tab and triage accordingly."
+            else
+              echo "> **Scan skipped** — API endpoint is unreachable (VPS not deployed or down)."
+              echo "> An empty SARIF was uploaded to keep the Security tab entry active."
+              echo "> Re-run this workflow manually once the VPS is deployed."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
