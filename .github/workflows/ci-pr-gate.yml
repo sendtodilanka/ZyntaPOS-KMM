@@ -9,15 +9,16 @@ name: "Step[3]: PR Gate"
 # This is the quality gate that blocks PR merge until ALL checks pass.
 # Branch protection requires "CI Gate Status" to be green before merge.
 #
-# Includes OWASP security scanning — the NVD download can take 25-30 min
-# on cache miss, but that's acceptable during PR review. Step[4] (push to
-# main) skips OWASP since it was already validated here.
+# Security scanning:
+#   - OSV-Scanner (advisory, SARIF → Security tab) — replaces OWASP dependency-check
+#   - Trivy filesystem scan (blocking — fails gate on CRITICAL/HIGH CVEs)
+#   Step[4] (push to main) skips security scanning since it was validated here.
 #
 # EDGE CASES HANDLED:
 #   - Stale PRs: newer push cancels in-progress CI on same PR
 #   - Test flakiness: --continue flag runs all tests, reports all failures
 #   - Test reporting: JUnit XML published as PR check annotations
-#   - OWASP advisory: continue-on-error so known CVEs don't block merges
+#   - OSV-Scanner advisory: continue-on-error so known CVEs don't block merges
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -327,11 +328,71 @@ jobs:
           fail-on-error: false
           fail-on-empty: false
 
+  # ── Security Scanning: OSV-Scanner (advisory) ────────────────────────────
+  # Google OSV-Scanner scans all dependency manifests for known vulnerabilities.
+  # Results uploaded as SARIF → GitHub Security → Code Scanning alerts.
+  # Advisory only (continue-on-error) — does not block PR merge.
+  # Replaces OWASP Dependency Check (removed: NVD rate-limiting / API key issues).
+  osv-scan:
+    name: "Security Scan (OSV-Scanner)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action@v2
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --recursive
+            --format=sarif
+            --output=osv-results.sarif
+            ./
+
+      - name: Ensure OSV SARIF exists
+        if: always()
+        run: |
+          if [ ! -f osv-results.sarif ]; then
+            echo "::warning::OSV-Scanner SARIF not generated. Creating empty SARIF."
+            cat > osv-results.sarif <<'SARIF'
+          {
+            "version": "2.1.0",
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+            "runs": [{
+              "tool": { "driver": { "name": "OSV-Scanner", "version": "2.0.0", "rules": [] } },
+              "results": []
+            }]
+          }
+          SARIF
+          fi
+
+      - name: Upload OSV SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: osv-results.sarif
+          category: osv-scanner
+        continue-on-error: true
+
+      - name: Upload OSV results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: osv-scan-results-${{ github.run_id }}
+          path: osv-results.sarif
+          retention-days: 14
+          if-no-files-found: ignore
+
   # ── Security Scanning: Trivy filesystem scan (dependency vulnerabilities) ──
   # Scans backend Gradle dependency trees for CRITICAL/HIGH CVEs.
   # Trivy natively parses build.gradle.kts — no lockfile generation needed.
-  # Completes in ~1-2 min (vs 25-30 min for OWASP Dependency Check).
-  # Required check — blocks PR merge if CRITICAL/HIGH vulnerabilities found.
+  # Completes in ~1-2 min. Required check — blocks PR merge on CRITICAL/HIGH CVEs.
   security-scan-backend:
     name: "Security Scan (Trivy)"
     runs-on: ubuntu-latest
@@ -384,7 +445,7 @@ jobs:
   #
   ci-gate-status:
     name: "CI Gate Status"
-    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose, security-scan-backend]
+    needs: [build-and-test, test-website, test-admin-panel, test-backend, validate-migrations, validate-compose, security-scan-backend, osv-scan]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -398,6 +459,7 @@ jobs:
           VALIDATE_MIGRATIONS: ${{ needs.validate-migrations.result }}
           VALIDATE_COMPOSE: ${{ needs.validate-compose.result }}
           SECURITY_SCAN: ${{ needs.security-scan-backend.result }}
+          OSV_SCAN: ${{ needs.osv-scan.result }}
         run: |
           echo "=== CI Gate Job Results ==="
           echo "build-and-test:        $BUILD_AND_TEST"
@@ -406,9 +468,11 @@ jobs:
           echo "test-backend:          $TEST_BACKEND"
           echo "validate-migrations:   $VALIDATE_MIGRATIONS"
           echo "validate-compose:      $VALIDATE_COMPOSE"
-          echo "security-scan:         $SECURITY_SCAN"
+          echo "security-scan (Trivy): $SECURITY_SCAN"
+          echo "osv-scan (advisory):   $OSV_SCAN"
 
           # Fail if any required job failed or was cancelled
+          # NOTE: osv-scan is advisory — skipped from gate enforcement
           FAILED=false
           for PAIR in \
             "build-and-test:$BUILD_AND_TEST" \
