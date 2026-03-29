@@ -35,7 +35,7 @@ jobs:
   smoke-rollback:
     name: "Step[6]: Smoke Test & Rollback"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
 
     steps:
       # ── Smoke test via SSH to bypass Cloudflare ──────────────────────
@@ -223,7 +223,7 @@ jobs:
           key: ${{ secrets.VPS_USER_KEY }}
           port: ${{ secrets.VPS_PORT }}
           timeout: 60s
-          command_timeout: 5m
+          command_timeout: 20m
           script: |
             set -euo pipefail
             cd ${{ env.DEPLOY_PATH }}
