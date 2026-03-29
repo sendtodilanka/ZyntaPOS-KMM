@@ -107,6 +107,17 @@ jobs:
             echo "::warning::Step[3]: PR Gate will NOT be triggered automatically on the PR."
           fi
 
+          DISPATCH_SHA="${{ github.event.client_payload.sha }}"
+          CURRENT_HEAD=$(gh api "repos/${{ github.repository }}/branches/${BRANCH}" \
+            --jq '.commit.sha' 2>/dev/null || echo "")
+          if [ -n "$CURRENT_HEAD" ] && [ "$CURRENT_HEAD" != "$DISPATCH_SHA" ]; then
+            echo "::notice::Dispatch SHA ${DISPATCH_SHA:0:8} is no longer branch HEAD (${CURRENT_HEAD:0:8}) — skipping stale dispatch"
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "already_merged=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           # Check for open PR first
           EXISTING=$(gh pr list \
             --head "$BRANCH" \
@@ -192,6 +203,10 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/repos/${{ github.repository }}/pulls/${PR}/update-branch" \
             -d '{"expected_head_sha":"${{ github.event.client_payload.sha }}"}')
+          if [ -z "$STATUS" ] || [ "$STATUS" = "000" ]; then
+            echo "::warning::Branch sync curl failed (network error — STATUS='${STATUS}') — skipping sync"
+            exit 0
+          fi
           if [ "$STATUS" = "202" ]; then
             echo "Branch sync queued — GitHub is merging main into the PR branch"
           elif [ "$STATUS" = "204" ]; then
@@ -208,6 +223,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
+          PR_STATE=$(gh pr view "${{ steps.pr.outputs.pr_number }}" \
+            --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
+          if [ "$PR_STATE" != "OPEN" ]; then
+            echo "::notice::PR #${{ steps.pr.outputs.pr_number }} is $PR_STATE — skipping auto-merge"
+            exit 0
+          fi
           EXISTING=$(gh pr view "${{ steps.pr.outputs.pr_number }}" \
             --json autoMergeRequest --jq '.autoMergeRequest // empty' 2>/dev/null || echo "")
           if [ -n "$EXISTING" ]; then
