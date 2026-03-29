@@ -24,7 +24,7 @@ name: "FTS Step 6: Full Verification"
 #     10. All config files present
 #     11. Secrets files valid (DB pass, RS256 keys, TLS)
 #     12. .env variables set
-#     13. All 9 containers running + healthy (core 7 + stalwart + email-relay)
+#     13. All 9 containers running + healthy (caddy, api, license, sync, postgres, redis, canary + stalwart + email-relay)
 #     14. Database connectivity (PostgreSQL)
 #     15. Redis connectivity
 #     16. HTTP health endpoints (API, License, Sync, Caddy)
@@ -361,7 +361,7 @@ jobs:
             echo "Summary:"
             echo "  • Security: UFW + Fail2Ban + SSH hardened + auto-updates"
             echo "  • Performance: Swap + kernel tuned + Docker optimized"
-            echo "  • Services: 9 containers running and healthy (incl. stalwart + email-relay)"
+            echo "  • Services: 9 containers running and healthy (caddy, api, license, sync, postgres, redis, canary + stalwart + email-relay)"
             echo "  • Database: PostgreSQL + Redis connected"
             echo "  • TLS: Certificate installed"
             echo ""

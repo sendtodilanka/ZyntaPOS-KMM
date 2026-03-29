@@ -98,6 +98,10 @@ jobs:
             echo "| Subdomain | /ping | Body | / | Status |" > "$RESULTS_FILE"
             echo "|-----------|-------|------|---|--------|" >> "$RESULTS_FILE"
 
+            # Subdomains: api, license, panel (→ admin-panel:3000), status (→ uptime-kuma:3001),
+            # sync, docs — all routed by Caddy. Note: docs.zyntapos.com is served by
+            # Cloudflare Pages (zyntapos-docs.pages.dev) — Caddy returns 200 via CF proxy,
+            # not from a local container. /ping passes because Caddy handles the route.
             for sub in api license panel docs status sync; do
               PING_HTTP="000"
               PING_BODY=""
