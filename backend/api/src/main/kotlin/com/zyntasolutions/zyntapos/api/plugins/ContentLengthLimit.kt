@@ -5,7 +5,6 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.call
 import io.ktor.server.request.ApplicationReceivePipeline
-import io.ktor.server.request.ApplicationReceiveRequest
 import io.ktor.server.response.respond
 import io.ktor.util.AttributeKey
 import io.ktor.utils.io.ByteReadChannel
@@ -61,7 +60,8 @@ fun Application.configureContentLengthLimit() {
     // ── Stage 2: enforce on actual channel (catches chunked / no Content-Length) ──
     receivePipeline.intercept(ApplicationReceivePipeline.Before) {
         val maxBytes = call.attributes.getOrNull(MAX_BODY_SIZE_KEY) ?: return@intercept
-        val channel = subject.value as? ByteReadChannel ?: return@intercept
+        // In Ktor 3.x, subject in the receive pipeline IS the ByteReadChannel directly
+        val channel = subject as? ByteReadChannel ?: return@intercept
 
         // Read up to maxBytes + 1 into memory. If more than maxBytes arrived, reject.
         // readRemaining(limit) reads at most `limit` bytes without blocking indefinitely.
@@ -76,9 +76,8 @@ fun Application.configureContentLengthLimit() {
             return@intercept
         }
 
-        // Re-wrap the buffered bytes as a new channel for downstream handlers
-        proceedWith(
-            ApplicationReceiveRequest(subject.typeInfo, ByteReadChannel(bytes), subject.reusableValue)
-        )
+        // Re-wrap the buffered bytes as a new channel for downstream handlers.
+        // In Ktor 3.x, proceedWith takes the channel directly (no ApplicationReceiveRequest wrapper).
+        proceedWith(ByteReadChannel(bytes))
     }
 }
