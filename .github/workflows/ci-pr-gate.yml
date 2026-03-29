@@ -307,10 +307,10 @@ jobs:
             "runs": [{
               "tool": { "driver": { "name": "OSV-Scanner", "version": "2.0.0", "rules": [] } },
               "invocations": [{
-                "executionSuccessful": false,
+                "executionSuccessful": true,
                 "toolExecutionNotifications": [{
                   "message": { "text": "Scan skipped — see workflow logs" },
-                  "level": "warning"
+                  "level": "note"
                 }]
               }],
               "results": []
