@@ -53,6 +53,9 @@ jobs:
     name: "Step[6]: Smoke Test & Rollback"
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    concurrency:
+      group: smoke-rollback
+      cancel-in-progress: false
 
     steps:
       # ── Smoke test via SSH to bypass Cloudflare ──────────────────────

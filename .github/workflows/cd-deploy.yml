@@ -38,6 +38,16 @@ permissions:
   contents: read
   deployments: write
 
+# ── Workflow-level concurrency ───────────────────────────────────────────────
+# MUST be at workflow level (not job level) so the "production-deploy" lock is
+# held for the ENTIRE workflow run — covering both the deploy job AND the smoke
+# job. A job-level concurrency lock is released when that job completes, which
+# would free the lock before smoke starts and allow Deploy N+1 to overwrite the
+# VPS while Smoke N is still testing those containers.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 env:
   DEPLOY_PATH: /opt/zyntapos
 
@@ -46,9 +56,6 @@ jobs:
     name: "Step[5]: Deploy to Contabo VPS"
     runs-on: ubuntu-latest
     environment: production
-    concurrency:
-      group: production-deploy
-      cancel-in-progress: false
     outputs:
       deploy_sha: ${{ steps.sha.outputs.deploy_sha }}
 
@@ -303,6 +310,7 @@ jobs:
     needs: deploy
     if: needs.deploy.result == 'success'
     uses: ./.github/workflows/cd-smoke-rollback.yml
+    environment: production
     with:
       sha: ${{ needs.deploy.outputs.deploy_sha }}
       title: ${{ github.event.client_payload.title || github.event.inputs.reason || '' }}
