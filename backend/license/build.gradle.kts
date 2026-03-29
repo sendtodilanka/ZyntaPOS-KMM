@@ -43,6 +43,10 @@ configurations.all {
             useVersion("2.3.0")
             because("CVE fix: CVE-2020-29582 fixed in 1.4.21; force to project Kotlin version to eliminate old transitive")
         }
+        if (requested.group == "org.apache.commons" && requested.name == "commons-lang3") {
+            useVersion("3.18.0")
+            because("CVE fix: CVE-2025-48924 Uncontrolled Recursion fixed in commons-lang3 3.18.0")
+        }
     }
 }
 
