@@ -8,15 +8,18 @@ run-name: "${{ github.event.client_payload.title || 'Deploy to VPS' }} (${{ gith
 # or manually via workflow_dispatch. Connects to the Contabo VPS via SSH
 # and deploys the exact SHA that CI verified.
 #
-# CHAINING: On success, dispatches "smoke-trigger" to start Step[6].
-# Uses repository_dispatch instead of workflow_run to avoid ghost workflow
-# interference.
+# CHAINING (Option 4 — workflow_call):
+# Step[6] (Smoke Test) is called directly via workflow_call from the `smoke`
+# job below — NOT via repository_dispatch. This keeps the "production-deploy"
+# concurrency lock held for the ENTIRE deploy + smoke duration, preventing the
+# parallel-deploy race condition where Deploy N+1 overwrites the VPS while
+# Smoke N is still testing those containers.
 #
 # EDGE CASES HANDLED:
-#   - Race condition: deploys exact SHA from dispatch payload, not current HEAD
+#   - Race condition: "production-deploy" lock covers deploy + smoke atomically
 #   - Concurrent deploys: concurrency group ensures only one deploy at a time
 #   - Manual trigger: operator can deploy any time (bypasses CI gate)
-#   - SSH timeout: 120s connect, 10m command (covers slow Docker pulls)
+#   - SSH timeout: 120s connect, 25m command (covers 3×300s pull + up + Caddy)
 #   - Docker compose validation: config check before deploy
 #   - Disk space: prunes dangling images after deploy
 # ─────────────────────────────────────────────────────────────────────────────
@@ -46,6 +49,8 @@ jobs:
     concurrency:
       group: production-deploy
       cancel-in-progress: false
+    outputs:
+      deploy_sha: ${{ steps.sha.outputs.deploy_sha }}
 
     steps:
       - name: Resolve deploy SHA
@@ -254,15 +259,6 @@ jobs:
             echo "=== Deploy complete: $(date) ==="
             docker compose ps
 
-      # ── Chain to Step[6]: Smoke Test ─────────────────────────────────────
-      - name: Dispatch smoke test
-        if: success()
-        uses: peter-evans/repository-dispatch@v3
-        with:
-          token: ${{ secrets.PAT_TOKEN }}
-          event-type: smoke-trigger
-          client-payload: '{"sha": "${{ steps.sha.outputs.deploy_sha }}", "deploy_run_id": "${{ github.run_id }}", "title": "${{ github.event.client_payload.title }}"}'
-
       - name: Post deploy summary
         if: always()
         run: |
@@ -291,8 +287,23 @@ jobs:
             fi
             echo ""
             if [ "$STATUS" = "success" ]; then
-              echo "> Step[6]: Smoke Test dispatched."
+              echo "> Step[6]: Smoke Test running (workflow_call — production-deploy lock held)."
             else
               echo "> Deploy failed. Step[6] will NOT run."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Step[6]: Smoke Test & Rollback (workflow_call) ───────────────────────────
+  # Called directly so the "production-deploy" concurrency lock stays held for
+  # the full deploy + smoke window. A second deploy cannot start until smoke
+  # completes (or rolls back), preventing the race condition where Deploy N+1
+  # overwrites the VPS while Smoke N is still testing those containers.
+  smoke:
+    name: "Step[6]: Smoke Test & Rollback"
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    uses: ./.github/workflows/cd-smoke-rollback.yml
+    with:
+      sha: ${{ needs.deploy.outputs.deploy_sha }}
+      title: ${{ github.event.client_payload.title || github.event.inputs.reason || '' }}
+    secrets: inherit
