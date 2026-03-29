@@ -1,6 +1,6 @@
 # ZyntaPOS — Deployment Architecture
 
-**Last updated:** 2026-03-18
+**Last updated:** 2026-03-29
 **ADR:** [ADR-006](../adr/ADR-006-backend-docker-build-in-ci.md)
 
 ---
@@ -136,11 +136,19 @@ docker image prune -f
 | `chatwoot-sidekiq` | `chatwoot/chatwoot:latest` | — | Chatwoot background job worker |
 | `cloudflared` | `cloudflare/cloudflared:latest` | — | Cloudflare Tunnel daemon (Zero Trust, optional profile) |
 
-All backend services run with:
-- `read_only: true` + `tmpfs: /tmp`
+**Ktor services** (`api`, `license`, `sync`) run with full hardening:
+- `read_only: true` + `tmpfs: /tmp:noexec,nosuid`
 - `no-new-privileges:true`
+- Custom seccomp profile (`config/seccomp/ktor.json`)
+- `cap_drop: ALL` + `cap_add: NET_BIND_SERVICE` only
 - Memory limits (api=512m, license/sync=256m)
-- Non-root user (`zyntapos:zyntapos`)
+- Non-root user (`zyntapos:zyntapos`) in Dockerfile
+
+**Supporting services** (`postgres`, `redis`, `stalwart`, `uptime-kuma`) run with:
+- `no-new-privileges:true`
+- `cap_drop: ALL` + targeted `cap_add` (CHOWN, SETUID, SETGID, NET_BIND_SERVICE)
+- Memory limits per service
+- Image-default user (postgres / redis / stalwart run non-root by image convention)
 
 ---
 
@@ -149,19 +157,36 @@ All backend services run with:
 ### One-time setup (run on VPS after provisioning)
 
 ```bash
-# 1. REDIS_PASSWORD — required by docker-compose.yml; redis container won't start without it
+# 1. Generate REDIS_PASSWORD and add to .env
 echo "REDIS_PASSWORD=$(openssl rand -hex 24)" >> /opt/zyntapos/.env
 
-# 2. Verify .env contains all required variables
-grep -E "REDIS_PASSWORD" /opt/zyntapos/.env
+# 2. Generate the Redis ACL file (password moved off command-line to prevent
+#    exposure in `docker inspect .Command` and /proc/<pid>/cmdline — 2026-03-29)
+source /opt/zyntapos/.env
+echo "user default on >${REDIS_PASSWORD} ~* &* +@all" > /opt/zyntapos/secrets/redis.acl
+chmod 600 /opt/zyntapos/secrets/redis.acl
 
-# 3. Secrets files (Docker secrets, not .env)
+# 3. Verify .env contains required variables
+grep -E "REDIS_PASSWORD|ADMIN_IP_ALLOWLIST" /opt/zyntapos/.env
+
+# 4. Secrets files (Docker secrets, not .env)
 ls /opt/zyntapos/secrets/
-# Must contain: db_password.txt, rs256_private_key.pem, rs256_public_key.pem
+# Must contain: db_password.txt, rs256_private_key.pem, rs256_public_key.pem, redis.acl
 # See: secrets/secrets.env.template for generation instructions
 ```
 
-### Runtime-tunable env vars (optional — VPS `.env`)
+### Runtime-tunable env vars (VPS `.env`)
+
+#### Security (`api` service) — **must review before first production deploy**
+
+| Env var | Default | Description |
+|---------|---------|-------------|
+| `ADMIN_IP_ALLOWLIST` | *(none)* | **Required in production.** Comma-separated CIDRs or IPs allowed to reach `/admin/*` routes. If unset, the server refuses to start unless `ALLOW_OPEN_ADMIN_ACCESS=true` is also set. Example: `10.0.0.0/8,203.0.113.5` |
+| `ALLOW_OPEN_ADMIN_ACCESS` | `false` | Set `true` only when admin access is already restricted at the network layer (Cloudflare Zero Trust tunnel, VPN). Suppresses the startup check when `ADMIN_IP_ALLOWLIST` is empty. |
+| `CORS_ALLOW_LOCALHOST` | `false` | Set `true` only in local development environments. In production, `localhost` origins must never be trusted with `allowCredentials=true` — doing so enables CSRF via local-machine attack vectors. |
+| `SINGLE_STORE_COMPAT_MODE` | `false` | Set `true` only for single-store deployments that have not yet populated the `user_store_access` table. Must be `false` for any multi-store deployment. When `false`, sync push/pull enforce per-user store ownership checks and return `403` for users with no grants. |
+
+#### Performance (`api` service) — optional, safe defaults suffice for most deployments
 
 All values below have safe defaults hardcoded in the service and only need to be set when the defaults are insufficient for the deployment's load profile.
 
