@@ -333,27 +333,36 @@ jobs:
   # Results uploaded as SARIF → GitHub Security → Code Scanning alerts.
   # Advisory only (continue-on-error) — does not block PR merge.
   # Replaces OWASP Dependency Check (removed: NVD rate-limiting / API key issues).
+  # Uses the osv-scanner CLI directly (avoids Docker container action proxy issues).
   osv-scan:
     name: "Security Scan (OSV-Scanner)"
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      security-events: write
 
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Install OSV-Scanner
+        run: |
+          OSV_VERSION=$(curl -s https://api.github.com/repos/google/osv-scanner/releases/latest \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])" 2>/dev/null || echo "v2.0.0")
+          echo "Installing OSV-Scanner ${OSV_VERSION}"
+          curl -sL "https://github.com/google/osv-scanner/releases/download/${OSV_VERSION}/osv-scanner_linux_amd64" \
+            -o /usr/local/bin/osv-scanner
+          chmod +x /usr/local/bin/osv-scanner
+          osv-scanner --version
+
       - name: Run OSV-Scanner
-        uses: google/osv-scanner-action@v2
+        id: osv-run
         continue-on-error: true
-        with:
-          scan-args: |-
-            --recursive
-            --format=sarif
-            --output=osv-results.sarif
+        run: |
+          osv-scanner \
+            --recursive \
+            --format=sarif \
+            --output=osv-results.sarif \
             ./
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
 
       - name: Ensure OSV SARIF exists
         if: always()
