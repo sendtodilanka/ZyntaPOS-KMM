@@ -272,13 +272,19 @@ services:
     image: redis:7-alpine
     container_name: zyntapos_redis
     restart: unless-stopped
+    # SECURITY: Run directly as the redis user (UID/GID 999 in official Alpine image).
+    # This bypasses the entrypoint's root→redis su-exec switch, which conflicts with
+    # cap_drop: ALL (DAC_READ_SEARCH is required for root to traverse 700 dirs without
+    # DAC_OVERRIDE; both are dropped). Running as non-root also means zero capabilities
+    # are required — NET_BIND_SERVICE is only needed for ports <1024 and 6379 is fine.
+    user: "999:999"
     expose:
       - "6379"
     # SECURITY FIX: password moved from --requirepass command-line arg (visible in
     # `docker inspect` and /proc/<pid>/cmdline) to an ACL file mounted as a secret.
     # Generate the ACL file on the VPS before first deploy:
     #   echo "user default on >${REDIS_PASSWORD} ~* &* +@all" > ./secrets/redis.acl
-    #   chmod 600 ./secrets/redis.acl
+    #   chmod 644 ./secrets/redis.acl  (644 required — container reads as UID 999, not root)
     command: >-
       redis-server
       --aclfile /run/secrets/redis.acl
@@ -308,18 +314,11 @@ services:
       retries: 5
       start_period: 10s
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
-    # NOTE: no-new-privileges:true is intentionally omitted for Redis.
-    # The redis:7-alpine entrypoint uses su-exec to drop from root to the
-    # redis user; no-new-privileges blocks su-exec, causing a silent crash
-    # before any logs are written (appendonlydir permission corruption).
-    # cap_drop: ALL + targeted cap_add provides equivalent isolation.
+    security_opt:
+      - no-new-privileges:true
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
-      - NET_BIND_SERVICE
+    # No cap_add needed: running as UID 999 on port 6379 (>1024) requires zero capabilities.
     mem_limit: 512m
     memswap_limit: 512m
 
