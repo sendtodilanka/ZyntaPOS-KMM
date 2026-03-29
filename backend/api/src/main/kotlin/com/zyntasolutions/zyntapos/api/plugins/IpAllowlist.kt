@@ -28,7 +28,23 @@ val IpAllowlistPlugin = createRouteScopedPlugin("IpAllowlist") {
         .filter { it.isNotBlank() }
 
     if (entries.isEmpty()) {
-        logger.info("ADMIN_IP_ALLOWLIST not set — admin IP restriction disabled")
+        // SECURITY: In production deployments, ADMIN_IP_ALLOWLIST should always be set so that
+        // admin routes are not reachable from the public internet. Without it, the admin panel
+        // is protected only by credentials and MFA — no network-layer defence.
+        //
+        // Set ALLOW_OPEN_ADMIN_ACCESS=true only for local dev or environments where a VPN or
+        // Cloudflare Zero Trust tunnel already restricts access at the network layer.
+        val openAccessAllowed = System.getenv("ALLOW_OPEN_ADMIN_ACCESS")?.lowercase() == "true"
+        if (openAccessAllowed) {
+            logger.warn("ADMIN_IP_ALLOWLIST not set and ALLOW_OPEN_ADMIN_ACCESS=true — admin routes accessible from any IP")
+        } else {
+            // Fail-closed: refuse to start if no IP restriction and no explicit opt-out.
+            error(
+                "ADMIN_IP_ALLOWLIST must be configured to restrict admin panel access by IP. " +
+                    "Set ALLOW_OPEN_ADMIN_ACCESS=true to explicitly disable this check " +
+                    "(only safe behind Cloudflare Zero Trust or a VPN)."
+            )
+        }
     } else {
         logger.info("Admin IP allowlist active: ${entries.size} entries")
     }
