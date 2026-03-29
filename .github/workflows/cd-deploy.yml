@@ -61,6 +61,20 @@ jobs:
           echo "Deploying SHA: $DEPLOY_SHA"
           echo "deploy_start=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "$GITHUB_OUTPUT"
 
+      - name: Wait for VPS SSH readiness
+        run: |
+          echo "Checking VPS SSH availability..."
+          for i in 1 2 3 4; do
+            if nc -z -w 10 "${{ secrets.VPS_HOST }}" "${{ secrets.VPS_PORT }}" 2>/dev/null; then
+              echo "SSH port ${{ secrets.VPS_PORT }} is open"
+              exit 0
+            fi
+            echo "SSH not ready (attempt $i/4) — waiting 15s..."
+            sleep 15
+          done
+          echo "::error::VPS SSH port ${{ secrets.VPS_PORT }} unreachable after 4 attempts"
+          exit 1
+
       - name: Record pre-deploy state
         id: pre_deploy
         uses: appleboy/ssh-action@v1.2.5
@@ -152,20 +166,6 @@ jobs:
               backend/license/src/main/resources/db/migration/ 2>/dev/null || true
 
             echo "=== Migration dry-run complete ==="
-
-      - name: Wait for VPS SSH readiness
-        run: |
-          echo "Checking VPS SSH availability..."
-          for i in 1 2 3 4; do
-            if nc -z -w 10 "${{ secrets.VPS_HOST }}" "${{ secrets.VPS_PORT }}" 2>/dev/null; then
-              echo "SSH port ${{ secrets.VPS_PORT }} is open"
-              exit 0
-            fi
-            echo "SSH not ready (attempt $i/4) — waiting 15s..."
-            sleep 15
-          done
-          echo "::error::VPS SSH port ${{ secrets.VPS_PORT }} unreachable after 4 attempts"
-          exit 1
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.5

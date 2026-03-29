@@ -63,13 +63,13 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2   # need HEAD~1 for changed-files diff
+          fetch-depth: 0
 
       - name: Detect website file changes
         id: changes
         run: |
-          # Check if any website/** files changed in this PR or push
-          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^website/' || true)
+          # Check if any website/** files changed across the entire PR branch
+          CHANGED=$(git diff --name-only origin/main...HEAD 2>/dev/null | grep -c '^website/' || true)
           echo "website_changed=${CHANGED}" >> "$GITHUB_OUTPUT"
           echo "Website files changed: ${CHANGED}"
 
