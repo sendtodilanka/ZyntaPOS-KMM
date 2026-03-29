@@ -1,0 +1,11 @@
+# Trivy ignore rules for intentional security constructs
+#
+# Format: <vuln-id-or-secret-rule> [expiry-date] [# comment]
+# Docs: https://aquasecurity.github.io/trivy/latest/docs/configuration/filtering/#trivyignore-file
+
+# ── Canary tokens (Application.kt lines 30-31) ──────────────────────────────
+# These are intentional honeypot credentials embedded for exfiltration detection
+# (TODO-010 security monitoring). If source code is stolen and credentials used,
+# Falco/canarytoken alerts fire. DO NOT treat as real secrets.
+aws-access-key-id     # canary token — not a real AWS credential
+aws-secret-access-key # canary token — not a real AWS credential

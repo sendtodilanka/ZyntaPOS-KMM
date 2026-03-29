@@ -376,6 +376,7 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "1"
           timeout: 10m
+          trivyignores: backend/.trivyignore
 
       - name: Upload scan results
         if: always()
