@@ -247,9 +247,25 @@ jobs:
               exit 1
             fi
 
-            docker compose pull --quiet
+            PULL_SUCCESS=false
+            for pull_attempt in 1 2 3; do
+              echo "=== Rollback docker compose pull (attempt ${pull_attempt}/3) ==="
+              if timeout 300 docker compose pull --quiet; then
+                PULL_SUCCESS=true
+                break
+              fi
+              echo "::warning::Rollback pull attempt ${pull_attempt} failed — retrying in 10s..."
+              sleep 10
+            done
+            if [ "$PULL_SUCCESS" = "false" ]; then
+              echo "::error::Rollback pull failed after 3 attempts — manual intervention required"
+              exit 1
+            fi
             docker compose up -d --remove-orphans
             docker image prune -f
+            if ! docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>&1; then
+              echo "::warning::Caddy reload failed after rollback — Caddy may be serving stale config"
+            fi
             echo "=== Rollback complete: $(date) ==="
             docker compose ps
 
