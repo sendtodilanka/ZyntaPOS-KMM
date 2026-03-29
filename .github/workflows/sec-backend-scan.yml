@@ -84,6 +84,7 @@ jobs:
 
       - name: Build Docker image (${{ matrix.service }})
         id: docker-build
+        timeout-minutes: 15
         continue-on-error: true   # Don't fail the job if image build fails
         uses: docker/build-push-action@v6
         with:
@@ -92,12 +93,14 @@ jobs:
           load: true
           tags: zyntapos-${{ matrix.service }}:scan
           no-cache: false
-          cache-from: type=gha   # Reuse layers from ci-push-main.yml build-backend-images
-          cache-to: type=gha,mode=max
+          cache-from: type=gha
+          # Write to scoped cache so ci-push-main.yml can reuse these layers
+          cache-to: type=gha,scope=trivy-${{ matrix.service }},mode=max
 
       - name: Rebuild without cache on build failure
         id: docker-build-nocache
         if: steps.docker-build.outcome == 'failure'
+        timeout-minutes: 15
         continue-on-error: true   # If even clean build fails, still don't block
         uses: docker/build-push-action@v6
         with:
@@ -126,13 +129,20 @@ jobs:
           if [ ! -f "trivy-${{ matrix.service }}.sarif" ]; then
             BUILD_STATUS="${{ steps.docker-build.outcome }}"
             NOCACHE_STATUS="${{ steps.docker-build-nocache.outcome }}"
-            echo "::warning::Trivy SARIF not generated for ${{ matrix.service }} (build=${BUILD_STATUS}, no-cache-build=${NOCACHE_STATUS}). Creating empty SARIF."
+            echo "::warning::Trivy SARIF not generated for ${{ matrix.service }} (build=${BUILD_STATUS}, no-cache-build=${NOCACHE_STATUS}). Creating skip-notification SARIF."
             cat > "trivy-${{ matrix.service }}.sarif" <<'SARIF'
           {
             "version": "2.1.0",
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
             "runs": [{
               "tool": { "driver": { "name": "Trivy", "version": "0.35.0", "rules": [] } },
+              "invocations": [{
+                "executionSuccessful": false,
+                "toolExecutionNotifications": [{
+                  "message": { "text": "Scan skipped — image build failed, see workflow logs" },
+                  "level": "warning"
+                }]
+              }],
               "results": []
             }]
           }
@@ -171,6 +181,7 @@ jobs:
 
       - name: Build Docker image (${{ matrix.service }})
         id: docker-build
+        timeout-minutes: 15
         continue-on-error: true   # Don't fail the job if image build fails
         uses: docker/build-push-action@v6
         with:
@@ -179,12 +190,14 @@ jobs:
           load: true
           tags: zyntapos-${{ matrix.service }}:scan
           no-cache: false
-          cache-from: type=gha   # Reuse layers from Trivy build (same runner context via cache)
-          cache-to: type=gha,mode=max
+          # Reuse layers written by trivy-images job for this service
+          cache-from: type=gha,scope=trivy-${{ matrix.service }}
+          cache-to: type=gha,scope=trivy-${{ matrix.service }},mode=max
 
       - name: Rebuild without cache on build failure
         id: docker-build-nocache
         if: steps.docker-build.outcome == 'failure'
+        timeout-minutes: 15
         continue-on-error: true
         uses: docker/build-push-action@v6
         with:
@@ -211,13 +224,20 @@ jobs:
           if [ ! -f snyk.sarif ]; then
             BUILD_STATUS="${{ steps.docker-build.outcome }}"
             NOCACHE_STATUS="${{ steps.docker-build-nocache.outcome }}"
-            echo "::warning::Snyk SARIF not generated for ${{ matrix.service }} (build=${BUILD_STATUS}, no-cache-build=${NOCACHE_STATUS}). Creating empty SARIF."
+            echo "::warning::Snyk SARIF not generated for ${{ matrix.service }} (build=${BUILD_STATUS}, no-cache-build=${NOCACHE_STATUS}). Creating skip-notification SARIF."
             cat > snyk.sarif <<'SARIF'
           {
             "version": "2.1.0",
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
             "runs": [{
               "tool": { "driver": { "name": "Snyk", "version": "1.0.0", "rules": [] } },
+              "invocations": [{
+                "executionSuccessful": false,
+                "toolExecutionNotifications": [{
+                  "message": { "text": "Scan skipped — image build failed, see workflow logs" },
+                  "level": "warning"
+                }]
+              }],
               "results": []
             }]
           }
