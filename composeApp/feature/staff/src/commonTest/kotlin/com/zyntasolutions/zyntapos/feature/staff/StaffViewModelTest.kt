@@ -609,7 +609,6 @@ class StaffViewModelTest {
             getAttendanceSummaryUseCase = getAttendanceSummaryUseCase,
             getLeaveHistoryUseCase = getLeaveHistoryUseCase,
             storeRepository = fakeStoreRepository,
-            attendanceRepository = fakeAttendanceRepository,
             getCrossStoreAttendanceUseCase = GetCrossStoreAttendanceUseCase(fakeAttendanceRepository),
             analytics = noOpAnalytics,
         )
