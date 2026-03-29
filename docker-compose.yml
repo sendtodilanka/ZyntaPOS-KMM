@@ -308,8 +308,11 @@ services:
       retries: 5
       start_period: 10s
     # ── TODO-009 Level 3: Container hardening ─────────────────────────
-    security_opt:
-      - no-new-privileges:true
+    # NOTE: no-new-privileges:true is intentionally omitted for Redis.
+    # The redis:7-alpine entrypoint uses su-exec to drop from root to the
+    # redis user; no-new-privileges blocks su-exec, causing a silent crash
+    # before any logs are written (appendonlydir permission corruption).
+    # cap_drop: ALL + targeted cap_add provides equivalent isolation.
     cap_drop:
       - ALL
     cap_add:
