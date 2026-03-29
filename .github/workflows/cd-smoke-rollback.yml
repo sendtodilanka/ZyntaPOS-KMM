@@ -1,28 +1,45 @@
 name: "Step[6]: Smoke Test & Rollback"
-run-name: "${{ github.event.client_payload.title || 'Smoke Test' }} (${{ github.event.client_payload.sha || github.sha }})"
+run-name: "${{ inputs.title || github.event.client_payload.title || 'Smoke Test' }} (${{ inputs.sha || github.event.client_payload.sha || github.sha }})"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PIPELINE POSITION: Step 6 of 7
 #
-# Fires when Step[5] dispatches "smoke-trigger" via repository_dispatch.
-# Tests all 6 production endpoints. If any endpoint is unhealthy, the VPS
-# is rolled back to the previous commit and the workflow fails visibly.
-# If all endpoints are healthy, Sentry is notified and Step[7] is dispatched.
+# PRIMARY TRIGGER: workflow_call from cd-deploy.yml (Step[5]).
+# The deploy job calls this workflow directly, keeping the "production-deploy"
+# concurrency lock held for the entire deploy + smoke duration.
+# This prevents the parallel-deploy race condition where Deploy N+1 could
+# overwrite the VPS while Smoke N is still testing those containers.
 #
-# CHAINING: Uses repository_dispatch instead of workflow_run to avoid
-# ghost workflow interference.
+# LEGACY TRIGGER: repository_dispatch "smoke-trigger" — retained for manual
+# re-runs and backward compatibility. inputs.sha takes precedence over
+# client_payload.sha in all steps.
+#
+# If all endpoints are healthy, Sentry is notified and Step[7] is dispatched.
+# If any endpoint is unhealthy the VPS is rolled back and this workflow fails.
 #
 # EDGE CASES HANDLED:
-#   - Container startup delay: 30s initial wait + 3 retries with 30s gaps
-#   - Rollback safety: uses HEAD~1 (the previously deployed commit)
+#   - Container startup delay: 30s initial wait + 3 retries with 10s gaps
+#   - Rollback safety: uses pre-deploy SHA saved by cd-deploy.yml (not HEAD~1)
 #   - Rollback failure: if rollback SSH also fails, workflow fails loudly
 #   - Sentry auth missing: step skipped gracefully if SENTRY_AUTH_TOKEN not set
 #   - Partial outage: all 6 subdomains tested; any failure triggers full rollback
+#   - workflow_call context: inputs.sha || client_payload.sha throughout
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
   repository_dispatch:
     types: [ smoke-trigger ]
+  workflow_call:
+    inputs:
+      sha:
+        description: 'Deploy SHA to smoke test'
+        required: true
+        type: string
+      title:
+        description: 'Deploy title for run name'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -47,7 +64,7 @@ jobs:
         id: smoke
         uses: appleboy/ssh-action@v1.2.5
         env:
-          DEPLOY_SHA: ${{ github.event.client_payload.sha }}
+          DEPLOY_SHA: ${{ inputs.sha || github.event.client_payload.sha }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -185,7 +202,7 @@ jobs:
       - name: Write smoke test summary
         if: always()
         run: |
-          DEPLOY_SHA="${{ github.event.client_payload.sha }}"
+          DEPLOY_SHA="${{ inputs.sha || github.event.client_payload.sha }}"
           # Fetch the results table from VPS
           RESULTS=$(ssh -i ~/.ssh/id_deploy -p ${{ secrets.VPS_PORT }} \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
@@ -295,7 +312,7 @@ jobs:
           echo "${SENTRY_SHA256}  /usr/local/bin/sentry-cli" | sha256sum -c -
           chmod +x /usr/local/bin/sentry-cli
 
-          VERSION="${{ github.event.client_payload.sha }}"
+          VERSION="${{ inputs.sha || github.event.client_payload.sha }}"
           sentry-cli releases new "$VERSION" \
             --project zyntapos-api \
             --project zyntapos-license \
@@ -313,7 +330,7 @@ jobs:
         with:
           token: ${{ secrets.PAT_TOKEN }}
           event-type: verify-trigger
-          client-payload: '{"sha": "${{ github.event.client_payload.sha }}", "title": "${{ github.event.client_payload.title }}"}'
+          client-payload: '{"sha": "${{ inputs.sha || github.event.client_payload.sha }}", "title": "${{ inputs.title || github.event.client_payload.title }}"}'
 
       - name: Post smoke test final status
         if: always()
