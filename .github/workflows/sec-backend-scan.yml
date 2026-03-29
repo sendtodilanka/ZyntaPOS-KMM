@@ -137,13 +137,6 @@ jobs:
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
             "runs": [{
               "tool": { "driver": { "name": "Trivy", "version": "0.35.0", "rules": [] } },
-              "invocations": [{
-                "executionSuccessful": true,
-                "toolExecutionNotifications": [{
-                  "message": { "text": "Scan skipped — image build failed, see workflow logs" },
-                  "level": "note"
-                }]
-              }],
               "results": []
             }]
           }
@@ -232,13 +225,6 @@ jobs:
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
             "runs": [{
               "tool": { "driver": { "name": "Snyk", "version": "1.0.0", "rules": [] } },
-              "invocations": [{
-                "executionSuccessful": true,
-                "toolExecutionNotifications": [{
-                  "message": { "text": "Scan skipped — image build failed, see workflow logs" },
-                  "level": "note"
-                }]
-              }],
               "results": []
             }]
           }

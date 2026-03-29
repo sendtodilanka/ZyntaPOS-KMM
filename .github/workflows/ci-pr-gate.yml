@@ -306,13 +306,6 @@ jobs:
             "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
             "runs": [{
               "tool": { "driver": { "name": "OSV-Scanner", "version": "2.0.0", "rules": [] } },
-              "invocations": [{
-                "executionSuccessful": true,
-                "toolExecutionNotifications": [{
-                  "message": { "text": "Scan skipped — see workflow logs" },
-                  "level": "note"
-                }]
-              }],
               "results": []
             }]
           }
