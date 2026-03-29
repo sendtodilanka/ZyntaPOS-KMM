@@ -1,8 +1,8 @@
-name: "Step[6]: Smoke Test & Rollback"
+name: "Step[5b]: Smoke Test & Rollback"
 run-name: "${{ inputs.title || github.event.client_payload.title || 'Smoke Test' }} (${{ inputs.sha || github.event.client_payload.sha || github.sha }})"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PIPELINE POSITION: Step 6 of 7
+# PIPELINE POSITION: Step 5b of 6
 #
 # PRIMARY TRIGGER: workflow_call from cd-deploy.yml (Step[5]).
 # The deploy job calls this workflow directly, keeping the "production-deploy"
@@ -14,7 +14,7 @@ run-name: "${{ inputs.title || github.event.client_payload.title || 'Smoke Test'
 # re-runs and backward compatibility. inputs.sha takes precedence over
 # client_payload.sha in all steps.
 #
-# If all endpoints are healthy, Sentry is notified and Step[7] is dispatched.
+# If all endpoints are healthy, Sentry is notified and Step[6] is dispatched.
 # If any endpoint is unhealthy the VPS is rolled back and this workflow fails.
 #
 # EDGE CASES HANDLED:
@@ -50,7 +50,7 @@ env:
 
 jobs:
   smoke-rollback:
-    name: "Step[6]: Smoke Test & Rollback"
+    name: "Step[5b]: Smoke Test & Rollback"
     runs-on: ubuntu-latest
     timeout-minutes: 40
     concurrency:
@@ -63,7 +63,7 @@ jobs:
       # Instead, SSH into the VPS and test endpoints locally via Caddy
       # on localhost (Host header routing). This is more reliable and
       # tests the actual container health without CDN interference.
-      - name: "Step[6]: Smoke Test Endpoints (via SSH)"
+      - name: "Step[5b]: Smoke Test Endpoints (via SSH)"
         id: smoke
         uses: appleboy/ssh-action@v1.2.5
         env:
@@ -215,7 +215,7 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             'cat /tmp/zyntapos-smoke-results.md 2>/dev/null') || RESULTS=""
           {
-            echo "## Step[6]: Smoke Test — \`${DEPLOY_SHA:0:8}\`"
+            echo "## Step[5b]: Smoke Test — \`${DEPLOY_SHA:0:8}\`"
             echo ""
             echo "**Tested at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
             echo ""
@@ -238,7 +238,7 @@ jobs:
           echo "Initiating automatic rollback..."
           exit 1
 
-      - name: "Step[6]: Rollback on Smoke Failure"
+      - name: "Step[5b]: Rollback on Smoke Failure"
         if: failure() && steps.smoke_gate.outcome == 'failure'
         uses: appleboy/ssh-action@v1.2.5
         with:
@@ -330,7 +330,7 @@ jobs:
           sentry-cli releases deploys "$VERSION" new -e production
           echo "Sentry release $VERSION created and deployed"
 
-      # ── Chain to Step[7]: Verify Endpoints ───────────────────────────────
+      # ── Chain to Step[6]: Verify Endpoints ───────────────────────────────
       - name: Dispatch endpoint verification
         if: success()
         uses: peter-evans/repository-dispatch@v3
@@ -345,5 +345,5 @@ jobs:
           {
             echo ""
             echo "---"
-            echo "_Step[6] finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC') — status: **${{ job.status }}**_"
+            echo "_Step[5b] finished at $(date -u '+%Y-%m-%d %H:%M:%S UTC') — status: **${{ job.status }}**_"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -40,7 +40,7 @@ git merge origin/main --no-edit
 ### Why This Is Mandatory
 
 - `main` is updated frequently by merged PRs from other sessions
-- A single unsynced commit creates a conflict that blocks the entire 7-step pipeline
+- A single unsynced commit creates a conflict that blocks the entire 6-step pipeline
 - Conflict resolution costs more time than a pre-commit sync ever will
 - Auto-merge cannot squash a dirty PR — a human push is required to unblock it
 
@@ -265,7 +265,7 @@ This is a **blocking requirement**. Do NOT proceed with additional code changes 
 
 ---
 
-### Pipeline Architecture (7-Step Chain)
+### Pipeline Architecture (6-Step Chain)
 
 This project uses a **chained repository_dispatch pipeline** — each step triggers the next only on success:
 
@@ -304,20 +304,18 @@ Step[4]: Build Images & Deploy  (ci-push-main.yml)
   • On success → dispatches "deploy-trigger"
         │
         ▼
-Step[5]: Deploy to VPS     (cd-deploy.yml)
-  • SSH into Contabo VPS
-  • git reset --hard <exact-SHA>
-  • docker compose pull + up -d
-  • On success → dispatches "smoke-trigger"
+Step[5]: Deploy + Smoke    (cd-deploy.yml — two jobs, one concurrency lock)
+  • deploy job: SSH → git reset --hard <SHA> → docker compose pull + up -d
+  • smoke job:  workflow_call → cd-smoke-rollback.yml (Step[5b])
+      └─ Hits live endpoints to verify deployment
+      └─ Auto-rollback to previous SHA on failure
+  • "production-deploy" lock held for entire Step[5] (deploy + smoke)
+  • On smoke success → dispatches "verify-trigger"
         │
         ▼
-Step[6]: Smoke Test        (cd-smoke-rollback.yml)
-  • Hits live endpoints to verify deployment
-  • Auto-rollback on failure
-        │
-        ▼
-Step[7]: Verify Endpoints  (cd-verify-endpoints.yml)
+Step[6]: Verify Endpoints  (cd-verify-endpoints.yml)
   • Deep endpoint validation post-smoke
+  • Also runs on schedule every 30 min (autonomous health monitoring)
 ```
 
 ---
@@ -447,7 +445,7 @@ for r in json.load(sys.stdin).get('workflow_runs',[]):
 
 **Claude ONLY intervenes when:**
 1. The PR has merge conflicts with `main` (Step[2] created it but auto-merge is blocked)
-2. A pipeline step fails (any of Steps 1–7 returns a non-green status)
+2. A pipeline step fails (any of Steps 1–6 returns a non-green status)
 
 **In all other cases — let the pipeline run naturally without touching it.**
 ---
@@ -1002,7 +1000,7 @@ See `docs/architecture/deployment.md` → "GitHub Secrets required" for full det
 
 ## CI/CD
 
-**Core CI/CD workflows (7-step pipeline):**
+**Core CI/CD workflows (6-step pipeline):**
 
 ### `.github/workflows/ci-branch-validate.yml` — Step[1]: Branch Validate
 - Triggers: push to `claude/*`, `feature/*`, `fix/*`, etc.
@@ -1024,6 +1022,22 @@ See `docs/architecture/deployment.md` → "GitHub Secrets required" for full det
 - Re-verifies merged code, builds Docker images, pushes to GHCR
 - NO OWASP scan (already validated in Step[3])
 - On success → dispatches Step[5]
+
+### `.github/workflows/cd-deploy.yml` — Step[5]: Deploy + Smoke
+- Triggers: `repository_dispatch` deploy-trigger (from Step[4]), or `workflow_dispatch`
+- Two jobs under one `production-deploy` concurrency lock:
+  - `deploy`: SSH → git reset --hard → docker compose pull + up -d
+  - `smoke` (Step[5b]): workflow_call → cd-smoke-rollback.yml → endpoint tests + auto-rollback
+- Lock prevents parallel deploys from overwriting VPS during smoke test
+
+### `.github/workflows/cd-smoke-rollback.yml` — Step[5b]: Smoke Test & Rollback
+- Triggered via `workflow_call` from Step[5] (primary) or `repository_dispatch` smoke-trigger (manual)
+- Tests all 6 production endpoints; auto-rolls back to previous SHA on failure
+- On success → dispatches Step[6]
+
+### `.github/workflows/cd-verify-endpoints.yml` — Step[6]: Verify Endpoints
+- Triggers: `repository_dispatch` verify-trigger (from Step[5b]), `schedule` every 30 min, `workflow_dispatch`
+- Deep endpoint validation post-smoke; also runs autonomously as health monitor
 
 ### `.github/workflows/release.yml` — Release
 - Triggers: push to `main`

@@ -1,11 +1,11 @@
-name: "Step[7]: Verify Endpoints"
+name: "Step[6]: Verify Endpoints"
 run-name: "${{ github.event.client_payload.title || 'Verify Endpoints' }} (${{ github.event.client_payload.sha || github.event_name }})"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PIPELINE POSITION: Step 7 of 7
+# PIPELINE POSITION: Step 6 of 6
 #
 # Autonomous health monitoring — runs automatically every 30 min AND after
-# every deploy (via repository_dispatch from Step[6]).
+# every deploy (via repository_dispatch from Step[5b]).
 #
 # SCHEDULE RATIONALE: 30-minute intervals balance detection speed vs.
 # Actions-minutes budget (48 runs/day × 10 min = max 480 min/day).
@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   verify:
-    name: "Step[7]: Verify All Endpoints"
+    name: "Step[6]: Verify All Endpoints"
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -35,7 +35,7 @@ jobs:
       # ── Verify endpoints via SSH to bypass Cloudflare ──────────────
       # External curl from GitHub Actions gets 403 from Cloudflare WAF.
       # SSH into VPS and test endpoints locally via Caddy (Host header).
-      - name: "Step[7]: Test All Subdomains (via SSH)"
+      - name: "Step[6]: Test All Subdomains (via SSH)"
         id: health
         uses: appleboy/ssh-action@v1.2.5
         with:
@@ -108,10 +108,10 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             'cat /tmp/zyntapos-verify-results.md 2>/dev/null') || RESULTS=""
           {
-            echo "## Step[7]: Endpoint Verification"
+            echo "## Step[6]: Endpoint Verification"
             echo ""
             if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-              echo "**Trigger:** post-deploy (Step[6] completed)  "
+              echo "**Trigger:** post-deploy (Step[5b] completed)  "
             elif [ "${{ github.event_name }}" = "schedule" ]; then
               echo "**Trigger:** scheduled every 30 min  "
             else

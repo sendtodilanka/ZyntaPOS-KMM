@@ -1,7 +1,7 @@
 name: "Step[4]: Build Images & Deploy"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PIPELINE POSITION: Step 4 of 7
+# PIPELINE POSITION: Step 4 of 6
 #
 # Runs ONLY on push to main (after PR is squash-merged). Verifies the
 # merged code builds, then builds and pushes Docker images to GHCR, and
@@ -203,7 +203,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ── Trigger Deploy ──────────────────────────────────────────────────────
-  # Dispatches "deploy-trigger" to start Step[5]: Deploy to VPS.
+  # Dispatches "deploy-trigger" to start Step[5]: Deploy + Smoke.
   # Depends on build-and-test + all Docker image builds succeeding.
   trigger-deploy:
     name: "Trigger Deploy"
