@@ -175,7 +175,7 @@ jobs:
           key: ${{ secrets.VPS_USER_KEY }}
           port: ${{ secrets.VPS_PORT }}
           timeout: 120s
-          command_timeout: 10m
+          command_timeout: 25m
           script: |
             set -euo pipefail
             DEPLOY_SHA="${{ steps.sha.outputs.deploy_sha }}"
@@ -189,7 +189,7 @@ jobs:
 
             # Save pre-deploy SHA so smoke test rollback can restore exactly this
             # commit (not HEAD~1, which is fragile when rapid deploys occur).
-            echo "$PREV_SHA" > /tmp/zyntapos-prev-sha
+            echo "$PREV_SHA" > /tmp/zyntapos-prev-sha-${DEPLOY_SHA}
 
             git fetch origin
             git reset --hard "$DEPLOY_SHA"
