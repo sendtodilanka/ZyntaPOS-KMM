@@ -232,7 +232,7 @@ jobs:
 
             # Use the pre-deploy SHA saved by cd-deploy.yml (more reliable than HEAD~1
             # which is fragile when rapid successive deploys occur).
-            SAVED_SHA=$(cat /tmp/zyntapos-prev-sha 2>/dev/null | tr -d '[:space:]') || SAVED_SHA=""
+            SAVED_SHA=$(cat /tmp/zyntapos-prev-sha-${CURRENT_SHA} 2>/dev/null | tr -d '[:space:]') || SAVED_SHA=""
 
             if [ -n "$SAVED_SHA" ] && [ "$SAVED_SHA" != "none" ] && git rev-parse "$SAVED_SHA" >/dev/null 2>&1; then
               git reset --hard "$SAVED_SHA"
