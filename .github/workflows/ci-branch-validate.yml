@@ -1,7 +1,7 @@
 name: "Step[1]: Branch Validate"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PIPELINE POSITION: Step 1 of 7
+# PIPELINE POSITION: Step 1 of 6
 #
 # Runs a FAST BUILD-ONLY validation on every push to a development branch.
 # If the build succeeds, dispatches "auto-pr-trigger" to start Step[2].

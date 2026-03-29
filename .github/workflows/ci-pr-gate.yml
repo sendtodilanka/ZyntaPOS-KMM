@@ -1,7 +1,7 @@
 name: "Step[3]: PR Gate"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# PIPELINE POSITION: Step 3 of 7
+# PIPELINE POSITION: Step 3 of 6
 #
 # THE MERGE GATE — Full build + lint + detekt + tests + security scan.
 # Runs on pull_request to main and workflow_dispatch (manual re-run).
