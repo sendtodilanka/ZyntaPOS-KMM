@@ -153,6 +153,20 @@ jobs:
 
             echo "=== Migration dry-run complete ==="
 
+      - name: Wait for VPS SSH readiness
+        run: |
+          echo "Checking VPS SSH availability..."
+          for i in 1 2 3 4; do
+            if nc -z -w 10 "${{ secrets.VPS_HOST }}" "${{ secrets.VPS_PORT }}" 2>/dev/null; then
+              echo "SSH port ${{ secrets.VPS_PORT }} is open"
+              exit 0
+            fi
+            echo "SSH not ready (attempt $i/4) — waiting 15s..."
+            sleep 15
+          done
+          echo "::error::VPS SSH port ${{ secrets.VPS_PORT }} unreachable after 4 attempts"
+          exit 1
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.5
         with:
@@ -189,7 +203,14 @@ jobs:
             # Ensure secret files are world-readable so container non-root users can read them.
             # rs256_private_key.pem is created with 600 by default (ssh-keygen / openssl),
             # but the zyntapos container user (Alpine system UID) is not the file owner.
-            chmod 644 secrets/rs256_private_key.pem secrets/rs256_public_key.pem 2>/dev/null || true
+            for secret_file in secrets/rs256_private_key.pem secrets/rs256_public_key.pem; do
+              if [ -f "$secret_file" ]; then
+                chmod 644 "$secret_file"
+                echo "OK: chmod 644 $secret_file"
+              else
+                echo "::warning::Secret file not found: $secret_file — containers may fail to start"
+              fi
+            done
 
             # Ensure mail.zyntapos.com cert files exist so Caddy can start.
             # The real LE cert is issued by cert-renew-mail.yml (DNS-01);
@@ -205,7 +226,20 @@ jobs:
               echo "=== Placeholder created — run cert-renew-mail workflow for real LE cert ==="
             fi
 
-            docker compose pull --quiet
+            PULL_SUCCESS=false
+            for pull_attempt in 1 2 3; do
+              echo "=== docker compose pull (attempt ${pull_attempt}/3) ==="
+              if timeout 300 docker compose pull --quiet; then
+                PULL_SUCCESS=true
+                break
+              fi
+              echo "::warning::docker compose pull attempt ${pull_attempt} failed — retrying in 10s..."
+              sleep 10
+            done
+            if [ "$PULL_SUCCESS" = "false" ]; then
+              echo "::error::docker compose pull failed after 3 attempts — aborting deploy"
+              exit 1
+            fi
             docker compose up -d --remove-orphans
             docker image prune -f
 
@@ -213,7 +247,9 @@ jobs:
             # by git reset, but Caddy only reads config at startup unless
             # explicitly reloaded. Without this, new routes (e.g. /health)
             # won't take effect until the Caddy container is recreated.
-            docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true
+            if ! docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile 2>&1; then
+              echo "::warning::Caddy reload failed — Caddy is running but serving previous config. Check Caddyfile syntax."
+            fi
 
             echo "=== Deploy complete: $(date) ==="
             docker compose ps
