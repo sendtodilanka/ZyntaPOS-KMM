@@ -317,26 +317,29 @@ class SyncEngine(
         var iterations = 0
         val maxIterations = 20 // Safety cap — prevents infinite loops on server bugs
 
-        while (iterations < maxIterations) {
+        var shouldContinue = true
+        while (iterations < maxIterations && shouldContinue) {
             iterations++
             val pullResponse = api.pullOperations(lastSyncTimestamp = cursor)
 
             if (pullResponse.operations.isEmpty()) {
                 log.d("No server-side delta — up to date (cursor=$cursor)")
-                break
+                shouldContinue = false
+            } else {
+                log.d("Applying ${pullResponse.operations.size} delta ops (iteration=$iterations cursor=$cursor)")
+                applyDeltaOperations(pullResponse.operations)
+                totalPulled += pullResponse.operations.size
+
+                // Advance cursor to the new position returned by server
+                val newCursor = pullResponse.cursor
+                if (newCursor <= cursor) {
+                    shouldContinue = false // Defensive: cursor did not advance, stop
+                } else {
+                    cursor = newCursor
+                    prefs.put(SecureStorageKeys.KEY_LAST_SYNC_TS, cursor.toString())
+                    if (!pullResponse.hasMore) shouldContinue = false
+                }
             }
-
-            log.d("Applying ${pullResponse.operations.size} delta ops (iteration=$iterations cursor=$cursor)")
-            applyDeltaOperations(pullResponse.operations)
-            totalPulled += pullResponse.operations.size
-
-            // Advance cursor to the new position returned by server
-            val newCursor = pullResponse.cursor
-            if (newCursor <= cursor) break // Defensive: cursor did not advance, stop
-            cursor = newCursor
-            prefs.put(SecureStorageKeys.KEY_LAST_SYNC_TS, cursor.toString())
-
-            if (!pullResponse.hasMore) break
         }
 
         if (iterations >= maxIterations) {

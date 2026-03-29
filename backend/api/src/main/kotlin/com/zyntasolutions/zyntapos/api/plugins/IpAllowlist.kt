@@ -71,7 +71,9 @@ sealed class IpMatcher {
     class Cidr(private val network: Long, private val mask: Long) : IpMatcher() {
         override fun matches(ip: String): Boolean {
             val addr = ipv4ToLong(ip) ?: return false
-            return (addr and mask) == (network and mask)
+            val addrMasked = addr and mask
+            val networkMasked = network and mask
+            return addrMasked == networkMasked
         }
     }
 

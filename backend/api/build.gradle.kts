@@ -145,6 +145,18 @@ dependencies {
 
     // ── Detekt formatting rules ─────────────────────────────────────────
     detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.23.8")
+
+    // ── Security: force safe transitive dependency versions ───────────────
+    // CVE-2025-48924: handlebars 4.3.1 (via ktor-server-swagger → swagger-codegen)
+    constraints {
+        implementation("com.github.jknack:handlebars:4.4.0") {
+            because("CVE-2025-48924: handlebars < 4.4.0 has a security vulnerability")
+        }
+        // SNYK-JAVA-ORGAPACHECOMMONS-10734078: commons-compress
+        implementation("org.apache.commons:commons-compress:1.27.1") {
+            because("SNYK-JAVA-ORGAPACHECOMMONS-10734078: commons-compress vulnerability")
+        }
+    }
 }
 
 tasks.test {

@@ -88,6 +88,17 @@ jobs:
               - "tools/debug/**"
             queries:
               - uses: security-and-quality
+            query-filters:
+              # Kotlin sealed-class `when` expressions emit compiler-generated
+              # `tmp0_other_with_cast` locals in bytecode — never referenced in
+              # source. These are 100% false positives for Kotlin projects.
+              - exclude:
+                  id: java/local-variable-is-never-read
+              # Compose compiler emits a synthetic `$stable` field on every
+              # sealed-class and @Composable. It intentionally shadows the parent
+              # class field — this is the Compose stability mechanism, not a bug.
+              - exclude:
+                  id: java/field-masks-super-field
           build-mode: manual
 
       # Build KMP shared + compose modules so CodeQL can extract bytecode.
@@ -159,6 +170,13 @@ jobs:
               - "**/generated/**"
             queries:
               - uses: security-and-quality
+            query-filters:
+              # Kotlin compiler-generated `tmp0_other_with_cast` locals in sealed
+              # class `when` expressions — false positives for all Kotlin projects.
+              - exclude:
+                  id: java/local-variable-is-never-read
+              - exclude:
+                  id: java/field-masks-super-field
           build-mode: manual
 
       - name: Build backend/api for CodeQL extraction
@@ -219,6 +237,11 @@ jobs:
               - "**/generated/**"
             queries:
               - uses: security-and-quality
+            query-filters:
+              - exclude:
+                  id: java/local-variable-is-never-read
+              - exclude:
+                  id: java/field-masks-super-field
           build-mode: manual
 
       - name: Build backend/license for CodeQL extraction
@@ -279,6 +302,11 @@ jobs:
               - "**/generated/**"
             queries:
               - uses: security-and-quality
+            query-filters:
+              - exclude:
+                  id: java/local-variable-is-never-read
+              - exclude:
+                  id: java/field-masks-super-field
           build-mode: manual
 
       - name: Build backend/sync for CodeQL extraction

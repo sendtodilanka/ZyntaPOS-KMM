@@ -64,7 +64,6 @@ fun AboutScreen(
     appInfo: AppInfoProvider = koinInject(),
 ) {
     val s = LocalStrings.current
-    val appVersion = appInfo.appVersion
     val buildDate = appInfo.buildDate
     ZyntaPageScaffold(
         title = s[StringResource.SETTINGS_ABOUT],

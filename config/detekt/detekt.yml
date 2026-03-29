@@ -39,6 +39,21 @@ style:
     excludeCommentStatements: true
     excludeRawStrings: true
     excludeImportStatements: true
+    excludes:
+      # Compose screen and UI component files have long DSL chains (parameter lists, modifier
+      # chains, string resource access) that are structurally impossible to keep under 150
+      # chars without sacrificing readability.
+      - '**/*Screen.kt'
+      - '**/*Dialog.kt'
+      - '**/components/**/*.kt'
+      - '**/designsystem/**/*.kt'
+      # Test stub implementations frequently exceed 150 chars due to fully-qualified type
+      # names in override signatures and single-expression stubs.
+      - '**/*Test.kt'
+      - '**/*Spec.kt'
+      # String resource table — entries are key-value pairs; splitting them reduces
+      # readability without improving code quality.
+      - '**/i18n/EnglishStrings.kt'
   MagicNumber:
     active: false                  # too noisy for UI code with dp/sp literals
   ReturnCount:

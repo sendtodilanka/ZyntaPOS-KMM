@@ -357,7 +357,14 @@ val dataModule = module {
     single { FulfillmentExpiryJob(fulfillmentRepository = get(), storeId = get(named("storeId")), scope = get(named("IO"))) }
 
     // Cross-store low stock notification generator: triggered on sync completion
-    single { LowStockNotificationJob(warehouseStockRepository = get(), notificationRepository = get(), syncStatusPort = get(), scope = get(named("IO"))) }
+    single {
+        LowStockNotificationJob(
+            warehouseStockRepository = get(),
+            notificationRepository = get(),
+            syncStatusPort = get(),
+            scope = get(named("IO")),
+        )
+    }
 
     // SLA alerting: monitors sync queue growth and failure persistence
     single { SlaAlertJob(syncStatusPort = get(), notificationRepository = get(), scope = get(named("IO"))) }

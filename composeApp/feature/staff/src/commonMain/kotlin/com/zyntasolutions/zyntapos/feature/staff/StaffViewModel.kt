@@ -91,7 +91,6 @@ class StaffViewModel(
     private val getAttendanceSummaryUseCase: GetAttendanceSummaryUseCase,
     private val getLeaveHistoryUseCase: GetLeaveHistoryUseCase,
     private val storeRepository: StoreRepository,
-    private val attendanceRepository: AttendanceRepository,
     private val getCrossStoreAttendanceUseCase: GetCrossStoreAttendanceUseCase,
     private val analytics: AnalyticsTracker,
 ) : BaseViewModel<StaffState, StaffIntent, StaffEffect>(StaffState()) {
@@ -200,7 +199,7 @@ class StaffViewModel(
             }
             is StaffIntent.SubmitLeaveRequest -> submitLeaveRequest()
             is StaffIntent.ApproveLeave -> approveLeave(
-                intent.requestId, intent.approverId, intent.approvedAt
+                intent.requestId, intent.approvedAt
             )
             is StaffIntent.RejectLeave -> rejectLeave(intent.requestId, intent.reason, intent.rejectedAt)
 
@@ -511,7 +510,7 @@ class StaffViewModel(
         }
     }
 
-    private suspend fun approveLeave(requestId: String, approverId: String, approvedAt: Long) {
+    private suspend fun approveLeave(requestId: String, approvedAt: Long) {
         updateState { copy(isLoading = true) }
         when (val result = approveLeaveUseCase(id = requestId, approve = true, approverNotes = null, updatedAt = approvedAt)) {
             is Result.Success -> updateState {

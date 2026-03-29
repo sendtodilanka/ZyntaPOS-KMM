@@ -255,7 +255,6 @@ class AdminViewModelTest {
             analytics = noOpAnalytics,
             getUnresolvedConflictsUseCase = getUnresolvedConflictsUseCase,
             resolveConflictUseCase = resolveConflictUseCase,
-            getConflictCountUseCase = getConflictCountUseCase,
             settingsRepository = fakeSettingsRepository,
         )
     }

@@ -789,7 +789,7 @@ class InventoryViewModel(
 
     // ── Unit Management ────────────────────────────────────────────────
 
-    private suspend fun onSaveUnit(groupId: String, unit: UnitOfMeasure) {
+    private suspend fun onSaveUnit(@Suppress("UnusedParameter") groupId: String, unit: UnitOfMeasure) {
         updateState { copy(isLoading = true) }
         val isNew = currentState.allUnits.none { it.id == unit.id }
         val result = if (isNew) unitGroupRepository.insert(unit) else unitGroupRepository.update(unit)
@@ -834,10 +834,10 @@ class InventoryViewModel(
             }
         }
         updateState { copy(isLoading = false, isSelectionMode = false, selectedProductIds = emptySet()) }
-        if (failCount == 0) {
-            sendEffect(InventoryEffect.ShowSuccess("$successCount product(s) deleted."))
-        } else {
+        if (failCount > 0) {
             sendEffect(InventoryEffect.ShowError("$successCount deleted, $failCount failed."))
+        } else {
+            sendEffect(InventoryEffect.ShowSuccess("$successCount product(s) deleted."))
         }
     }
 

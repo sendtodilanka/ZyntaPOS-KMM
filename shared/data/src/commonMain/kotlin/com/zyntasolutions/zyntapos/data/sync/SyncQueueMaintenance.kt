@@ -36,7 +36,10 @@ class SyncQueueMaintenance(
             db.sync_queueQueries.deduplicatePending()
         }
 
-        log.d("Queue maintenance complete (syncedCutoff=${AppConfig.SYNC_QUEUE_RETENTION_DAYS}d, failedCutoff=${AppConfig.SYNC_FAILED_RETENTION_DAYS}d)")
+        log.d(
+            "Queue maintenance complete (syncedCutoff=${AppConfig.SYNC_QUEUE_RETENTION_DAYS}d, " +
+                "failedCutoff=${AppConfig.SYNC_FAILED_RETENTION_DAYS}d)",
+        )
         return MaintenanceResult(syncedCutoffMs = syncedCutoff, failedCutoffMs = failedCutoff)
     }
 

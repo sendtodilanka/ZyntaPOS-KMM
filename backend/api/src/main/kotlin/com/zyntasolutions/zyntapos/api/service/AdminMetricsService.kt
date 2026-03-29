@@ -37,10 +37,6 @@ class AdminMetricsService {
             else    -> Triple(now.minusDays(30), now.minusDays(60), now.minusDays(30))
         }
 
-        val totalPending = SyncQueue.selectAll()
-            .where { SyncQueue.isProcessed eq false }
-            .count().toInt()
-
         val syncHealthPct = if (totalStores == 0) 100.0 else {
             val storesWithPendingIssues = SyncQueue.selectAll()
                 .where { SyncQueue.isProcessed eq false }
@@ -60,10 +56,6 @@ class AdminMetricsService {
         val storesInPrev    = Stores.selectAll()
             .where { (Stores.createdAt greaterEq prevSince) and (Stores.createdAt less prevUntil) }.count().toInt()
         val storesTrend = if (storesInPrev > 0) ((storesInCurrent - storesInPrev) * 100.0) / storesInPrev else 0.0
-
-        val activeAlerts = AlertInstances.selectAll()
-            .where { AlertInstances.status eq "active" }
-            .count().toInt()
 
         DashboardKPIs(
             totalStores          = totalStores,

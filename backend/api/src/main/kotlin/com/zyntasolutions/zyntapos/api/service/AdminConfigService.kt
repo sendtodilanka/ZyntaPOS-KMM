@@ -101,7 +101,7 @@ class AdminConfigService {
 
     suspend fun updateTaxRate(id: UUID, req: TaxRateUpdateRequest): AdminTaxRate? =
         newSuspendedTransaction {
-            val existing = TaxRates.selectAll().where { TaxRates.id eq id }.singleOrNull()
+            TaxRates.selectAll().where { TaxRates.id eq id }.singleOrNull()
                 ?: return@newSuspendedTransaction null
 
             val now = OffsetDateTime.now(ZoneOffset.UTC)

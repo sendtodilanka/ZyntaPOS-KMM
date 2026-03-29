@@ -88,10 +88,18 @@ class DashboardViewModel(
             val now = Clock.System.now()
             val todayStart = now.toLocalDateTime(tz).date.atStartOfDayIn(tz)
 
-            val (sales, orderCount, sparkline, weeklyPoints) = loadTodayMetrics(tz, now, todayStart)
-            val (yesterdaySalesTotal, yesterdayOrderCount, lastWeekSales,
-                salesVsYesterday, ordersVsYesterday, salesVsLastWeek) =
-                loadPeriodComparison(tz, now, todayStart, sales, orderCount)
+            val metrics = loadTodayMetrics(tz, now, todayStart)
+            val sales = metrics.sales
+            val orderCount = metrics.orderCount
+            val sparkline = metrics.sparkline
+            val weeklyPoints = metrics.weeklyPoints
+            val comparison = loadPeriodComparison(tz, now, todayStart, sales, orderCount)
+            val yesterdaySalesTotal = comparison.yesterdaySales
+            val yesterdayOrderCount = comparison.yesterdayOrders
+            val lastWeekSales = comparison.lastWeekSales
+            val salesVsYesterday = comparison.salesVsYesterday
+            val ordersVsYesterday = comparison.ordersVsYesterday
+            val salesVsLastWeek = comparison.salesVsLastWeek
             val recent = loadRecentOrders(tz)
 
             val lowStockProducts = productRepository.getAll().first().filter { it.stockQty <= it.minStockQty }

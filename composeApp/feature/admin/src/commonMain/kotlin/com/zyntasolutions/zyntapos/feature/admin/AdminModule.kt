@@ -73,7 +73,6 @@ val adminModule = module {
             analytics = get(),
             getUnresolvedConflictsUseCase = get(),
             resolveConflictUseCase = get(),
-            getConflictCountUseCase = get(),
             settingsRepository = get(),
         )
     }
