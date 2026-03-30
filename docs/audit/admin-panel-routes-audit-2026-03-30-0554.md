@@ -28,6 +28,69 @@
 
 ---
 
+## File 18 — `admin-panel/src/routes/inventory/index.tsx`
+
+**Summary:** Global inventory view. Read-only. Debounced filters, empty state, overflow-x-auto present.
+
+- Debounced filters: correct
+- `overflow-x-auto` present: correct
+- Empty state: present
+- `isError` not destructured from `useGlobalInventory` — same gap
+- No pagination — all items returned at once (potential performance issue at scale)
+- "Low stock only" filter is client-side (not server-side), applied to already-fetched data
+
+### FINDING-029
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/inventory/index.tsx:19-22
+**FINDING**: `isError` from `useGlobalInventory` not checked — API errors silently show "No stock rows found".
+**EVIDENCE**: `const { data, isLoading } = useGlobalInventory({...})`
+**IMPACT**: API errors look identical to empty inventory.
+**FIX**: Destructure `isError`, render error banner.
+
+### FINDING-030
+**SEVERITY**: MEDIUM
+**CATEGORY**: F
+**FILE**: admin-panel/src/routes/inventory/index.tsx:19-26
+**FINDING**: No pagination — all inventory rows loaded in a single request with no page/limit parameters.
+**EVIDENCE**: `useGlobalInventory({ productId: ..., storeId: ... })` — no `page` or `size` parameter
+**IMPACT**: With many stores and products, this page could request thousands of rows, causing slow load times and browser memory pressure.
+**FIX**: Add `page`/`size` pagination parameters and controls.
+
+---
+
+## File 17 — `admin-panel/src/routes/diagnostic/index.tsx`
+
+**Summary:** Remote diagnostic session management. Well-implemented — uses `ConfirmDialog` for revoke, submit disabled during mutation, token shown only once.
+
+- "Revoke" uses `ConfirmDialog` with `variant="destructive"` — correct
+- Submit button disabled during `createMutation.isPending` — correct
+- `key={store.id}` on map — correct
+- `overflow-x-auto` present on table wrapper — correct
+- `revokeSession.mutate` has `onSuccess` but no `onError`
+- `createMutation.mutate` has `onSuccess` but no `onError`
+- `storesQuery.isError` not checked — if stores fail to load, shows "No stores found" silently
+
+### FINDING-027
+**SEVERITY**: HIGH
+**CATEGORY**: I
+**FILE**: admin-panel/src/routes/diagnostic/index.tsx:89-93
+**FINDING**: `createMutation.mutate` has no `onError` handler — session creation failures are silently swallowed.
+**EVIDENCE**: `createMutation.mutate({ storeId, technicianId: user?.id ?? '', dataScope }, { onSuccess: (session) => { onCreated(session); onClose(); } })`
+**IMPACT**: If session creation fails (e.g., store unreachable, permission denied), the modal stays open with no error message.
+**FIX**: Add `onError: (err) => toast.error(...)`.
+
+### FINDING-028
+**SEVERITY**: HIGH
+**CATEGORY**: I
+**FILE**: admin-panel/src/routes/diagnostic/index.tsx:307
+**FINDING**: `revokeSession.mutate` has no `onError` handler.
+**EVIDENCE**: `revokeSession.mutate(revokeTarget, { onSuccess: () => setRevokeTarget(null) })`
+**IMPACT**: Revocation failure gives no user feedback — the dialog closes on success but stays open silently on error.
+**FIX**: Add `onError: (err) => toast.error(...)`.
+
+---
+
 ## File 16 — `admin-panel/src/routes/settings/exchange-rates.tsx`
 
 **Summary:** Exchange rate CRUD. Well-implemented with inline form validation and error handling.
