@@ -28,6 +28,55 @@
 
 ---
 
+## File 11 — `admin-panel/src/routes/master-products/$masterProductId.tsx`
+
+**Summary:** Master product detail with store assignments. "Remove" store assignment button has no confirmation dialog. Same pattern as index.tsx.
+
+- `assignMutation.mutate` has `onSuccess` but no `onError`
+- `removeMutation.mutate` at line 103 has neither `onSuccess` nor `onError`
+- "Remove" button not disabled during `removeMutation.isPending` — allows double-click
+- Store assignments table missing `overflow-x-auto` wrapper
+- `isError` not destructured from `useMasterProduct`
+- `AssignStoreDialog` submit button correctly disabled with `!selectedStore || isLoading`
+
+### FINDING-018
+**SEVERITY**: CRITICAL
+**CATEGORY**: C
+**FILE**: admin-panel/src/routes/master-products/$masterProductId.tsx:102-107
+**FINDING**: "Remove" button calls `removeMutation.mutate(...)` directly with no confirmation dialog — removes store assignment without user confirmation.
+**EVIDENCE**: `<button onClick={() => removeMutation.mutate({ masterProductId, storeId: a.store_id })}>`
+**IMPACT**: Accidental click removes a product assignment from a live store with no undo.
+**FIX**: Wrap in `ConfirmDialog` before firing mutation.
+
+### FINDING-019
+**SEVERITY**: HIGH
+**CATEGORY**: C
+**FILE**: admin-panel/src/routes/master-products/$masterProductId.tsx:102-107
+**FINDING**: "Remove" button not disabled during `removeMutation.isPending`.
+**EVIDENCE**: `<button onClick={() => removeMutation.mutate(...)}` — no `disabled` prop
+**IMPACT**: Double-click can send duplicate removal requests.
+**FIX**: Add `disabled={removeMutation.isPending}`.
+
+### FINDING-020
+**SEVERITY**: HIGH
+**CATEGORY**: I
+**FILE**: admin-panel/src/routes/master-products/$masterProductId.tsx:20-21
+**FINDING**: Neither `assignMutation` nor `removeMutation` has `onError` handlers — failures are silently swallowed.
+**EVIDENCE**: `assignMutation.mutate({ masterProductId, storeId, data }, { onSuccess: () => setShowAssign(false) })` — no `onError`
+**IMPACT**: Store assignment or removal failures give no feedback to the user.
+**FIX**: Add `onError: (err) => toast.error(...)` to both.
+
+### FINDING-021
+**SEVERITY**: MEDIUM
+**CATEGORY**: K
+**FILE**: admin-panel/src/routes/master-products/$masterProductId.tsx:78-112
+**FINDING**: Store assignments table at line 78 has no `overflow-x-auto` wrapper — truncates on narrow screens.
+**EVIDENCE**: `<table className="w-full text-sm">` inside a div with no overflow control
+**IMPACT**: Table content clips on mobile or narrow viewports.
+**FIX**: Wrap in `<div className="overflow-x-auto">`.
+
+---
+
 ## File 10 — `admin-panel/src/routes/master-products/index.tsx`
 
 **Summary:** Master product catalog list with inline create dialog. Several issues found.
