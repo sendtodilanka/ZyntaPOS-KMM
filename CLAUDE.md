@@ -63,6 +63,91 @@ If nothing new was committed, a push is still safe (it will be a no-op). There i
 
 ---
 
+## 🔴 Long-Running Analysis Protocol (MANDATORY)
+
+**Any task that requires reading many files, producing a plan, writing an audit report,
+or generating a large structured document MUST follow this protocol.**
+
+### Rule 1 — Always use a background Agent
+
+Do NOT run multi-file analysis in the main session. Spawn a background agent:
+
+```
+Agent tool → run_in_background: true → subagent_type: "general-purpose"
+```
+
+This keeps the main session free for conversation and prevents the "stuck" appearance
+caused by long sequential tool call chains.
+
+### Rule 2 — Write output incrementally to a file
+
+The agent MUST write its output to a file under `docs/` as it goes —
+NOT accumulate everything in context and write at the end.
+
+**Folder selection — match the report type:**
+| Report type | Folder |
+|-------------|--------|
+| Audit (adversarial, functional, security) | `docs/audit/` |
+| Plan (implementation plan, architecture plan) | `docs/plan/` |
+| Todo (task list, backlog, checklist) | `docs/todo/` |
+| Other (analysis, notes, diagrams) | `docs/` |
+
+**File naming convention:**
+```
+docs/<folder>/<report-type>-<YYYY-MM-DD-HHMM>.md
+```
+
+Examples:
+```
+docs/audit/admin-panel-functional-audit-2026-03-30-1430.md
+docs/plan/sync-engine-refactor-plan-2026-03-30-1430.md
+docs/todo/phase-4-backlog-2026-03-30-1430.md
+```
+
+**Write pattern — after EACH major section:**
+```python
+# After completing Step 1:
+Write("docs/audit/...", "# Section 1 — ...\n..." )
+
+# After completing Step 2:
+# Append findings to the same file
+```
+
+**Why incremental writes:**
+- Agent context window pressure reduced — completed sections don't need to be held in memory
+- User can check progress at any time: `cat docs/audit/....md`
+- If agent hits context limit mid-way, partial results are not lost
+- Final response to main session is small (just "done, see file")
+
+### Rule 3 — Verify the file after agent completes
+
+After the background agent finishes, Claude MUST:
+
+1. Read the output file and verify it contains all expected sections
+2. Check the file is not empty or truncated
+3. Report to user: file path + section count + any missing sections
+
+```bash
+# Verification check
+wc -l docs/<folder>/<report-file>.md
+grep "^##" docs/<folder>/<report-file>.md   # List all sections
+```
+
+### Rule 4 — When writing prompts for the user
+
+When the user asks Claude to write a prompt for a long-running task (audit, plan,
+architecture review, etc.), the prompt MUST include:
+
+- Instruction to use background Agent spawn
+- Instruction to select the correct folder (`docs/audit/`, `docs/plan/`, `docs/todo/`) based on report type
+- Instruction to write output incrementally after each section completes
+- A verification step at the end (read file, check sections)
+- Progress markers after each major section ("=== SECTION X COMPLETE ===")
+
+If Claude writes a prompt that does NOT include these elements, it is incomplete.
+
+---
+
 ## Session Start Protocol — Local Environment Setup (MANDATORY)
 
 **At the start of every Claude Code session, run these checks before touching any code.**
