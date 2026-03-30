@@ -13,6 +13,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.koin.ktor.ext.inject
@@ -43,6 +46,10 @@ fun Route.exportRoutes() {
             val principal = call.principal<JWTPrincipal>()
             val adminId = principal?.payload?.subject
             val role = principal?.payload?.getClaim("role")?.asString()
+            // SECURITY: storeId comes from the signed JWT — it cannot be forged by the caller.
+            // All queries below are scoped to this store so a user from Store A cannot export
+            // customers belonging to Store B.
+            val storeId = principal?.payload?.getClaim("storeId")?.asString()
 
             // Only ADMIN or MANAGER roles can export customer data
             if (role != "ADMIN" && role != "MANAGER") {
@@ -53,10 +60,22 @@ fun Route.exportRoutes() {
                 return@get
             }
 
+            if (storeId.isNullOrBlank()) {
+                call.respond(HttpStatusCode.Forbidden, ErrorResponse("FORBIDDEN", "Store context missing"))
+                return@get
+            }
+
             // Query customer data from normalized entity tables (V12)
+            // SECURITY FIX: both queries are scoped to the caller's storeId.
+            // Customers with store_id = NULL are "global" customers visible to all stores — they
+            // are intentionally accessible cross-store per the V38 migration design.
             val export = newSuspendedTransaction {
                 val customerRows = NormalizedCustomers.selectAll()
-                    .where { NormalizedCustomers.id eq customerId }
+                    .where {
+                        (NormalizedCustomers.id eq customerId) and
+                            ((NormalizedCustomers.storeId eq storeId) or
+                                NormalizedCustomers.storeId.isNull())
+                    }
                     .toList()
 
                 if (customerRows.isEmpty()) {
@@ -65,7 +84,10 @@ fun Route.exportRoutes() {
 
                 val customer = customerRows.first()
                 val orders = NormalizedOrders.selectAll()
-                    .where { NormalizedOrders.customerId eq customerId }
+                    .where {
+                        (NormalizedOrders.customerId eq customerId) and
+                            (NormalizedOrders.storeId eq storeId)
+                    }
                     .map { row ->
                         CustomerOrderExport(
                             id = row[NormalizedOrders.id],

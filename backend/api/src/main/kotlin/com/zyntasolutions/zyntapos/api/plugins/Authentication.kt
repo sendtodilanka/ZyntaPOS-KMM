@@ -19,14 +19,19 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * In-memory cache for revoked token JTIs. Avoids a DB hit on every authenticated request.
- * Entries are cached for [REVOCATION_CACHE_TTL_MS] (5 minutes). A revoked token may remain
- * usable for up to this duration after revocation — acceptable trade-off for performance.
+ * Entries are cached for [REVOCATION_CACHE_TTL_MS]. A revoked token may remain usable for
+ * up to this duration after revocation.
  *
  * The cache also publishes revoked JTIs to Redis (key `revoked_tokens` set) so the sync
  * service can check revocation without direct DB access.
  */
 object TokenRevocationCache {
-    private const val REVOCATION_CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutes
+    // SECURITY FIX: reduced from 5 minutes to 30 seconds.
+    // The previous 5-minute TTL meant a revoked token (terminated employee, breach response)
+    // remained valid for up to 5 minutes. 30 seconds is still a useful performance optimisation
+    // (avoids a DB round-trip on every authenticated request) while shrinking the effective
+    // revocation window to an operationally acceptable level.
+    private const val REVOCATION_CACHE_TTL_MS = 30 * 1000L // 30 seconds
 
     // jti → (isRevoked, cachedAtMs)
     private val cache = ConcurrentHashMap<String, Pair<Boolean, Long>>()
@@ -74,7 +79,7 @@ fun Application.configureAuthentication() {
                 if (subject == null || role == null) return@validate null
 
                 // S2-9: Check token revocation list — deactivated users are blocked immediately
-                // Uses in-memory cache to avoid DB hit on every request (5 min TTL)
+                // Uses in-memory cache to avoid DB hit on every request (30s TTL)
                 val jti = credential.payload.id
                 if (jti != null) {
                     val cached = TokenRevocationCache.isRevoked(jti)

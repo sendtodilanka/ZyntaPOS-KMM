@@ -427,8 +427,10 @@ class EntityApplier {
                 "PURCHASE_ORDER"    -> applyPurchaseOrder(storeId, op)
                 "PRICING_RULE"      -> applyPricingRule(storeId, op)
                 "REGIONAL_TAX_OVERRIDE" -> applyRegionalTaxOverride(storeId, op)
-                "USER_STORE_ACCESS" -> applyUserStoreAccess(op)
-                "EMPLOYEE_STORE_ASSIGNMENT" -> applyEmployeeStoreAssignment(op)
+                // SECURITY: pass JWT-verified storeId so these methods cannot be directed
+                // at a different store via a crafted payload store_id field.
+                "USER_STORE_ACCESS" -> applyUserStoreAccess(storeId, op)
+                "EMPLOYEE_STORE_ASSIGNMENT" -> applyEmployeeStoreAssignment(storeId, op)
                 "TRANSIT_EVENT"     -> { /* append-only — stored via entity_snapshots; no normalized table */ }
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
@@ -1248,16 +1250,18 @@ class EntityApplier {
 
     // ── User Store Access (C3.2) ──────────────────────────────────────────
 
-    private fun applyUserStoreAccess(op: SyncOperation) {
+    // SECURITY FIX: storeId parameter comes from the JWT-verified claim in applyInTransaction().
+    // The payload's store_id field is intentionally ignored to prevent a device authenticated
+    // for Store A from granting access to Store B via a crafted sync payload.
+    private fun applyUserStoreAccess(storeId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
-                val userId  = payload.str("user_id") ?: return
-                val storeId = payload.str("store_id") ?: return
+                val userId = payload.str("user_id") ?: return
                 UserStoreAccessTable.upsert(UserStoreAccessTable.id) {
                     it[UserStoreAccessTable.id]          = java.util.UUID.fromString(op.entityId)
                     it[UserStoreAccessTable.userId]      = userId
-                    it[UserStoreAccessTable.storeId]     = storeId
+                    it[UserStoreAccessTable.storeId]     = storeId  // JWT-verified, not payload
                     it[UserStoreAccessTable.roleAtStore]  = payload.str("role_at_store")
                     it[UserStoreAccessTable.isActive]     = payload.bool("is_active")
                     it[UserStoreAccessTable.grantedBy]    = payload.str("granted_by")
@@ -1270,16 +1274,16 @@ class EntityApplier {
 
     // ── Employee Store Assignment (C3.4) ─────────────────────────────────
 
-    private fun applyEmployeeStoreAssignment(op: SyncOperation) {
+    // SECURITY FIX: same pattern as applyUserStoreAccess — storeId comes from JWT, not payload.
+    private fun applyEmployeeStoreAssignment(storeId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
                 val employeeId = payload.str("employee_id") ?: return
-                val storeId    = payload.str("store_id") ?: return
                 EmployeeStoreAssignments.upsert(EmployeeStoreAssignments.id) {
                     it[EmployeeStoreAssignments.id]          = java.util.UUID.fromString(op.entityId)
                     it[EmployeeStoreAssignments.employeeId]  = employeeId
-                    it[EmployeeStoreAssignments.storeId]     = storeId
+                    it[EmployeeStoreAssignments.storeId]     = storeId  // JWT-verified, not payload
                     it[EmployeeStoreAssignments.isTemporary] = payload.bool("is_temporary")
                     it[EmployeeStoreAssignments.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
@@ -1356,10 +1360,21 @@ class EntityApplier {
         updatedCol: Column<OffsetDateTime>,
         op: SyncOperation,
     ) {
-        table.update({ idCol eq op.entityId }) {
+        // SECURITY FIX: check that at least one row was updated. A DELETE for an entity that
+        // doesn't exist on the server silently returned 0 rows updated, yet the operation was
+        // still added to the accepted list — causing the client to believe the delete succeeded
+        // and stop retrying, leading to permanent sync state divergence.
+        //
+        // We log a warning rather than throwing so that idempotent re-deliveries of a DELETE
+        // (common after reconnection) don't fail the entire push batch. TODO: route to dead-letter
+        // queue once EntityApplier has DeadLetterRepository injected.
+        val rowsUpdated = table.update({ idCol eq op.entityId }) {
             it[activeCol]  = false
             it[versionCol] = op.createdAt
             it[updatedCol] = OffsetDateTime.now(ZoneOffset.UTC)
+        }
+        if (rowsUpdated == 0) {
+            logger.warn("softDelete: no row found for ${op.entityType} id=${op.entityId} op=${op.id} — operation accepted but entity did not exist on server")
         }
     }
 

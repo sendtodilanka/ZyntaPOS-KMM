@@ -53,10 +53,14 @@ object DatabaseFactory {
                     .locations("classpath:db/migration")
                     .baselineOnMigrate(true)
                     .load()
-                // Repair first: updates checksums in flyway_schema_history to match
-                // current migration files. Required after V15 was reverted to its
-                // original content (new columns moved to V19).
-                flyway.repair()
+                // SECURITY FIX: unconditional flyway.repair() was removed.
+                // repair() silently resets checksums in flyway_schema_history so that an
+                // accidentally-modified migration file is accepted without error — masking
+                // a schema inconsistency that should be investigated. The V15 one-time repair
+                // that necessitated this call was completed; it must not run on every startup.
+                //
+                // If a future migration causes a checksum failure, run repair() ONCE manually:
+                //   docker exec zyntapos_api flyway repair (or via a one-off VPS workflow)
                 flyway.migrate()
                 return
             } catch (e: Exception) {
