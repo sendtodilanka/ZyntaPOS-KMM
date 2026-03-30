@@ -28,6 +28,77 @@
 
 ---
 
+## File 24 — `admin-panel/src/routes/security/index.tsx`
+
+**Summary:** Security dashboard with KPI cards, auth event log, active sessions, vulnerability scan. Read-only monitoring page.
+
+- `overflow-x-auto` on events table — correct
+- `key={event.id}` and `key={session.id}` on maps — correct
+- Empty states present for all sections
+- `isError` not destructured from any of the 4 queries
+- Skeleton loading with `Array.from({ length: N })` — `key={i}` on static skeletons is acceptable
+
+### FINDING-038
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/security/index.tsx:92-95
+**FINDING**: `isError` not destructured from any of the 4 security queries — all API failures silently show empty states.
+**EVIDENCE**: `const { data: metrics, isLoading: metricsLoading } = useSecurityMetrics();`
+**IMPACT**: Security monitoring page appears to have no activity when the API is down — a security analyst may miss critical events due to a silent data fetch failure.
+**FIX**: Destructure `isError` from each hook, render error banners.
+
+---
+
+## File 22 — `admin-panel/src/routes/audit/index.tsx`
+
+**Summary:** Audit log with debounced search, filter panel, pagination, CSV export. Well-implemented.
+
+- Debounced search: correct
+- Pagination: in `AuditLogTable` component
+- Export button with try/catch and toast feedback: correct
+- `isError` not destructured from `useAuditLogs`
+
+### FINDING-035
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/audit/index.tsx:22
+**FINDING**: `isError` from `useAuditLogs` not checked — API errors silently show empty audit table.
+**EVIDENCE**: `const { data, isLoading } = useAuditLogs(effectiveFilters);`
+**IMPACT**: Audit compliance team sees empty log with no indication of an API failure.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
+## File 23 — `admin-panel/src/routes/sync/index.tsx`
+
+**Summary:** Sync monitoring with overview, conflicts, and dead letters tabs. Dead letter discard uses `ConfirmDialog`. Well-structured.
+
+- "Discard" uses `ConfirmDialog` with `variant="destructive"` — correct
+- Retry button disabled during `retryOp.isPending` — correct
+- `retryOp.mutate` has no `onError` handler — retry failures silently swallowed
+- `discardOp.mutate` has `onSettled` but no `onError` — discard failures also silently swallowed
+- `isError` not destructured from `useSyncStatus`, `useConflictLog`, or `useDeadLetters`
+
+### FINDING-036
+**SEVERITY**: HIGH
+**CATEGORY**: I
+**FILE**: admin-panel/src/routes/sync/index.tsx:122
+**FINDING**: `retryOp.mutate(row.id)` has no `onError` handler — retry failure gives no user feedback.
+**EVIDENCE**: `onClick={() => retryOp.mutate(row.id)}`
+**IMPACT**: Retry silently fails; user may click retry multiple times thinking it's not working.
+**FIX**: Add `onSuccess/onError` handlers with toast feedback.
+
+### FINDING-037
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/sync/index.tsx:168
+**FINDING**: `isError` not destructured from `useSyncStatus` — sync API failure silently shows empty overview.
+**EVIDENCE**: `const { data: stores = [], isLoading } = useSyncStatus();`
+**IMPACT**: Sync failures invisible to operator — may not realize monitoring is down.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
 ## File 21 — `admin-panel/src/routes/alerts/index.tsx`
 
 **Summary:** Alert management with acknowledge/resolve actions, alert rules toggle. Pagination present. Well-structured.
