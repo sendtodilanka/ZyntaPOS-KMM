@@ -28,6 +28,56 @@
 
 ---
 
+## File 16 — `admin-panel/src/routes/settings/exchange-rates.tsx`
+
+**Summary:** Exchange rate CRUD. Well-implemented with inline form validation and error handling.
+
+- `error` from `useExchangeRates` is checked and shown — correct
+- Empty state present with CTA button
+- Form submit disabled when `!isValid || isSaving` — correct
+- `isValid` correctly checks `source !== target && rate !== '' && parseFloat(rate) > 0`
+- `onSave` try/catch with `toast.error` — correct
+- `key={rate.id}` on map — correct
+- No confirmation dialog on edit — but this is a non-destructive update, acceptable
+
+**No findings for this file.**
+
+---
+
+## File 15 — `admin-panel/src/routes/settings/email.tsx`
+
+**Summary:** Multi-tab email management page (delivery logs, templates, preferences, unsubscribes, config). Thorough implementation — all sub-tabs handle `isError` and empty states. One concern: `dangerouslySetInnerHTML` for template preview.
+
+- Delivery logs: `isError` handled — correct
+- Templates: `isError` handled — correct
+- Preferences: `isError` handled — correct
+- Unsubscribes: `isError` handled — correct
+- Config: `isError` handled — correct
+- "Save" in template editor disabled during `updateMutation.isPending` — correct
+- Filter state is local (not URL params) — minor issue for email logs filters
+- Template editor initializes state directly in render body (lines 376-380) — anti-pattern
+- `dangerouslySetInnerHTML` used for email template preview (line 450)
+
+### FINDING-025
+**SEVERITY**: HIGH
+**CATEGORY**: B
+**FILE**: admin-panel/src/routes/settings/email.tsx:376-380
+**FINDING**: Template form state is initialized via a side effect inside the render body (not `useEffect`) — this is a React anti-pattern that causes state updates during render.
+**EVIDENCE**: `if (template && !initialized) { setSubject(template.subject); setHtmlBody(template.htmlBody); setInitialized(true); }`
+**IMPACT**: React may warn about state updates during render; in StrictMode this can cause double-initialization bugs.
+**FIX**: Move initialization into `useEffect(() => { if (template) { setSubject(...); ... }}, [template])`.
+
+### FINDING-026
+**SEVERITY**: MEDIUM
+**CATEGORY**: B
+**FILE**: admin-panel/src/routes/settings/email.tsx:449-451
+**FINDING**: Email template preview uses `dangerouslySetInnerHTML` to render user-edited HTML — potential XSS if the template contains `<script>` tags or event handler attributes.
+**EVIDENCE**: `<div className="bg-white p-4 rounded border text-sm" dangerouslySetInnerHTML={{ __html: htmlBody }} />`
+**IMPACT**: An admin could accidentally save a template with XSS payload, which would execute in all browsers viewing the preview. Lower risk because only admin users edit templates, but still a concern.
+**FIX**: Render preview in a sandboxed `<iframe>` or sanitize `htmlBody` with DOMPurify before rendering.
+
+---
+
 ## File 14 — `admin-panel/src/routes/settings/mfa.tsx`
 
 **Summary:** MFA setup and disable flow. Well-implemented with TOTP verification required to disable.
