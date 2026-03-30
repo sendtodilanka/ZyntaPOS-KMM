@@ -28,6 +28,69 @@
 
 ---
 
+## File 10 — `admin-panel/src/routes/master-products/index.tsx`
+
+**Summary:** Master product catalog list with inline create dialog. Several issues found.
+
+- Debounced search: correct
+- Pagination: present
+- Empty state: present (colspan row in table)
+- `overflow-x-auto` present on table container — correct
+- `key={p.id}` present on map — correct
+- Delete button at line 101 has NO confirmation dialog — calls `deleteMutation.mutate(p.id)` directly
+- `deleteMutation` has no `onError` handler — errors silently swallowed
+- `createMutation` has no `onError` handler
+- Form validation is native HTML `required` only — no Zod/react-hook-form; no error message display
+- `parseFloat(basePrice) || 0` — if user enters "abc", silently submits 0 as base price
+- `isError` from `useMasterProducts` not checked
+
+### FINDING-013
+**SEVERITY**: CRITICAL
+**CATEGORY**: C
+**FILE**: admin-panel/src/routes/master-products/index.tsx:100-105
+**FINDING**: Delete button calls `deleteMutation.mutate(p.id)` directly with no confirmation dialog.
+**EVIDENCE**: `<button onClick={() => deleteMutation.mutate(p.id)} className="text-red-400 hover:text-red-300 text-xs">Delete</button>`
+**IMPACT**: One accidental click permanently deletes a master product shared across all stores. No undo. This is a data-loss risk.
+**FIX**: Wrap in a `ConfirmDialog` (already used in tickets/$ticketId.tsx) before invoking the mutation.
+
+### FINDING-014
+**SEVERITY**: HIGH
+**CATEGORY**: C
+**FILE**: admin-panel/src/routes/master-products/index.tsx:100-105
+**FINDING**: Delete button is not disabled while `deleteMutation.isPending` — allows double-click to trigger duplicate delete requests.
+**EVIDENCE**: `<button onClick={() => deleteMutation.mutate(p.id)}` — no `disabled` prop
+**IMPACT**: Double-clicking delete before server responds can fire two delete requests.
+**FIX**: Add `disabled={deleteMutation.isPending}`.
+
+### FINDING-015
+**SEVERITY**: HIGH
+**CATEGORY**: I
+**FILE**: admin-panel/src/routes/master-products/index.tsx:23-28
+**FINDING**: Neither `createMutation` nor `deleteMutation` has an `onError` callback — mutation failures are silently swallowed.
+**EVIDENCE**: `createMutation.mutate(req, { onSuccess: () => setShowCreate(false) })` — no `onError`
+**IMPACT**: If creation or deletion fails (e.g., duplicate SKU, server error), the user sees no feedback and may retry or assume success.
+**FIX**: Add `onError: (err) => toast.error(...)` to both mutation calls.
+
+### FINDING-016
+**SEVERITY**: MEDIUM
+**CATEGORY**: B
+**FILE**: admin-panel/src/routes/master-products/index.tsx:177
+**FINDING**: `parseFloat(basePrice) || 0` silently coerces invalid input (e.g., letters) to 0 — no validation error shown.
+**EVIDENCE**: `base_price: parseFloat(basePrice) || 0,`
+**IMPACT**: Admin can accidentally submit a master product with a base price of 0 if they mistype, with no warning.
+**FIX**: Add explicit validation (Zod schema or manual check) and display error message before submitting.
+
+### FINDING-017
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/master-products/index.tsx:17-21
+**FINDING**: `isError` from `useMasterProducts` not checked — API failures silently show empty table.
+**EVIDENCE**: `const { data, isLoading } = useMasterProducts({...})`
+**IMPACT**: Admin sees "No master products found" on API error.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
 ## File 8 — `admin-panel/src/routes/stores/index.tsx`
 
 **Summary:** Store list with search, status filter, pagination. Read-only, delegates to `StoreTable`.
