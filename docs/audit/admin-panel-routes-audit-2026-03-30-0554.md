@@ -8,7 +8,50 @@
 
 ## Findings Index
 
-*(populated as audit progresses)*
+| ID | Severity | Category | File | Summary |
+|----|----------|----------|------|---------|
+| FINDING-001 | MEDIUM | H | users/index.tsx | Filter state not persisted in URL params |
+| FINDING-002 | HIGH | D | users/index.tsx | `isError` not checked on useAdminUsers |
+| FINDING-003 | HIGH | D | tickets/index.tsx | `isError` not checked on useTickets |
+| FINDING-004 | MEDIUM | H | tickets/index.tsx | Filter state not persisted in URL params |
+| FINDING-005 | HIGH | D | tickets/$ticketId.tsx | `isError` not checked on useTicket |
+| FINDING-006 | LOW | L | tickets/$ticketId.tsx | `useState(Date.now)` — inconsistent pattern |
+| FINDING-007 | HIGH | D | licenses/index.tsx | `isError` not checked on useLicenses |
+| FINDING-008 | MEDIUM | H | licenses/index.tsx | Filter state not persisted in URL params |
+| FINDING-009 | HIGH | D | licenses/$licenseKey.tsx | `isError` not checked on useLicense |
+| FINDING-010 | HIGH | D | customers/index.tsx | `isError` not checked on useGlobalCustomers |
+| FINDING-011 | HIGH | D | stores/index.tsx | `isError` not checked on useStores |
+| FINDING-012 | HIGH | D | stores/$storeId.tsx | `isError` not checked on useStore |
+| FINDING-013 | CRITICAL | C | master-products/index.tsx | Delete button has no confirmation dialog |
+| FINDING-014 | HIGH | C | master-products/index.tsx | Delete button not disabled during isPending |
+| FINDING-015 | HIGH | I | master-products/index.tsx | Create/delete mutations have no onError handlers |
+| FINDING-016 | MEDIUM | B | master-products/index.tsx | `parseFloat() \|\| 0` silently coerces invalid price to 0 |
+| FINDING-017 | HIGH | D | master-products/index.tsx | `isError` not checked on useMasterProducts |
+| FINDING-018 | CRITICAL | C | master-products/$masterProductId.tsx | Remove store button has no confirmation dialog |
+| FINDING-019 | HIGH | C | master-products/$masterProductId.tsx | Remove button not disabled during isPending |
+| FINDING-020 | HIGH | I | master-products/$masterProductId.tsx | Assign/remove mutations have no onError handlers |
+| FINDING-021 | MEDIUM | K | master-products/$masterProductId.tsx | Store assignments table missing overflow-x-auto |
+| FINDING-022 | HIGH | C | settings/profile.tsx | "Revoke All" sessions fires without confirmation dialog |
+| FINDING-023 | HIGH | I | settings/profile.tsx | revokeSessions.mutate has no onError handler |
+| FINDING-024 | LOW | L | settings/mfa.tsx | Backup codes use index as key prop |
+| FINDING-025 | HIGH | B | settings/email.tsx | Template state initialized in render body (anti-pattern) |
+| FINDING-026 | MEDIUM | B | settings/email.tsx | `dangerouslySetInnerHTML` for template preview — potential XSS |
+| FINDING-027 | HIGH | I | diagnostic/index.tsx | createMutation has no onError handler |
+| FINDING-028 | HIGH | I | diagnostic/index.tsx | revokeSession.mutate has no onError handler |
+| FINDING-029 | HIGH | D | inventory/index.tsx | `isError` not checked on useGlobalInventory |
+| FINDING-030 | MEDIUM | F | inventory/index.tsx | No pagination — all rows in one request |
+| FINDING-031 | HIGH | D | health/index.tsx | `isError` not checked on useSystemHealth/useAllStoreHealth |
+| FINDING-032 | LOW | L | health/$storeId.tsx | Error log entries use index as key |
+| FINDING-033 | HIGH | I | alerts/index.tsx | acknowledge/resolve mutations have no onError handlers |
+| FINDING-034 | HIGH | D | alerts/index.tsx | `isError` not checked on useAlerts |
+| FINDING-035 | HIGH | D | audit/index.tsx | `isError` not checked on useAuditLogs |
+| FINDING-036 | HIGH | I | sync/index.tsx | retryOp.mutate has no onSuccess/onError feedback |
+| FINDING-037 | HIGH | D | sync/index.tsx | `isError` not checked on useSyncStatus |
+| FINDING-038 | HIGH | D | security/index.tsx | `isError` not checked on any of 4 security queries |
+| FINDING-039 | HIGH | D | reports/index.tsx | `isError` not checked on useSalesReport/useProductPerformance |
+| FINDING-040 | MEDIUM | F | reports/index.tsx | Daily breakdown silently truncates to 50 rows |
+| FINDING-041 | LOW | L | reports/index.tsx | Tables use array index as key prop |
+| FINDING-042 | HIGH | D | index.tsx (dashboard) | `isError` not checked on any of 5 dashboard queries |
 
 ---
 
