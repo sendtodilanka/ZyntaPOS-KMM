@@ -28,6 +28,71 @@
 
 ---
 
+## File 14 — `admin-panel/src/routes/settings/mfa.tsx`
+
+**Summary:** MFA setup and disable flow. Well-implemented with TOTP verification required to disable.
+
+- "Enable MFA" button disabled until code is 6 digits — correct
+- "Disable MFA" button disabled until code is 6 digits — correct
+- `handleStartSetup`, `handleEnable`, `handleDisable` all have `try/catch` — errors handled
+- Backup codes list uses `key={i}` (index) — minor issue, but backup codes are static so index keys are acceptable here
+- No issues found
+
+### FINDING-024
+**SEVERITY**: LOW
+**CATEGORY**: L
+**FILE**: admin-panel/src/routes/settings/mfa.tsx:173
+**FINDING**: Backup codes list uses array index as `key` prop.
+**EVIDENCE**: `{setupData.backupCodes.map((code, i) => (<code key={i} ...>{code}</code>))}`
+**IMPACT**: Negligible — backup codes are displayed once and never reordered. No functional issue.
+**FIX**: Use `key={code}` (the code value itself is unique) for best practice.
+
+---
+
+## File 12 — `admin-panel/src/routes/settings/index.tsx`
+
+**Summary:** Timezone preference page. Local-only settings stored via Zustand. Well-implemented.
+
+- "Save Preferences" button disabled when `!isDirty` — correct
+- `toast.success` called on save — mutation feedback present
+- No API calls — no isError concern
+- Empty state shown when timezone search has no matches
+
+**No findings for this file.**
+
+---
+
+## File 13 — `admin-panel/src/routes/settings/profile.tsx`
+
+**Summary:** Password change + session revocation. Well-implemented overall.
+
+- Submit button disabled during `changePassword.isPending` — correct
+- Form fields cleared on success
+- `passwordError` shown inline
+- "Revoke All" is a destructive action — but it correctly asks by being disabled when no sessions exist; however there is NO confirmation dialog before firing `revokeSessions.mutate`
+- `revokeSessions.mutate` has `onSuccess` handler but no `onError` handler
+- `key={session.id}` on sessions map — correct
+
+### FINDING-022
+**SEVERITY**: HIGH
+**CATEGORY**: C
+**FILE**: admin-panel/src/routes/settings/profile.tsx:157-162
+**FINDING**: "Revoke All" sessions button fires immediately without a confirmation dialog — revoking all sessions immediately logs out the current user.
+**EVIDENCE**: `<button onClick={handleRevokeAll} disabled={revokeSessions.isPending || !sessions?.length}>Revoke All</button>`
+**IMPACT**: Accidental click immediately logs the user out and invalidates all their sessions — no undo.
+**FIX**: Add a `ConfirmDialog` before calling `revokeSessions.mutate`.
+
+### FINDING-023
+**SEVERITY**: HIGH
+**CATEGORY**: I
+**FILE**: admin-panel/src/routes/settings/profile.tsx:59-65
+**FINDING**: `revokeSessions.mutate` has no `onError` handler — session revocation failures are silently swallowed.
+**EVIDENCE**: `revokeSessions.mutate(user.id, { onSuccess: () => { clearUser(); navigate(...) } })`
+**IMPACT**: If revocation fails, the UI shows no error and the user may believe they've been logged out when they haven't.
+**FIX**: Add `onError: (err) => toast.error(...)`.
+
+---
+
 ## File 11 — `admin-panel/src/routes/master-products/$masterProductId.tsx`
 
 **Summary:** Master product detail with store assignments. "Remove" store assignment button has no confirmation dialog. Same pattern as index.tsx.
