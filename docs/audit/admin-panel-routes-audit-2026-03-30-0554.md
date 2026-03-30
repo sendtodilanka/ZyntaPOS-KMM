@@ -28,6 +28,73 @@
 
 ---
 
+## File 26 — `admin-panel/src/routes/config/index.tsx`
+
+**Summary:** Configuration page with feature flags and system config tabs. Thin route file — delegates to `FeatureFlagTable` and `ConfigEditor` components.
+
+- No data fetching in this file — all handled in sub-components
+- Tab state is local (acceptable — tabs don't need URL persistence)
+
+**No findings for this route file.** (Sub-component behavior not audited here.)
+
+---
+
+## File 27 — `admin-panel/src/routes/setup/index.tsx`
+
+**Summary:** First-run admin bootstrap form. Well-implemented — mirrors login.tsx quality.
+
+- Zod validation with react-hook-form
+- Field-level error display
+- Server errors handled with typed HTTPError checks
+- Submit button disabled during `isSubmitting || bootstrap.isPending`
+- Navigates to `/login` on success
+
+**No findings for this file.**
+
+---
+
+## File 25 — `admin-panel/src/routes/reports/index.tsx`
+
+**Summary:** Platform sales and product performance reports with charts, CSV export, and period/store filters. Well-structured.
+
+- Debounced store filter: correct
+- `overflow-x-auto` present on data tables: correct
+- Empty states for charts and tables: present
+- Export button for both sales and product data: present
+- `isError` not destructured from either query
+- Daily breakdown table uses array index as key: `key={i}` (line 270)
+- Product table uses array index as key: `key={i}` (line 364)
+- Daily breakdown `.slice(0, 50)` silently limits to 50 rows with no pagination or note to user
+
+### FINDING-039
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/reports/index.tsx:53-61
+**FINDING**: `isError` not destructured from `useSalesReport` or `useProductPerformance` — API failures silently show empty charts and "No data" messages.
+**EVIDENCE**: `const { data: salesData, isLoading: salesLoading } = useSalesReport({...})`
+**IMPACT**: Reports API failure looks like "no sales" — a finance manager may make incorrect business decisions.
+**FIX**: Destructure `isError`, render error banner.
+
+### FINDING-040
+**SEVERITY**: MEDIUM
+**CATEGORY**: F
+**FILE**: admin-panel/src/routes/reports/index.tsx:269
+**FINDING**: Sales daily breakdown table silently truncates to 50 rows via `.slice(0, 50)` with no indication to the user that rows are hidden.
+**EVIDENCE**: `(salesData ?? []).slice(0, 50).map((row, i) => ...`
+**IMPACT**: User may export CSV (which has all data) and see different counts than the table, causing confusion.
+**FIX**: Add a note "Showing first 50 rows. Export CSV for full data." or implement proper pagination.
+
+### FINDING-041
+**SEVERITY**: LOW
+**CATEGORY**: L
+**FILE**: admin-panel/src/routes/reports/index.tsx:270, 364
+**FINDING**: Both the daily breakdown and product performance tables use array index as `key` prop.
+**EVIDENCE**: `(salesData ?? []).slice(0, 50).map((row, i) => (<tr key={i} ...>` and `productData.map((row, i) => (<tr key={i} ...>`
+**IMPACT**: If rows are reordered or filtered, React may incorrectly reuse DOM elements. Low risk for read-only display data.
+**FIX**: Use a unique field like `key={row.date + '-' + row.storeId}` for sales and `key={row.productId}` for products.
+
+---
+
 ## File 24 — `admin-panel/src/routes/security/index.tsx`
 
 **Summary:** Security dashboard with KPI cards, auth event log, active sessions, vulnerability scan. Read-only monitoring page.
