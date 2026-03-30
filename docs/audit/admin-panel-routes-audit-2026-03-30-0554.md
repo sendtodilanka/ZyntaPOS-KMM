@@ -807,3 +807,55 @@
 
 ---
 
+
+---
+
+## Summary by Category
+
+| Category | Count | Notes |
+|----------|-------|-------|
+| B — Forms | 3 | FINDING-016, 025, 026 |
+| C — Buttons | 5 | FINDING-013 (CRITICAL), 014, 018 (CRITICAL), 019, 022 |
+| D — Error Handling | 18 | Pervasive `isError` gap across all list/detail pages |
+| F — Pagination | 2 | FINDING-030, 040 |
+| H — Search/Filters | 3 | FINDING-001, 004, 008 |
+| I — Mutation Feedback | 7 | FINDING-015, 020, 023, 027, 028, 033, 036 |
+| K — Layout | 1 | FINDING-021 |
+| L — Console | 4 | FINDING-006, 024, 032, 041 |
+
+## Cross-Cutting Patterns
+
+### Pattern 1: `isError` consistently omitted from TanStack Query destructuring (18 findings)
+Every list page and most detail pages destructure only `{ data, isLoading }` from query hooks, omitting `isError`. When APIs fail, users see empty states that appear identical to genuinely empty data. This is the single most widespread gap in the codebase.
+
+**Affected pages:** users, tickets, tickets/$ticketId, licenses, licenses/$licenseKey, customers, stores, stores/$storeId, master-products, inventory, health, alerts, audit, sync, security, reports (×2), dashboard (×5).
+
+**One-line fix pattern:**
+```typescript
+const { data, isLoading, isError } = useXxx(params);
+// then:
+if (isError) return <ErrorBanner message="Failed to load data" />;
+```
+
+### Pattern 2: Mutation `onError` handlers missing (7 findings)
+Many `mutate()` calls include `onSuccess` but omit `onError`. Failures are silently swallowed with no user feedback.
+
+**Affected mutations:** createMasterProduct, deleteMasterProduct, assignToStore, removeFromStore, revokeAllSessions, createDiagnosticSession, revokeDiagnosticSession, acknowledgeAlert, resolveAlert, retryDeadLetter.
+
+### Pattern 3: Destructive actions without confirmation (2 CRITICAL findings)
+- Delete master product (FINDING-013): permanent data deletion with no undo
+- Remove store assignment (FINDING-018): removes product from live store with no undo
+
+Both use the same `ConfirmDialog` component that is already correctly used in 3 other places (tickets/$ticketId, sync/deadletters, diagnostic/index).
+
+### Pattern 4: Filter state not persisted in URL (3 findings)
+Users, tickets, and licenses filter state (role, status, priority, date range) is in local component state — lost on navigation. The fix requires TanStack Router's `validateSearch` / `search` query parameter support, which the router already supports.
+
+---
+
+=== ROUTE AUDIT COMPLETE ===
+Total findings: 42
+- CRITICAL: 2 (FINDING-013, FINDING-018)
+- HIGH: 28
+- MEDIUM: 7
+- LOW: 5
