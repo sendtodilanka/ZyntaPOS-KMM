@@ -28,6 +28,47 @@
 
 ---
 
+## File 19 — `admin-panel/src/routes/health/index.tsx`
+
+**Summary:** System health dashboard with backend service cards and store health rows. Refresh button, skeleton loading. Well-implemented.
+
+- `isError` not destructured from `useSystemHealth` or `useAllStoreHealth` — silent failure
+- Refresh button disabled during `sysFetching` — correct
+- `key={s.name}` and `key={s.storeId}` on maps — correct
+- Empty state for stores: "No stores registered" — present
+- Skeleton loading placeholders — good UX
+
+### FINDING-031
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/health/index.tsx:91-92
+**FINDING**: `isError` not destructured from `useSystemHealth` or `useAllStoreHealth` — API failures silently show empty health cards.
+**EVIDENCE**: `const { data: system, isLoading: sysLoading, refetch: refetchSystem, isFetching: sysFetching } = useSystemHealth();`
+**IMPACT**: Backend health check failure shows blank service grid with no indication of an error — operator may assume services are healthy when the monitoring API is down.
+**FIX**: Destructure `isError` from both hooks, show error state.
+
+---
+
+## File 20 — `admin-panel/src/routes/health/$storeId.tsx`
+
+**Summary:** Store health detail with latency chart and error log. `error` from `useStoreHealthDetail` is checked.
+
+- `error` is checked at line 41: `if (error || !data)` — correct
+- Error log uses `key={i}` (index) — minor issue since log entries are static display
+- `key={stat.label}` on stats grid map — correct
+- No pagination for `errorLog` — but capped with `max-h-64 overflow-y-auto` which is a reasonable UX choice
+
+### FINDING-032
+**SEVERITY**: LOW
+**CATEGORY**: L
+**FILE**: admin-panel/src/routes/health/$storeId.tsx:117-129
+**FINDING**: Error log entries use array index as `key` prop.
+**EVIDENCE**: `{data.errorLog.map((entry, i) => (<div key={i} ...>...))}`
+**IMPACT**: Negligible — the log is read-only and never reordered. Acceptable for a display-only list.
+**FIX**: Use a composite key like `key={entry.timestamp + '-' + i}` for best practice.
+
+---
+
 ## File 18 — `admin-panel/src/routes/inventory/index.tsx`
 
 **Summary:** Global inventory view. Read-only. Debounced filters, empty state, overflow-x-auto present.
