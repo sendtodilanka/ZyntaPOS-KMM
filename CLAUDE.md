@@ -79,6 +79,38 @@ Agent tool → run_in_background: true → subagent_type: "general-purpose"
 This keeps the main session free for conversation and prevents the "stuck" appearance
 caused by long sequential tool call chains.
 
+### Rule 1b — Split large tasks across parallel agents
+
+A single agent has a ~30 min / ~100 tool call budget before it times out.
+If a task requires reading more than ~20 files OR covers more than ~4 categories,
+**split it into parallel focused agents** — one per domain — rather than one
+monolithic agent that reads everything before writing anything.
+
+**Failure pattern to avoid:**
+```
+❌ One agent reads 80 files → times out at 112 tool calls → zero output written
+```
+
+**Correct pattern:**
+```
+✅ Agent A (background): reads backend routes → writes docs/audit/...-backend.md
+✅ Agent B (background): reads frontend components → writes docs/audit/...-frontend.md
+   (both run in parallel)
+   ↓ after both complete
+✅ Agent C (foreground): reads both partial files → writes final merged report
+```
+
+**Trigger: spawn parallel agents when ANY of these is true:**
+- Task requires reading files across more than 2 top-level directories
+- Task has more than 4 independent analysis categories
+- Previous attempt timed out or exceeded ~100 tool calls without finishing
+- Task description includes words like "full audit", "all routes", "every file"
+
+**Each parallel agent MUST:**
+1. Write its own partial output file immediately (before reading more than 3 files)
+2. Use a distinct filename suffix: `...-part-backend.md`, `...-part-frontend.md`, etc.
+3. Never wait to accumulate all findings before writing — write after each file read
+
 ### Rule 2 — Write output incrementally to a file
 
 The agent MUST write its output to a file under `docs/` as it goes —
@@ -143,6 +175,9 @@ architecture review, etc.), the prompt MUST include:
 - Instruction to write output incrementally after each section completes
 - A verification step at the end (read file, check sections)
 - Progress markers after each major section ("=== SECTION X COMPLETE ===")
+- **If the task covers more than 4 categories or 2 top-level directories:**
+  instruction to split into parallel focused agents (one per domain), each
+  writing its own partial file, with a final merge agent
 
 If Claude writes a prompt that does NOT include these elements, it is incomplete.
 
