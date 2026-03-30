@@ -28,6 +28,61 @@
 
 ---
 
+## File 8 — `admin-panel/src/routes/stores/index.tsx`
+
+**Summary:** Store list with search, status filter, pagination. Read-only, delegates to `StoreTable`.
+
+- `isError` not destructured — same gap as other list pages
+- Filter state local (not URL params)
+
+### FINDING-011
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/stores/index.tsx:19-23
+**FINDING**: `isError` from `useStores` not checked — API failures silently show empty list.
+**EVIDENCE**: `const { data, isLoading } = useStores({...})`
+**IMPACT**: Store directory appears empty on API failure.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
+## File 9 — `admin-panel/src/routes/stores/$storeId.tsx`
+
+**Summary:** Store detail page. Minimal, delegates to `StoreDetailPanel`. Same `isError` gap.
+
+### FINDING-012
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/stores/$storeId.tsx:15
+**FINDING**: `isError` not destructured from `useStore` — API error shows "Store not found" instead of error state.
+**EVIDENCE**: `const { data: store, isLoading } = useStore(storeId);`
+**IMPACT**: API errors indistinguishable from non-existent store.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
+## File 7 — `admin-panel/src/routes/customers/index.tsx`
+
+**Summary:** Global customer directory. Debounced search + store ID filter, pagination, inline table. Read-only view.
+
+- Debounced search and storeId: correct
+- Pagination: present (Previous/Next buttons with disabled guards)
+- Empty state: present (icon + "No customers found")
+- `isError` not checked — query errors silently show "No customers found" message
+- `overflow-x-auto` present on the table container — correct
+- `key={customer.id}` present on map — correct
+
+### FINDING-010
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/customers/index.tsx:21-26
+**FINDING**: `isError` not destructured from `useGlobalCustomers` — API errors silently display "No customers found" empty state.
+**EVIDENCE**: `const { data, isLoading } = useGlobalCustomers({...})`
+**IMPACT**: API failure looks identical to an empty directory.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
 ## File 5 — `admin-panel/src/routes/licenses/index.tsx`
 
 **Summary:** License list with stats banner, debounced search, status/edition filters, CSV export, pagination.
