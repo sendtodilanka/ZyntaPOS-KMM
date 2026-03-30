@@ -81,26 +81,41 @@ caused by long sequential tool call chains.
 
 ### Rule 2 — Write output incrementally to a file
 
-The agent MUST write its output to a file under `docs/audit/` or `docs/` as it goes —
+The agent MUST write its output to a file under `docs/` as it goes —
 NOT accumulate everything in context and write at the end.
+
+**Folder selection — match the report type:**
+| Report type | Folder |
+|-------------|--------|
+| Audit (adversarial, functional, security) | `docs/audit/` |
+| Plan (implementation plan, architecture plan) | `docs/plan/` |
+| Todo (task list, backlog, checklist) | `docs/todo/` |
+| Other (analysis, notes, diagrams) | `docs/` |
 
 **File naming convention:**
 ```
-docs/audit/<report-type>-<YYYY-MM-DD-HHMM>.md
+docs/<folder>/<report-type>-<YYYY-MM-DD-HHMM>.md
+```
+
+Examples:
+```
+docs/audit/admin-panel-functional-audit-2026-03-30-1430.md
+docs/plan/sync-engine-refactor-plan-2026-03-30-1430.md
+docs/todo/phase-4-backlog-2026-03-30-1430.md
 ```
 
 **Write pattern — after EACH major section:**
 ```python
-# After completing Step 1 (mapping):
-Write("docs/audit/...", "# LIST A — Backend Endpoints\n..." )
+# After completing Step 1:
+Write("docs/audit/...", "# Section 1 — ...\n..." )
 
-# After completing Category A:
-# Append findings to same file
+# After completing Step 2:
+# Append findings to the same file
 ```
 
 **Why incremental writes:**
 - Agent context window pressure reduced — completed sections don't need to be held in memory
-- User can check `cat docs/audit/....md` at any time to see progress
+- User can check progress at any time: `cat docs/audit/....md`
 - If agent hits context limit mid-way, partial results are not lost
 - Final response to main session is small (just "done, see file")
 
@@ -114,8 +129,8 @@ After the background agent finishes, Claude MUST:
 
 ```bash
 # Verification check
-wc -l docs/audit/<report-file>.md
-grep "^##" docs/audit/<report-file>.md   # List all sections
+wc -l docs/<folder>/<report-file>.md
+grep "^##" docs/<folder>/<report-file>.md   # List all sections
 ```
 
 ### Rule 4 — When writing prompts for the user
@@ -124,7 +139,8 @@ When the user asks Claude to write a prompt for a long-running task (audit, plan
 architecture review, etc.), the prompt MUST include:
 
 - Instruction to use background Agent spawn
-- Instruction to write output incrementally to `docs/audit/` or `docs/`
+- Instruction to select the correct folder (`docs/audit/`, `docs/plan/`, `docs/todo/`) based on report type
+- Instruction to write output incrementally after each section completes
 - A verification step at the end (read file, check sections)
 - Progress markers after each major section ("=== SECTION X COMPLETE ===")
 
