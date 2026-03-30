@@ -28,6 +28,37 @@
 
 ---
 
+## File 21 — `admin-panel/src/routes/alerts/index.tsx`
+
+**Summary:** Alert management with acknowledge/resolve actions, alert rules toggle. Pagination present. Well-structured.
+
+- `acknowledge` and `resolve` buttons disabled during `isPending` — correct
+- `useToggleAlertRule` has optimistic update with rollback on `onError` — good pattern
+- `acknowledge` and `resolve` mutations have no `onError` handlers — failures silently swallowed
+- `isError` not destructured from `useAlerts` or `useAlertRules`
+- Filter state is local (not URL params)
+- Pagination: present
+
+### FINDING-033
+**SEVERITY**: HIGH
+**CATEGORY**: I
+**FILE**: admin-panel/src/routes/alerts/index.tsx:45-46
+**FINDING**: `acknowledge` and `resolve` mutations in `AlertRow` have no `onError` handlers — failures are silently swallowed.
+**EVIDENCE**: `const { mutate: acknowledge, isPending: acking } = useAcknowledgeAlert();` then `onClick={() => acknowledge(alert.id)}`
+**IMPACT**: If acknowledging or resolving an alert fails, the UI shows no feedback. Alert status appears unchanged but user doesn't know if action was applied.
+**FIX**: Add `onError: (err) => toast.error(...)` to each mutation call.
+
+### FINDING-034
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/alerts/index.tsx:174
+**FINDING**: `isError` not destructured from `useAlerts` — API failures silently show "No active alerts" empty state.
+**EVIDENCE**: `const { data: alertsPage, isLoading } = useAlerts(effectiveFilter);`
+**IMPACT**: Critical alerts missing from view due to API failure with no indication to operator.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
 ## File 19 — `admin-panel/src/routes/health/index.tsx`
 
 **Summary:** System health dashboard with backend service cards and store health rows. Refresh button, skeleton loading. Well-implemented.
