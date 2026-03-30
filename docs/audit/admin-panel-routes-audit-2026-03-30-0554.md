@@ -28,6 +28,52 @@
 
 ---
 
+## File 30 — `admin-panel/src/routes/ticket-status/$token.tsx`
+
+**Summary:** Public ticket status page (no auth required). Customer-facing via token link. Well-implemented.
+
+- `isError` is checked — `if (isError || !ticket)` renders error state — correct
+- No forms, no mutations — read-only view
+- Public page renders without AppShell — correct
+- Error state shows friendly message to end customer
+
+**No findings for this file.**
+
+---
+
+## File 28 — `admin-panel/src/routes/__root.tsx`
+
+**Summary:** Root layout with auth guard, theme sync, bootstrap detection. Well-implemented.
+
+- Auth guard in `useEffect` — correct pattern
+- Bootstrap redirect logic covers all edge cases
+- `loading` spinner while status + user queries complete — prevents flash
+
+**No findings for this file.**
+
+---
+
+## File 29 — `admin-panel/src/routes/index.tsx`
+
+**Summary:** Main dashboard with KPI cards, charts, alerts, uptime. Well-structured.
+
+- Store comparison filter is client-side only (acceptable — data is small)
+- `key={alert.id}` on alerts map — correct
+- `isError` not destructured from any of the 5 queries
+- Store comparison filter has no debounce (applied synchronously to already-fetched data — acceptable)
+- Refresh button with `handleRefresh` — correct use of `useCallback`
+
+### FINDING-042
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/index.tsx:33-41
+**FINDING**: `isError` not destructured from any of the 5 dashboard queries — API failures silently show zeros in KPI cards.
+**EVIDENCE**: `const { data: kpis, isLoading: kpisLoading, refetch: refetchKpis, dataUpdatedAt } = useDashboardKPIs(period);`
+**IMPACT**: Dashboard shows 0 revenue, 0 stores, 0 licenses when the API is down — looks like valid data, not an error state. This is the most prominent page.
+**FIX**: Destructure `isError` from KPI query at minimum, show an error banner at the top of the page.
+
+---
+
 ## File 26 — `admin-panel/src/routes/config/index.tsx`
 
 **Summary:** Configuration page with feature flags and system config tabs. Thin route file — delegates to `FeatureFlagTable` and `ConfigEditor` components.
