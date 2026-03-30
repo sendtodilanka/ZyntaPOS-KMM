@@ -28,6 +28,82 @@
 
 ---
 
+## File 5 — `admin-panel/src/routes/licenses/index.tsx`
+
+**Summary:** License list with stats banner, debounced search, status/edition filters, CSV export, pagination.
+
+- Debounced search: correct
+- Pagination: present
+- `isError` from `useLicenses` not checked — same pattern as users/tickets
+- Filter state local (not URL params)
+- "New License" button has no `disabled` guard — but it opens a modal, not an async action directly, so this is acceptable
+
+### FINDING-007
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/licenses/index.tsx:27-32
+**FINDING**: `isError` from `useLicenses` not destructured — API failure silently shows empty list.
+**EVIDENCE**: `const { data, isLoading } = useLicenses({...})`
+**IMPACT**: License management page appears empty on API error; admin may create duplicate licenses thinking none exist.
+**FIX**: Destructure `isError`, render error banner.
+
+### FINDING-008
+**SEVERITY**: MEDIUM
+**CATEGORY**: H
+**FILE**: admin-panel/src/routes/licenses/index.tsx:21-22
+**FINDING**: Status and edition filter state is local — lost on navigation.
+**EVIDENCE**: `const [statusFilter, setStatusFilter] = useState<LicenseStatus | ''>('');`
+**IMPACT**: Filtering to "EXPIRING_SOON" and navigating to a license detail page resets filter on return.
+**FIX**: Persist in URL search params.
+
+---
+
+## File 6 — `admin-panel/src/routes/licenses/$licenseKey.tsx`
+
+**Summary:** License detail page. Minimal, delegates to `LicenseDetailCard`. Well-structured.
+
+- `isError` not destructured — same gap
+
+### FINDING-009
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/licenses/$licenseKey.tsx:17
+**FINDING**: `isError` not destructured from `useLicense` — API error shows "License not found" instead of an error state.
+**EVIDENCE**: `const { data, isLoading } = useLicense(licenseKey);`
+**IMPACT**: API errors indistinguishable from non-existent license.
+**FIX**: Destructure `isError`, render error banner.
+
+---
+
+## File 4 — `admin-panel/src/routes/tickets/$ticketId.tsx`
+
+**Summary:** Ticket detail page. Modals for assign/resolve. `ConfirmDialog` used for destructive "Close Ticket" action. Well-implemented.
+
+- "Close Ticket" uses `ConfirmDialog` with `variant="destructive"` — correct pattern
+- `closeTicket.isPending` passed to `ConfirmDialog` `isLoading` — button disabled during mutation
+- `isError` not destructured from `useTicket` — query errors silently show "Ticket not found"
+- `setNow(Date.now)` at line 61 — passes function reference, not call result. Should be `Date.now()`.
+
+### FINDING-005
+**SEVERITY**: HIGH
+**CATEGORY**: D
+**FILE**: admin-panel/src/routes/tickets/$ticketId.tsx:59
+**FINDING**: `isError` not destructured from `useTicket` — API errors silently display "Ticket not found" instead of an error message.
+**EVIDENCE**: `const { data: ticket, isLoading } = useTicket(ticketId);`
+**IMPACT**: A network error or 500 looks identical to a genuinely missing ticket — agent can't distinguish between a real error and a non-existent record.
+**FIX**: Destructure `isError`, show an error banner when true.
+
+### FINDING-006
+**SEVERITY**: LOW
+**CATEGORY**: L
+**FILE**: admin-panel/src/routes/tickets/$ticketId.tsx:61
+**FINDING**: `useState(Date.now)` passes the function reference as initializer (lazy init), which is valid React, but the intent is likely `Date.now()` to capture the current timestamp.
+**EVIDENCE**: `const [now, setNow] = useState(Date.now);`
+**IMPACT**: Lazy init behavior with `Date.now` is actually valid here (React calls it once) — low impact. But `setNow(Date.now())` in the interval is correct at line 63. Pattern inconsistency only.
+**FIX**: Change to `useState(() => Date.now())` or `useState(Date.now())` for clarity.
+
+---
+
 ## File 3 — `admin-panel/src/routes/tickets/index.tsx`
 
 **Summary:** Tickets list with metrics cards, filters, date range, search. Similar pattern to users.
