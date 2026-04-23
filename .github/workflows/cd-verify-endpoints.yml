@@ -59,22 +59,41 @@ jobs:
             echo "| Subdomain | /ping | Body | / | Status |" > "$RESULTS_FILE"
             echo "|-----------|-------|------|---|--------|" >> "$RESULTS_FILE"
 
+            # See cd-smoke-rollback.yml for the rationale: we hit HTTPS on port
+            # 443 via --resolve <host>:443:127.0.0.1 -k because newer Caddy
+            # versions auto-redirect HTTP→HTTPS (308) for any host with a named
+            # HTTPS block.
+            #
+            # docs (Cloudflare Pages) and status (uptime-kuma) do NOT implement
+            # the "/ping → 200 ok" liveness contract; their /ping check only
+            # requires a 2xx response.
             for sub in api license panel docs status sync; do
-              PING_HTTP=$(curl -s --max-time 10 -o /dev/null \
-                -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
-                "http://localhost/ping" 2>/dev/null) || PING_HTTP="000"
-              PING_BODY=$(curl -s --max-time 10 \
-                -H "Host: ${sub}.zyntapos.com" \
-                "http://localhost/ping" 2>/dev/null) || PING_BODY=""
-              HOME_HTTP=$(curl -s --max-time 10 -o /dev/null \
-                -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
-                "http://localhost/" 2>/dev/null) || HOME_HTTP="000"
+              PING_BODY_REQUIRED="ok"
+              case "$sub" in
+                docs|status) PING_BODY_REQUIRED="" ;;
+              esac
 
-              # /ping → 200 "ok" is the canonical health signal.
-              # Caddy :80 only handles /ping; / → 404 is expected for API services.
-              if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
-                echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP} (informational)"
-                echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`ok\` | \`${HOME_HTTP}\` | ✅ Healthy |" >> "$RESULTS_FILE"
+              PING_HTTP=$(curl -sk --max-time 10 -o /dev/null \
+                -w "%{http_code}" --resolve "${sub}.zyntapos.com:443:127.0.0.1" \
+                "https://${sub}.zyntapos.com/ping" 2>/dev/null) || PING_HTTP="000"
+              PING_BODY=$(curl -sk --max-time 10 \
+                --resolve "${sub}.zyntapos.com:443:127.0.0.1" \
+                "https://${sub}.zyntapos.com/ping" 2>/dev/null) || PING_BODY=""
+              HOME_HTTP=$(curl -sk --max-time 10 -o /dev/null \
+                -w "%{http_code}" --resolve "${sub}.zyntapos.com:443:127.0.0.1" \
+                "https://${sub}.zyntapos.com/" 2>/dev/null) || HOME_HTTP="000"
+
+              PING_OK=false
+              if [ "$PING_HTTP" = "200" ]; then
+                if [ -z "$PING_BODY_REQUIRED" ] || [ "$PING_BODY" = "$PING_BODY_REQUIRED" ]; then
+                  PING_OK=true
+                fi
+              fi
+
+              if $PING_OK; then
+                BODY_DISPLAY="${PING_BODY_REQUIRED:-2xx}"
+                echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (${BODY_DISPLAY})  / → ${HOME_HTTP} (informational)"
+                echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`${BODY_DISPLAY}\` | \`${HOME_HTTP}\` | ✅ Healthy |" >> "$RESULTS_FILE"
               else
                 echo "  ❌  ${sub}.zyntapos.com  /ping → ${PING_HTTP}  / → ${HOME_HTTP}"
                 echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`${PING_BODY:-—}\` | \`${HOME_HTTP}\` | ❌ Degraded |" >> "$RESULTS_FILE"
