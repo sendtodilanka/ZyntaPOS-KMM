@@ -84,3 +84,20 @@ export function useForceSync() {
     onError: () => toast.error('Failed to trigger sync'),
   });
 }
+
+// POST /admin/sync/tokens/revoke — revokes a specific POS JWT by its JTI.
+// Requires permission users:sessions:revoke. Response: 204 No Content on success
+// (idempotent — re-posting the same JTI returns the same 204).
+export interface RevokePosTokenRequest {
+  jti: string;
+  reason?: string;
+}
+
+export function useRevokePosToken() {
+  return useMutation({
+    mutationFn: (body: RevokePosTokenRequest) =>
+      apiClient.post('admin/sync/tokens/revoke', { json: body }).json(),
+    onSuccess: () => toast.success('POS token revoked', 'The token is now rejected by both the API and sync services.'),
+    onError: () => toast.error('Failed to revoke POS token'),
+  });
+}
