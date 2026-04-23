@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { LicenseTable } from '@/components/licenses/LicenseTable';
 import { LicenseCreateForm } from '@/components/licenses/LicenseCreateForm';
@@ -12,19 +12,65 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { exportToCsv } from '@/lib/export';
 import type { License, LicenseStatus, LicenseEdition } from '@/types/license';
 
+// H-003: persist filter state in the URL so navigation + back button
+// + bookmarks preserve status/edition/search selections.
+interface LicensesSearch {
+  page?: number;
+  q?: string;
+  status?: LicenseStatus | '';
+  edition?: LicenseEdition | '';
+}
+
+const VALID_STATUSES: LicenseStatus[] = ['ACTIVE', 'EXPIRED', 'REVOKED', 'SUSPENDED', 'EXPIRING_SOON'];
+const VALID_EDITIONS: LicenseEdition[] = ['STARTER', 'PROFESSIONAL', 'ENTERPRISE'];
+
 export const Route = createFileRoute('/licenses/')({
   component: LicensesPage,
+  validateSearch: (raw: Record<string, unknown>): LicensesSearch => {
+    const page = typeof raw.page === 'number' && raw.page >= 0 ? raw.page : undefined;
+    const q = typeof raw.q === 'string' && raw.q.length ? raw.q : undefined;
+    const statusRaw = typeof raw.status === 'string' ? raw.status : '';
+    const editionRaw = typeof raw.edition === 'string' ? raw.edition : '';
+    return {
+      page,
+      q,
+      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as LicenseStatus) : '',
+      edition: (VALID_EDITIONS as string[]).includes(editionRaw) ? (editionRaw as LicenseEdition) : '',
+    };
+  },
 });
 
 function LicensesPage() {
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<LicenseStatus | ''>('');
-  const [editionFilter, setEditionFilter] = useState<LicenseEdition | ''>('');
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
+
+  const page = search.page ?? 0;
+  const searchText = search.q ?? '';
+  const statusFilter = search.status ?? '';
+  const editionFilter = search.edition ?? '';
+
+  const [searchInput, setSearchInput] = useState(searchText);
+  const debouncedSearch = useDebounce(searchInput, 300);
+
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<License | null>(null);
 
-  const debouncedSearch = useDebounce(search, 300);
+  useEffect(() => {
+    if (debouncedSearch !== searchText) {
+      void navigate({
+        search: (prev) => ({ ...prev, q: debouncedSearch || undefined, page: undefined }),
+        replace: true,
+      });
+    }
+  }, [debouncedSearch, searchText, navigate]);
+
+  const updateSearch = (patch: Partial<LicensesSearch>) => {
+    void navigate({
+      search: (prev) => ({ ...prev, ...patch, page: undefined }),
+      replace: true,
+    });
+  };
+
   const { data, isLoading, isError, refetch } = useLicenses({
     page, size: 20,
     search: debouncedSearch || undefined,
@@ -68,30 +114,30 @@ function LicensesPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <SearchInput
-          value={search}
-          onChange={(v) => { setSearch(v); setPage(0); }}
+          value={searchInput}
+          onChange={(v) => setSearchInput(v)}
           placeholder="Search by key or customer…"
           className="flex-1 min-w-[200px] max-w-sm"
         />
         <select
           aria-label="Filter by status"
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value as LicenseStatus | ''); setPage(0); }}
+          onChange={(e) => updateSearch({ status: e.target.value as LicenseStatus | '' })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[140px]"
         >
           <option value="">All Statuses</option>
-          {(['ACTIVE', 'EXPIRED', 'REVOKED', 'SUSPENDED', 'EXPIRING_SOON'] as LicenseStatus[]).map((s) => (
+          {VALID_STATUSES.map((s) => (
             <option key={s} value={s}>{s.replace('_', ' ')}</option>
           ))}
         </select>
         <select
           aria-label="Filter by edition"
           value={editionFilter}
-          onChange={(e) => { setEditionFilter(e.target.value as LicenseEdition | ''); setPage(0); }}
+          onChange={(e) => updateSearch({ edition: e.target.value as LicenseEdition | '' })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[140px]"
         >
           <option value="">All Editions</option>
-          {(['STARTER', 'PROFESSIONAL', 'ENTERPRISE'] as LicenseEdition[]).map((e) => (
+          {VALID_EDITIONS.map((e) => (
             <option key={e} value={e}>{e}</option>
           ))}
         </select>
@@ -108,7 +154,12 @@ function LicensesPage() {
           page={page}
           totalPages={data?.totalPages ?? 1}
           total={data?.total ?? 0}
-          onPageChange={setPage}
+          onPageChange={(p) => {
+            void navigate({
+              search: (prev) => ({ ...prev, page: p > 0 ? p : undefined }),
+              replace: true,
+            });
+          }}
           onEdit={setEditTarget}
         />
       )}
