@@ -7,6 +7,7 @@ import {
   useRemoveFromStore,
 } from '@/api/master-products';
 import { useStores } from '@/api/stores';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import type { StoreProductAssignment, AssignToStoreRequest } from '@/types/master-product';
 
 export const Route = createFileRoute('/master-products/$masterProductId')({
@@ -22,6 +23,7 @@ function MasterProductDetailPage() {
   const { data: allStores } = useStores({ size: 100 });
 
   const [showAssign, setShowAssign] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<StoreProductAssignment | null>(null);
 
   if (isLoading) return <div className="text-center py-12 text-slate-400">Loading…</div>;
   if (!product) return <div className="text-center py-12 text-slate-400">Product not found.</div>;
@@ -100,8 +102,9 @@ function MasterProductDetailPage() {
                   </td>
                   <td className="px-4 py-2 text-right">
                     <button
-                      onClick={() => removeMutation.mutate({ masterProductId, storeId: a.store_id })}
-                      className="text-red-400 hover:text-red-300 text-xs"
+                      onClick={() => setRemoveTarget(a)}
+                      disabled={removeMutation.isPending}
+                      className="text-red-400 hover:text-red-300 text-xs disabled:opacity-50"
                     >
                       Remove
                     </button>
@@ -127,6 +130,24 @@ function MasterProductDetailPage() {
           isLoading={assignMutation.isPending}
         />
       )}
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={() => {
+          if (removeTarget) {
+            removeMutation.mutate(
+              { masterProductId, storeId: removeTarget.store_id },
+              { onSettled: () => setRemoveTarget(null) },
+            );
+          }
+        }}
+        title={removeTarget ? `Remove from "${removeTarget.store_name}"?` : 'Remove store assignment?'}
+        description="The product will no longer be available at this store. Existing stock records are preserved, but POS terminals will lose access immediately."
+        confirmLabel="Remove"
+        variant="destructive"
+        isLoading={removeMutation.isPending}
+      />
     </div>
   );
 }
