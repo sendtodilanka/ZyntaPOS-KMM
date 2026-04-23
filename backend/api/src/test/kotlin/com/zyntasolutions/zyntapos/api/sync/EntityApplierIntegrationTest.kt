@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.sync
 
+import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
 import com.zyntasolutions.zyntapos.api.service.Products
 import com.zyntasolutions.zyntapos.api.test.TestFixtures
@@ -25,12 +26,12 @@ import kotlin.test.assertTrue
  */
 class EntityApplierIntegrationTest : AbstractSyncIntegrationTest() {
 
-    private val applier = EntityApplier()
+    private val applier = EntityApplier(DeadLetterRepository())
     private val storeId = "store-ea-test"
 
     // Convenience: wrap in a real transaction and apply
     private suspend fun apply(op: SyncOperation) =
-        newSuspendedTransaction(db = database) { applier.applyInTransaction(storeId, op) }
+        newSuspendedTransaction(db = database) { applier.applyInTransaction(storeId, "device-1", op) }
 
     private fun op(
         entityType: String,

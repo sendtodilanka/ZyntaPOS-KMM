@@ -298,7 +298,7 @@ class SyncProcessorTest {
         coEvery { syncOpRepo.findLatestForEntity(any(), any(), any()) } returns null
         coEvery { syncOpRepo.getLatestSeq(any()) } returns 1L
         // EntityApplier throws
-        every { entityApplier.applyInTransaction(any(), any()) } throws RuntimeException("DB error")
+        every { entityApplier.applyInTransaction(any(), any(), any()) } throws RuntimeException("DB error")
 
         val result = processor().processPush("store-1", request)
 

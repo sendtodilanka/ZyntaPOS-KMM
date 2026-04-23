@@ -36,7 +36,7 @@ class SyncProcessorIntegrationTest : AbstractSyncIntegrationTest() {
         syncOpRepo      = SyncOperationRepository(),
         conflictResolver = ServerConflictResolver(ConflictLogRepository()),
         validator       = SyncValidator(),
-        entityApplier   = EntityApplier(),
+        entityApplier   = EntityApplier(DeadLetterRepository()),
         deadLetterRepo  = DeadLetterRepository(),
         metrics         = SyncMetrics(),
         redisPool       = null,

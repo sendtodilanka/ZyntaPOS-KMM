@@ -138,7 +138,7 @@ val appModule = module {
     single { SyncMetrics() }
     single { SyncValidator() }
     single { ServerConflictResolver(conflictLogRepo = get()) }
-    single { EntityApplier() }
+    single { EntityApplier(deadLetters = get()) }
     single { DeltaEngine(syncOpRepo = get(), cursorRepo = get(), metrics = get()) }
     single {
         SyncProcessor(

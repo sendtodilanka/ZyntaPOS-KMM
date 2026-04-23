@@ -110,13 +110,13 @@ class SyncProcessor(
                                 } else {
                                     // Incoming wins over existing — accept normally
                                     syncOpRepo.insert(storeId, request.deviceId, op)
-                                    entityApplier.applyInTransaction(storeId, op)
+                                    entityApplier.applyInTransaction(storeId, request.deviceId, op)
                                     accepted.add(op.id)
                                 }
                             } else {
                                 // No conflict — accept directly
                                 syncOpRepo.insert(storeId, request.deviceId, op)
-                                entityApplier.applyInTransaction(storeId, op)
+                                entityApplier.applyInTransaction(storeId, request.deviceId, op)
                                 accepted.add(op.id)
                             }
                         } catch (e: Exception) {
