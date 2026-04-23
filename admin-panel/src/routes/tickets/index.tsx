@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { TicketTable } from '@/components/tickets/TicketTable';
 import { TicketCreateModal } from '@/components/tickets/TicketCreateModal';
@@ -13,24 +13,86 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { TICKET_CATEGORY_TREE } from '@/types/ticket';
 import type { TicketStatus, TicketPriority, TicketCategory } from '@/types/ticket';
 
+// H-002: persist all ticket filters in the URL (status, priority, category,
+// date range, body-search toggle) so bookmarks + browser back preserve them.
+interface TicketsSearch {
+  page?: number;
+  q?: string;
+  status?: TicketStatus | '';
+  priority?: TicketPriority | '';
+  category?: TicketCategory | '';
+  body?: boolean;  // searchBody toggle
+  from?: string;   // createdAfter — YYYY-MM-DD
+  to?: string;     // createdBefore — YYYY-MM-DD
+}
+
+const VALID_STATUSES: TicketStatus[] = ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PENDING_CUSTOMER', 'RESOLVED', 'CLOSED'];
+const VALID_PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+function isValidCategory(value: string): value is TicketCategory {
+  return Object.keys(TICKET_CATEGORY_TREE).includes(value);
+}
+
 export const Route = createFileRoute('/tickets/')({
   component: TicketsPage,
+  validateSearch: (raw: Record<string, unknown>): TicketsSearch => {
+    const page = typeof raw.page === 'number' && raw.page >= 0 ? raw.page : undefined;
+    const q = typeof raw.q === 'string' && raw.q.length ? raw.q : undefined;
+    const body = raw.body === true ? true : undefined;
+    const statusRaw = typeof raw.status === 'string' ? raw.status : '';
+    const priorityRaw = typeof raw.priority === 'string' ? raw.priority : '';
+    const categoryRaw = typeof raw.category === 'string' ? raw.category : '';
+    const from = typeof raw.from === 'string' && DATE_REGEX.test(raw.from) ? raw.from : undefined;
+    const to = typeof raw.to === 'string' && DATE_REGEX.test(raw.to) ? raw.to : undefined;
+    return {
+      page,
+      q,
+      body,
+      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as TicketStatus) : '',
+      priority: (VALID_PRIORITIES as string[]).includes(priorityRaw) ? (priorityRaw as TicketPriority) : '',
+      category: isValidCategory(categoryRaw) ? categoryRaw : '',
+      from,
+      to,
+    };
+  },
 });
 
 function TicketsPage() {
   const { hasPermission } = useAuth();
-  const [page, setPage] = useState(0);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TicketStatus | ''>('');
-  const [priorityFilter, setPriorityFilter] = useState<TicketPriority | ''>('');
-  const [categoryFilter, setCategoryFilter] = useState<TicketCategory | ''>('');
+  const navigate = useNavigate({ from: Route.fullPath });
+  const search = Route.useSearch();
+
+  const page = search.page ?? 0;
+  const searchText = search.q ?? '';
+  const statusFilter = search.status ?? '';
+  const priorityFilter = search.priority ?? '';
+  const categoryFilter = search.category ?? '';
+  const searchBody = search.body ?? false;
+  const createdAfter = search.from ?? '';
+  const createdBefore = search.to ?? '';
+
+  const [searchInput, setSearchInput] = useState(searchText);
+  const debouncedSearch = useDebounce(searchInput, 300);
   const [createOpen, setCreateOpen] = useState(false);
-  const [searchBody, setSearchBody] = useState(false);
-  const [createdAfter, setCreatedAfter] = useState('');
-  const [createdBefore, setCreatedBefore] = useState('');
 
   const { data: metrics } = useTicketMetrics();
-  const debouncedSearch = useDebounce(search, 300);
+
+  useEffect(() => {
+    if (debouncedSearch !== searchText) {
+      void navigate({
+        search: (prev) => ({ ...prev, q: debouncedSearch || undefined, page: undefined }),
+        replace: true,
+      });
+    }
+  }, [debouncedSearch, searchText, navigate]);
+
+  const updateSearch = (patch: Partial<TicketsSearch>) => {
+    void navigate({
+      search: (prev) => ({ ...prev, ...patch, page: undefined }),
+      replace: true,
+    });
+  };
 
   const { data, isLoading, isError, refetch } = useTickets({
     page,
@@ -110,8 +172,8 @@ function TicketsPage() {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[200px] max-w-sm space-y-1">
           <SearchInput
-            value={search}
-            onChange={(v) => { setSearch(v); setPage(0); }}
+            value={searchInput}
+            onChange={(v) => setSearchInput(v)}
             placeholder="Search tickets…"
             className="w-full"
           />
@@ -119,7 +181,7 @@ function TicketsPage() {
             <input
               type="checkbox"
               checked={searchBody}
-              onChange={(e) => { setSearchBody(e.target.checked); setPage(0); }}
+              onChange={(e) => updateSearch({ body: e.target.checked || undefined })}
               className="rounded border-surface-border bg-surface-elevated"
             />
             Search description
@@ -128,7 +190,7 @@ function TicketsPage() {
         <select
           aria-label="Filter by status"
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value as TicketStatus | ''); setPage(0); }}
+          onChange={(e) => updateSearch({ status: e.target.value as TicketStatus | '' })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[140px]"
         >
           <option value="">All Statuses</option>
@@ -142,7 +204,7 @@ function TicketsPage() {
         <select
           aria-label="Filter by priority"
           value={priorityFilter}
-          onChange={(e) => { setPriorityFilter(e.target.value as TicketPriority | ''); setPage(0); }}
+          onChange={(e) => updateSearch({ priority: e.target.value as TicketPriority | '' })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
         >
           <option value="">All Priorities</option>
@@ -154,7 +216,7 @@ function TicketsPage() {
         <select
           aria-label="Filter by category"
           value={categoryFilter}
-          onChange={(e) => { setCategoryFilter(e.target.value as TicketCategory | ''); setPage(0); }}
+          onChange={(e) => updateSearch({ category: e.target.value as TicketCategory | '' })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[180px]"
         >
           <option value="">All Categories</option>
@@ -166,7 +228,7 @@ function TicketsPage() {
           type="date"
           aria-label="Created after"
           value={createdAfter}
-          onChange={(e) => { setCreatedAfter(e.target.value); setPage(0); }}
+          onChange={(e) => updateSearch({ from: e.target.value || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
           placeholder="From date"
         />
@@ -174,7 +236,7 @@ function TicketsPage() {
           type="date"
           aria-label="Created before"
           value={createdBefore}
-          onChange={(e) => { setCreatedBefore(e.target.value); setPage(0); }}
+          onChange={(e) => updateSearch({ to: e.target.value || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
           placeholder="To date"
         />
@@ -189,7 +251,7 @@ function TicketsPage() {
           page={page}
           totalPages={totalPages}
           total={data?.total ?? 0}
-          onPageChange={setPage}
+          onPageChange={(p) => void navigate({ search: (prev) => ({ ...prev, page: p > 0 ? p : undefined }), replace: true })}
           filter={{
             status: statusFilter || undefined,
             priority: priorityFilter || undefined,
