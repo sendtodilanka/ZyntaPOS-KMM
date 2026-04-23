@@ -244,7 +244,10 @@ fun SupplierDetailScreen(
             }
 
             // ──────────────────────────────────────────────────────────────
-            // Section 2: Purchase History (read-only, Phase 1 stub)
+            // Section 2: Purchase History (read-only)
+            // Populated by InventoryViewModel.onOpenSupplierDetail via
+            // PurchaseOrderRepository.getBySupplierId when the supplier sheet
+            // opens in edit mode.
             // ──────────────────────────────────────────────────────────────
             if (isEditing) {
                 Spacer(Modifier.height(ZyntaSpacing.lg))
