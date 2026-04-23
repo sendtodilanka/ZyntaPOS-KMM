@@ -59,7 +59,7 @@ function TicketDetailPage() {
 
   const { data: ticket, isLoading, isError, refetch } = useTicket(ticketId);
   const closeTicket = useCloseTicket();
-  const [now, setNow] = useState(Date.now);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);

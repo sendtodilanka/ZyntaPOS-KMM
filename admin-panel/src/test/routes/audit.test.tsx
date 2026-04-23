@@ -13,6 +13,17 @@ vi.mock('@/hooks/use-debounce', () => ({
   useDebounce: (val: unknown) => val,
 }));
 
+// G-002: AuditPage now requires `audit:read` permission. Tests assume the
+// user has it so they exercise the content path, not the access-denied page.
+vi.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({
+    user: { id: 'test-admin', role: 'ADMIN', email: 'admin@test', name: 'Admin' },
+    isAuthenticated: true,
+    hasPermission: () => true,
+    isAdmin: true,
+  }),
+}));
+
 // Mock complex sub-components
 vi.mock('@/components/audit/AuditLogTable', () => ({
   AuditLogTable: ({ data }: { data: AuditEntry[] }) => (

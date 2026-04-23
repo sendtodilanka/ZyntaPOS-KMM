@@ -1,91 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
 import {
   Shield, AlertTriangle, Users, Activity,
   LogIn, Ban, Monitor, ShieldCheck,
 } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { formatRelativeTime, formatDateTime } from '@/lib/utils';
-import type { AuditEntry } from '@/types/audit';
-import type { PagedResponse } from '@/types/api';
+import {
+  useSecurityMetrics,
+  useSecurityEvents,
+  useActiveAdminSessions,
+  useVulnerabilityScan,
+} from '@/api/security';
 
 export const Route = createFileRoute('/security/')({
   component: SecurityPage,
 });
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface SecurityMetrics {
-  totalLoginAttempts24h: number;
-  failedLogins24h: number;
-  activeSessions: number;
-  blockedIps: number;
-}
-
-interface ActiveAdminSession {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  ipAddress: string | null;
-  userAgent: string | null;
-  createdAt: string;
-  expiresAt: string;
-}
-
-interface VulnerabilityScanStatus {
-  lastScanDate: string | null;
-  scanType: string;
-  issuesFound: number;
-  criticalCount: number;
-  highCount: number;
-  status: 'passed' | 'failed' | 'unknown';
-}
-
-// ── API hooks ────────────────────────────────────────────────────────────────
-
-function useSecurityMetrics() {
-  return useQuery({
-    queryKey: ['security', 'metrics'],
-    queryFn: () => apiClient.get('admin/security/metrics').json<SecurityMetrics>(),
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-  });
-}
-
-function useSecurityEvents() {
-  const qs = new URLSearchParams({
-    page: '0',
-    size: '20',
-    category: 'AUTH',
-  });
-  return useQuery({
-    queryKey: ['security', 'events'],
-    queryFn: () => apiClient.get(`admin/audit?${qs}`).json<PagedResponse<AuditEntry>>(),
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-  });
-}
-
-function useActiveAdminSessions() {
-  return useQuery({
-    queryKey: ['security', 'sessions'],
-    queryFn: () => apiClient.get('admin/security/sessions').json<ActiveAdminSession[]>(),
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-  });
-}
-
-function useVulnerabilityScan() {
-  return useQuery({
-    queryKey: ['security', 'vuln-scan'],
-    queryFn: () => apiClient.get('admin/health/system').json<{ vulnerabilityScan?: VulnerabilityScanStatus }>(),
-    staleTime: 60_000,
-  });
-}
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 

@@ -366,32 +366,40 @@ function TemplatesTab() {
 
 function TemplateEditor({ slug, onClose }: { slug: string; onClose: () => void }) {
   const { data: template, isLoading } = useEmailTemplate(slug);
-  const updateMutation = useUpdateEmailTemplate();
-  const [subject, setSubject] = useState('');
-  const [htmlBody, setHtmlBody] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
-  const [initialized, setInitialized] = useState(false);
 
-  // Initialize form when template loads
-  if (template && !initialized) {
-    setSubject(template.subject);
-    setHtmlBody(template.htmlBody);
-    setInitialized(true);
+  if (isLoading) {
+    return <div className="text-center py-12 text-muted-foreground">Loading template...</div>;
   }
+  if (!template) {
+    return <div className="text-center py-12 text-muted-foreground">Template not found.</div>;
+  }
+
+  // `key` ensures form state resets when the slug changes — initial useState
+  // can then safely read directly from the loaded template.
+  return <TemplateEditorForm key={template.slug} template={template} onClose={onClose} />;
+}
+
+function TemplateEditorForm({
+  template,
+  onClose,
+}: {
+  template: EmailTemplate;
+  onClose: () => void;
+}) {
+  const updateMutation = useUpdateEmailTemplate();
+  const [subject, setSubject] = useState(template.subject);
+  const [htmlBody, setHtmlBody] = useState(template.htmlBody);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleSave = async () => {
     try {
-      await updateMutation.mutateAsync({ slug, subject, htmlBody });
+      await updateMutation.mutateAsync({ slug: template.slug, subject, htmlBody });
       toast.success('Template updated', 'Email template saved successfully.');
       onClose();
     } catch {
       toast.error('Save failed', 'Could not update the email template.');
     }
   };
-
-  if (isLoading) {
-    return <div className="text-center py-12 text-muted-foreground">Loading template...</div>;
-  }
 
   return (
     <div className="space-y-4">
@@ -404,9 +412,9 @@ function TemplateEditor({ slug, onClose }: { slug: string; onClose: () => void }
             Templates
           </button>
           <span className="text-muted-foreground">/</span>
-          <span className="text-sm font-medium">{template?.name}</span>
+          <span className="text-sm font-medium">{template.name}</span>
           <span className="text-xs text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded">
-            {slug}
+            {template.slug}
           </span>
         </div>
         <div className="flex gap-2">
