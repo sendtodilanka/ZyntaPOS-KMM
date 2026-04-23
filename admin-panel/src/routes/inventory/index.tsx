@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Package, AlertTriangle } from 'lucide-react';
+import { Package, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useGlobalInventory } from '@/api/inventory';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
@@ -10,21 +10,44 @@ export const Route = createFileRoute('/inventory/')({
   component: InventoryPage,
 });
 
+// F-001: backend now paginates (1..200 rows per page). Match the convention
+// used by users/licenses/tickets — 50 rows per page unless we hit the upper
+// cap for a specific filter combination.
+const PAGE_SIZE = 50;
+
 function InventoryPage() {
   const [productId, setProductId] = useState('');
   const [storeId, setStoreId]     = useState('');
   const [showLowOnly, setShowLowOnly] = useState(false);
+  const [page, setPage]           = useState(0);
   const debouncedProduct = useDebounce(productId, 300);
   const debouncedStore   = useDebounce(storeId, 300);
 
   const { data, isLoading, isError, refetch } = useGlobalInventory({
     productId: debouncedProduct || undefined,
     storeId:   debouncedStore   || undefined,
+    page,
+    size: PAGE_SIZE,
   });
 
+  // "Low stock only" still filters client-side on the current page. Server-side
+  // filtering is intentionally not added here because the `lowStock` counter in
+  // the page subtitle reflects the unfiltered total.
   const items = showLowOnly
     ? (data?.items ?? []).filter((r) => r.isLowStock)
     : (data?.items ?? []);
+
+  const totalPages = data?.totalPages ?? 0;
+  const total = data?.total ?? 0;
+  const pageStart = total === 0 ? 0 : page * PAGE_SIZE + 1;
+  const pageEnd = Math.min((page + 1) * PAGE_SIZE, total);
+
+  // Every filter change routes through `resetAndSet` which pins the page back
+  // to 0, so we never end up rendering "Page 7 of 2" after a narrow filter.
+  const resetAndSet = <T,>(setter: (v: T) => void, value: T) => {
+    setter(value);
+    setPage(0);
+  };
 
   return (
     <div className="space-y-6">
@@ -32,7 +55,7 @@ function InventoryPage() {
         <div>
           <h1 className="panel-title">Warehouse Inventory</h1>
           <p className="panel-subtitle">
-            {data?.total ?? 0} stock rows
+            {total} stock rows
             {(data?.lowStock ?? 0) > 0 && (
               <span className="ml-2 text-amber-400 font-medium">
                 · {data!.lowStock} low stock
@@ -47,14 +70,14 @@ function InventoryPage() {
         <input
           type="text"
           value={productId}
-          onChange={(e) => setProductId(e.target.value)}
+          onChange={(e) => resetAndSet(setProductId, e.target.value)}
           placeholder="Filter by Product ID…"
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 flex-1 min-w-[200px] max-w-xs"
         />
         <input
           type="text"
           value={storeId}
-          onChange={(e) => setStoreId(e.target.value)}
+          onChange={(e) => resetAndSet(setStoreId, e.target.value)}
           placeholder="Filter by Store ID…"
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 flex-1 min-w-[200px] max-w-xs"
         />
@@ -130,6 +153,34 @@ function InventoryPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination (F-001) */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-surface-border">
+              <p className="text-xs text-slate-500">
+                Showing {pageStart}&ndash;{pageEnd} of {total} rows
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-slate-300 bg-surface-elevated border border-surface-border hover:bg-surface-card disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" /> Previous
+                </button>
+                <span className="text-xs text-slate-400 px-2">
+                  Page {page + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-slate-300 bg-surface-elevated border border-surface-border hover:bg-surface-card disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -3,9 +3,15 @@ import { Plus, Edit2, Trash2, Star } from 'lucide-react';
 import { useTaxRates, useCreateTaxRate, useUpdateTaxRate, useDeleteTaxRate } from '@/api/config';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
+import { useAuth } from '@/hooks/use-auth';
 import type { TaxRate, TaxRateCreateRequest, TaxRateUpdateRequest } from '@/types/config';
 
 export function TaxRatesTable() {
+  const { hasPermission } = useAuth();
+  // G-004: write actions (Add / Edit / Delete) are gated; AUDITOR sees a
+  // read-only view.
+  const canWrite = hasPermission('config:tax_rates:write');
+
   const { data, isLoading, isError, refetch } = useTaxRates();
   const deleteMutation = useDeleteTaxRate();
 
@@ -26,12 +32,14 @@ export function TaxRatesTable() {
             Rates applied to orders when products match the applicable categories.
           </p>
         </div>
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[40px]"
-        >
-          <Plus className="w-4 h-4" /> Add Tax Rate
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[40px]"
+          >
+            <Plus className="w-4 h-4" /> Add Tax Rate
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto bg-surface-card border border-surface-border rounded-xl">
@@ -85,23 +93,27 @@ export function TaxRatesTable() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="inline-flex items-center gap-1">
-                      <button
-                        onClick={() => setEditTarget(r)}
-                        title="Edit"
-                        className="p-1.5 rounded-md text-brand-400 hover:bg-brand-500/10 min-w-[32px] min-h-[32px] flex items-center justify-center"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(r)}
-                        disabled={deleteMutation.isPending}
-                        title="Delete"
-                        className="p-1.5 rounded-md text-red-400 hover:bg-red-500/10 min-w-[32px] min-h-[32px] flex items-center justify-center disabled:opacity-40"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {canWrite ? (
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          onClick={() => setEditTarget(r)}
+                          title="Edit"
+                          className="p-1.5 rounded-md text-brand-400 hover:bg-brand-500/10 min-w-[32px] min-h-[32px] flex items-center justify-center"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(r)}
+                          disabled={deleteMutation.isPending}
+                          title="Delete"
+                          className="p-1.5 rounded-md text-red-400 hover:bg-red-500/10 min-w-[32px] min-h-[32px] flex items-center justify-center disabled:opacity-40"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500">read-only</span>
+                    )}
                   </td>
                 </tr>
               ))

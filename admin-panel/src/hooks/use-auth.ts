@@ -1,7 +1,8 @@
 import { useAuthStore } from '@/stores/auth-store';
 import type { AdminRole } from '@/types/user';
 
-// 39 atomic permissions — mirrors AdminPermissions.kt on the backend
+// 41 atomic permissions — mirrors AdminPermissions.kt on the backend.
+// Raised from 39 by G-004: config:tax_rates:read + config:tax_rates:write.
 const PERMISSIONS: Record<AdminRole, string[]> = {
   ADMIN: [
     'dashboard:ops', 'dashboard:financial', 'dashboard:support',
@@ -16,8 +17,14 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'users:read', 'users:write', 'users:deactivate', 'users:sessions:revoke',
     'system:settings', 'system:health', 'system:backup',
     'email:settings', 'email:logs',
+    // G-003: `inventory:read` is retained here (and on FINANCE / OPERATOR)
+    // because the admin panel surfaces cross-store stock counts for
+    // cost-of-goods-sold analysis only. Actual stock mutations happen in the
+    // POS app per ADR-009. Revisit if COGS moves off the admin panel.
     'inventory:read', 'inventory:write', 'transfers:read',
     'customers:read',
+    // G-004: Tax rates CRUD scopes (previously hidden behind "Authenticated").
+    'config:tax_rates:read', 'config:tax_rates:write',
   ],
   OPERATOR: [
     'dashboard:ops', 'dashboard:support',
@@ -37,12 +44,18 @@ const PERMISSIONS: Record<AdminRole, string[]> = {
     'dashboard:financial',
     'license:read', 'license:export',
     'reports:financial', 'reports:read', 'reports:export',
+    // G-003: FINANCE keeps inventory:read for COGS analysis (see ADMIN row).
     'inventory:read',
+    // G-004: Finance is the canonical role for tax configuration.
+    'config:tax_rates:read', 'config:tax_rates:write',
   ],
   AUDITOR: [
     'license:read',
     'reports:read',
     'audit:read', 'audit:export',
+    // G-004: AUDITOR can view tax rate configuration (read-only — mirrors
+    // the read-only audit role mandate).
+    'config:tax_rates:read',
   ],
   HELPDESK: [
     'dashboard:support',
