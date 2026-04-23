@@ -453,9 +453,19 @@ function TemplateEditorForm({
             <label className="text-xs font-medium text-muted-foreground mb-2 block">
               Preview
             </label>
-            <div
-              className="bg-white p-4 rounded border text-sm"
-              dangerouslySetInnerHTML={{ __html: htmlBody }}
+            {/*
+              B-002: admin-edited HTML was previously rendered via
+              dangerouslySetInnerHTML, which would execute any <script>,
+              inline event handlers, or javascript: URLs in the same origin
+              as the admin panel. Render in a sandboxed iframe so the
+              preview still displays the formatted email but cannot run JS,
+              read admin cookies, navigate the parent, or submit forms.
+            */}
+            <iframe
+              title="Email template preview"
+              sandbox=""
+              srcDoc={htmlBody}
+              className="w-full min-h-[320px] bg-white rounded border"
             />
           </div>
         ) : (
