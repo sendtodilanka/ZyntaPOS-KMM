@@ -7,6 +7,7 @@ import { TicketResolveModal } from '@/components/tickets/TicketResolveModal';
 import { TicketCommentThread } from '@/components/tickets/TicketCommentThread';
 import { TicketEmailThreadPanel } from '@/components/tickets/TicketEmailThreadPanel';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { PageLoader } from '@/components/shared/LoadingState';
 import { useTicket, useCloseTicket } from '@/api/tickets';
 import { useAuth } from '@/hooks/use-auth';
@@ -56,7 +57,7 @@ function TicketDetailPage() {
   const { hasPermission } = useAuth();
   const { formatDateTime } = useTimezone();
 
-  const { data: ticket, isLoading } = useTicket(ticketId);
+  const { data: ticket, isLoading, isError, refetch } = useTicket(ticketId);
   const closeTicket = useCloseTicket();
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -69,6 +70,7 @@ function TicketDetailPage() {
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   if (isLoading) return <PageLoader />;
+  if (isError) return <ErrorBanner message="Failed to load ticket." onRetry={() => refetch()} />;
   if (!ticket) return <div className="text-center py-16 text-slate-400">Ticket not found.</div>;
 
   const canAssign = hasPermission('tickets:assign');

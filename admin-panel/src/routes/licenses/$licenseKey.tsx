@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { LicenseDetailCard } from '@/components/licenses/LicenseDetailCard';
 import { LicenseExtendDialog } from '@/components/licenses/LicenseExtendDialog';
 import { PageLoader } from '@/components/shared/LoadingState';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useLicense } from '@/api/licenses';
 
 export const Route = createFileRoute('/licenses/$licenseKey')({
@@ -14,10 +15,11 @@ function LicenseDetailPage() {
   const { licenseKey } = Route.useParams();
   const navigate = useNavigate();
   // useLicense now returns LicenseWithDevices (license + devices)
-  const { data, isLoading } = useLicense(licenseKey);
+  const { data, isLoading, isError, refetch } = useLicense(licenseKey);
   const [extendOpen, setExtendOpen] = useState(false);
 
   if (isLoading) return <PageLoader />;
+  if (isError) return <ErrorBanner message="Failed to load license." onRetry={() => refetch()} />;
   if (!data) return (
     <div className="text-center py-16 text-slate-400">License not found.</div>
   );

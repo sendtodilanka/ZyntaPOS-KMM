@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Users, Star } from 'lucide-react';
 import { useGlobalCustomers } from '@/api/customers';
 import { useDebounce } from '@/hooks/use-debounce';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 
 export const Route = createFileRoute('/customers/')({
   component: CustomersPage,
@@ -18,7 +19,7 @@ function CustomersPage() {
   const debouncedSearch  = useDebounce(search,  300);
   const debouncedStoreId = useDebounce(storeId, 300);
 
-  const { data, isLoading } = useGlobalCustomers({
+  const { data, isLoading, isError, refetch } = useGlobalCustomers({
     search:  debouncedSearch  || undefined,
     storeId: debouncedStoreId || undefined,
     page,
@@ -67,7 +68,9 @@ function CustomersPage() {
       </div>
 
       {/* Table */}
-      {isLoading ? (
+      {isError ? (
+        <ErrorBanner message="Failed to load customers." onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="text-center py-12 text-slate-400">Loading…</div>
       ) : (data?.items ?? []).length === 0 ? (
         <div className="text-center py-12 text-slate-500">

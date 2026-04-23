@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Package, AlertTriangle } from 'lucide-react';
 import { useGlobalInventory } from '@/api/inventory';
 import { useDebounce } from '@/hooks/use-debounce';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/inventory/')({
@@ -16,7 +17,7 @@ function InventoryPage() {
   const debouncedProduct = useDebounce(productId, 300);
   const debouncedStore   = useDebounce(storeId, 300);
 
-  const { data, isLoading } = useGlobalInventory({
+  const { data, isLoading, isError, refetch } = useGlobalInventory({
     productId: debouncedProduct || undefined,
     storeId:   debouncedStore   || undefined,
   });
@@ -72,7 +73,9 @@ function InventoryPage() {
       </div>
 
       {/* Table */}
-      {isLoading ? (
+      {isError ? (
+        <ErrorBanner message="Failed to load inventory." onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="text-center py-12 text-slate-400">Loading…</div>
       ) : items.length === 0 ? (
         <div className="text-center py-12 text-slate-500">

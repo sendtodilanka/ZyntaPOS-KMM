@@ -7,6 +7,7 @@ import {
 import { apiClient } from '@/lib/api-client';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { formatRelativeTime, formatDateTime } from '@/lib/utils';
 import type { AuditEntry } from '@/types/audit';
 import type { PagedResponse } from '@/types/api';
@@ -89,10 +90,23 @@ function useVulnerabilityScan() {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 function SecurityPage() {
-  const { data: metrics, isLoading: metricsLoading } = useSecurityMetrics();
-  const { data: eventsPage, isLoading: eventsLoading } = useSecurityEvents();
-  const { data: sessions, isLoading: sessionsLoading } = useActiveAdminSessions();
-  const { data: healthData, isLoading: scanLoading } = useVulnerabilityScan();
+  const metricsQ = useSecurityMetrics();
+  const eventsQ = useSecurityEvents();
+  const sessionsQ = useActiveAdminSessions();
+  const scanQ = useVulnerabilityScan();
+
+  const { data: metrics, isLoading: metricsLoading, isError: metricsError } = metricsQ;
+  const { data: eventsPage, isLoading: eventsLoading, isError: eventsError } = eventsQ;
+  const { data: sessions, isLoading: sessionsLoading, isError: sessionsError } = sessionsQ;
+  const { data: healthData, isLoading: scanLoading, isError: scanError } = scanQ;
+
+  const anyError = metricsError || eventsError || sessionsError || scanError;
+  const retryFailed = () => {
+    if (metricsError) metricsQ.refetch();
+    if (eventsError) eventsQ.refetch();
+    if (sessionsError) sessionsQ.refetch();
+    if (scanError) scanQ.refetch();
+  };
 
   const events = eventsPage?.data ?? [];
   const scanStatus = healthData?.vulnerabilityScan;
@@ -107,6 +121,13 @@ function SecurityPage() {
         </div>
         <Shield className="w-5 h-5 text-brand-400" />
       </div>
+
+      {anyError && (
+        <ErrorBanner
+          message="One or more security data sources failed to load — threat monitoring may be incomplete."
+          onRetry={retryFailed}
+        />
+      )}
 
       {/* Threat Overview KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -10,6 +10,7 @@ import { StoreComparisonChart } from '@/components/charts/StoreComparisonChart';
 import { LicenseDistribution } from '@/components/charts/LicenseDistribution';
 import { UptimeChart } from '@/components/charts/UptimeChart';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useDashboardKPIs, useSalesChart, useStoreComparison } from '@/api/metrics';
 import { useAlerts } from '@/api/alerts';
 import { useSystemHealth } from '@/api/health';
@@ -30,15 +31,29 @@ function DashboardPage() {
   const [period, setPeriod] = useState<TimePeriod>('today');
   const [storeFilter, setStoreFilter] = useState('');
 
-  const { data: kpis, isLoading: kpisLoading, refetch: refetchKpis, dataUpdatedAt } = useDashboardKPIs(period);
-  const { data: salesData, isLoading: salesLoading, refetch: refetchSales } = useSalesChart({
+  const kpisQ = useDashboardKPIs(period);
+  const { data: kpis, isLoading: kpisLoading, isError: kpisError, refetch: refetchKpis, dataUpdatedAt } = kpisQ;
+  const salesQ = useSalesChart({
     from: format(subDays(new Date(), period === 'today' ? 1 : period === 'week' ? 7 : 30), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd'),
     granularity: period === 'today' ? 'hour' : period === 'week' ? 'day' : 'day',
   });
-  const { data: storeData, isLoading: storeLoading, refetch: refetchStores } = useStoreComparison(period);
-  const { data: alertsPage, isLoading: alertsLoading } = useAlerts({ status: 'active', pageSize: 5 });
-  const { data: healthData, isLoading: healthLoading } = useSystemHealth();
+  const { data: salesData, isLoading: salesLoading, isError: salesError, refetch: refetchSales } = salesQ;
+  const storeQ = useStoreComparison(period);
+  const { data: storeData, isLoading: storeLoading, isError: storeError, refetch: refetchStores } = storeQ;
+  const alertsQ = useAlerts({ status: 'active', pageSize: 5 });
+  const { data: alertsPage, isLoading: alertsLoading, isError: alertsError } = alertsQ;
+  const healthQ = useSystemHealth();
+  const { data: healthData, isLoading: healthLoading, isError: healthError } = healthQ;
+
+  const anyDashboardError = kpisError || salesError || storeError || alertsError || healthError;
+  const retryDashboard = () => {
+    if (kpisError) kpisQ.refetch();
+    if (salesError) salesQ.refetch();
+    if (storeError) storeQ.refetch();
+    if (alertsError) alertsQ.refetch();
+    if (healthError) healthQ.refetch();
+  };
 
   const recentAlerts = alertsPage?.items ?? [];
   const uptimeData = healthData?.services.map((s) => ({ service: s.name, uptimePercent: s.uptime })) ?? [];
@@ -106,6 +121,13 @@ function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {anyDashboardError && (
+        <ErrorBanner
+          message="One or more dashboard data sources failed to load — zero values below may not reflect reality."
+          onRetry={retryDashboard}
+        />
+      )}
 
       {/* KPI Cards — responsive grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

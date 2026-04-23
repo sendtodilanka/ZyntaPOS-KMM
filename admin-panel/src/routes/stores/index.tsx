@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { StoreTable } from '@/components/stores/StoreTable';
 import { SearchInput } from '@/components/shared/SearchInput';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useStores } from '@/api/stores';
 import { useDebounce } from '@/hooks/use-debounce';
 import type { StoreStatus } from '@/types/store';
@@ -16,7 +17,7 @@ function StoresPage() {
   const [statusFilter, setStatusFilter] = useState<StoreStatus | ''>('');
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data, isLoading } = useStores({
+  const { data, isLoading, isError, refetch } = useStores({
     page, size: 20,
     search: debouncedSearch || undefined,
     status: statusFilter || undefined,
@@ -51,14 +52,18 @@ function StoresPage() {
         </select>
       </div>
 
-      <StoreTable
-        data={data?.data ?? []}
-        isLoading={isLoading}
-        page={page}
-        totalPages={data?.totalPages ?? 1}
-        total={data?.total ?? 0}
-        onPageChange={setPage}
-      />
+      {isError ? (
+        <ErrorBanner message="Failed to load stores." onRetry={() => refetch()} />
+      ) : (
+        <StoreTable
+          data={data?.data ?? []}
+          isLoading={isLoading}
+          page={page}
+          totalPages={data?.totalPages ?? 1}
+          total={data?.total ?? 0}
+          onPageChange={setPage}
+        />
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { LicenseCreateForm } from '@/components/licenses/LicenseCreateForm';
 import { LicenseExtendDialog } from '@/components/licenses/LicenseExtendDialog';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { ExportButton } from '@/components/shared/ExportButton';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useLicenses, useLicenseStats } from '@/api/licenses';
 import { useDebounce } from '@/hooks/use-debounce';
 import { exportToCsv } from '@/lib/export';
@@ -24,7 +25,7 @@ function LicensesPage() {
   const [editTarget, setEditTarget] = useState<License | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
-  const { data, isLoading } = useLicenses({
+  const { data, isLoading, isError, refetch } = useLicenses({
     page, size: 20,
     search: debouncedSearch || undefined,
     status: statusFilter || undefined,
@@ -98,15 +99,19 @@ function LicensesPage() {
       </div>
 
       {/* Table */}
-      <LicenseTable
-        data={data?.data ?? []}
-        isLoading={isLoading}
-        page={page}
-        totalPages={data?.totalPages ?? 1}
-        total={data?.total ?? 0}
-        onPageChange={setPage}
-        onEdit={setEditTarget}
-      />
+      {isError ? (
+        <ErrorBanner message="Failed to load licenses." onRetry={() => refetch()} />
+      ) : (
+        <LicenseTable
+          data={data?.data ?? []}
+          isLoading={isLoading}
+          page={page}
+          totalPages={data?.totalPages ?? 1}
+          total={data?.total ?? 0}
+          onPageChange={setPage}
+          onEdit={setEditTarget}
+        />
+      )}
 
       <LicenseCreateForm open={createOpen} onClose={() => setCreateOpen(false)} />
       <LicenseExtendDialog license={editTarget} onClose={() => setEditTarget(null)} />
