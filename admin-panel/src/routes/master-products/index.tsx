@@ -190,15 +190,47 @@ function CreateMasterProductDialog({
   const [basePrice, setBasePrice] = useState('');
   const [costPrice, setCostPrice] = useState('');
   const [description, setDescription] = useState('');
+  const [priceError, setPriceError] = useState<string | null>(null);
+
+  // B-003: previously `parseFloat(basePrice) || 0` silently coerced invalid
+  // or negative input into 0 — the product would save with a real price of
+  // zero. Validate strictly and surface an inline error instead.
+  const parsePrice = (raw: string, label: string): number | string => {
+    const trimmed = raw.trim();
+    if (trimmed === '') return `${label} is required.`;
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return `${label} must be a non-negative number.`;
+    }
+    return parsed;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setPriceError(null);
+
+    const base = parsePrice(basePrice, 'Base price');
+    if (typeof base === 'string') {
+      setPriceError(base);
+      return;
+    }
+
+    let cost = 0;
+    if (costPrice.trim() !== '') {
+      const parsedCost = parsePrice(costPrice, 'Cost price');
+      if (typeof parsedCost === 'string') {
+        setPriceError(parsedCost);
+        return;
+      }
+      cost = parsedCost;
+    }
+
     onSubmit({
       name,
       sku: sku || undefined,
       barcode: barcode || undefined,
-      base_price: parseFloat(basePrice) || 0,
-      cost_price: parseFloat(costPrice) || 0,
+      base_price: base,
+      cost_price: cost,
       description: description || undefined,
     });
   };
@@ -242,6 +274,11 @@ function CreateMasterProductDialog({
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
               className="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-sm text-white" />
           </div>
+          {priceError && (
+            <p className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400">
+              {priceError}
+            </p>
+          )}
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
             <button type="submit" disabled={isLoading || !name} className="btn btn-primary">
