@@ -3,9 +3,28 @@ import { render, screen, fireEvent } from '../utils';
 import React from 'react';
 import type { Ticket, TicketsPage, TicketMetrics } from '@/types/ticket';
 
+// H-002: TicketsPage now reads filters from the URL via Route.useSearch()
+// and routes page+filter updates through useNavigate. The mock keeps a
+// module-level search object that useNavigate mutates when tests change
+// filters, so the select `value=` prop reflects the update and assertions
+// about "the dropdown shows HIGH" continue to pass.
+let mockSearch: Record<string, unknown> = {};
+const resetMockSearch = () => { mockSearch = {}; };
+const mockNavigate = vi.fn((opts: { search?: ((prev: Record<string, unknown>) => Record<string, unknown>) | Record<string, unknown> }) => {
+  if (typeof opts.search === 'function') {
+    mockSearch = opts.search(mockSearch);
+  } else if (opts.search) {
+    mockSearch = { ...mockSearch, ...opts.search };
+  }
+});
+
 vi.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (opts: Record<string, unknown>) => opts,
-  useNavigate: () => vi.fn(),
+  createFileRoute: () => (opts: Record<string, unknown>) => ({
+    ...opts,
+    useSearch: () => mockSearch,
+    fullPath: '/tickets/',
+  }),
+  useNavigate: () => mockNavigate,
 }));
 
 vi.mock('@/hooks/use-debounce', () => ({
@@ -104,6 +123,8 @@ const mockMetrics: TicketMetrics = {
 
 describe('TicketsPage', () => {
   beforeEach(() => {
+    resetMockSearch();
+    mockNavigate.mockClear();
     vi.mocked(useTickets).mockReturnValue({
       data: mockTicketPage,
       isLoading: false,
@@ -165,14 +186,30 @@ describe('TicketsPage', () => {
     render(<TicketsPage />);
     const select = screen.getByRole('combobox', { name: /status/i });
     fireEvent.change(select, { target: { value: 'OPEN' } });
-    expect(select).toHaveValue('OPEN');
+    // H-002: filter now lives in the URL. Assert navigate was called with
+    // the correct status patch instead of checking the (controlled) select
+    // value — a real router drives re-renders via useSearch which the test
+    // mock cannot simulate.
+    expect(mockNavigate).toHaveBeenCalledWith(expect.objectContaining({
+      search: expect.any(Function),
+      replace: true,
+    }));
+    // Execute the search updater to verify the patch it produces.
+    const lastCall = mockNavigate.mock.calls.at(-1)![0] as {
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(lastCall.search({})).toEqual(expect.objectContaining({ status: 'OPEN' }));
   });
 
   it('filters by priority on select change', () => {
     render(<TicketsPage />);
     const select = screen.getByRole('combobox', { name: /priority/i });
     fireEvent.change(select, { target: { value: 'HIGH' } });
-    expect(select).toHaveValue('HIGH');
+    expect(mockNavigate).toHaveBeenCalled();
+    const lastCall = mockNavigate.mock.calls.at(-1)![0] as {
+      search: (prev: Record<string, unknown>) => Record<string, unknown>;
+    };
+    expect(lastCall.search({})).toEqual(expect.objectContaining({ priority: 'HIGH' }));
   });
 
   it('shows 0 total when data undefined', () => {
