@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.sync
 
+import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
@@ -20,7 +21,7 @@ import kotlin.test.assertFailsWith
  */
 class EntityApplierTest {
 
-    private val applier = EntityApplier()
+    private val applier = EntityApplier(DeadLetterRepository())
 
     private fun op(
         entityType: String = "PRODUCT",
@@ -37,34 +38,34 @@ class EntityApplierTest {
 
     @Test
     fun `unknown entity type is a no-op - does not throw`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY"))
     }
 
     @Test
     fun `invalid JSON payload does not throw - returns early`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "bad-json"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", payload = "bad-json"))
     }
 
     @Test
     fun `CREATE operation is treated same as INSERT`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", operation = "CREATE"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", operation = "CREATE"))
     }
 
     @Test
     fun `DELETE for unknown entity type is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", operation = "DELETE"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", operation = "DELETE"))
     }
 
     // ── Entity type routing (no DB - only unknown types are safe) ─────────
 
     @Test
     fun `UPDATE for unknown entity type is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "TOTALLY_FAKE", operation = "UPDATE"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "TOTALLY_FAKE", operation = "UPDATE"))
     }
 
     @Test
     fun `empty string entity type is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = ""))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = ""))
     }
 
     @Test
@@ -73,7 +74,7 @@ class EntityApplierTest {
         // "product" (lowercase) → uppercase "PRODUCT" → applyProduct, which will
         // throw outside a real DB transaction. This proves the routing works.
         assertFailsWith<Exception> {
-            applier.applyInTransaction("store-1", op(entityType = "product"))
+            applier.applyInTransaction("store-1", "device-1", op(entityType = "product"))
         }
     }
 
@@ -81,36 +82,36 @@ class EntityApplierTest {
 
     @Test
     fun `empty JSON object payload does not throw for unknown type`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "{}"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", payload = "{}"))
     }
 
     @Test
     fun `JSON array payload does not throw for unknown type`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "[]"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", payload = "[]"))
     }
 
     @Test
     fun `null-like payload string does not throw for unknown type`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = "null"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", payload = "null"))
     }
 
     @Test
     fun `deeply nested JSON payload is accepted for unknown type`() {
         val nested = """{"a":{"b":{"c":{"d":"deep"}}}}"""
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = nested))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", payload = nested))
     }
 
     @Test
     fun `unicode in payload does not throw for unknown type`() {
         val unicode = """{"name":"商品テスト","description":"价格 €100"}"""
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", payload = unicode))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", payload = unicode))
     }
 
     // ── STOCK_ADJUSTMENT (no DB — tests payload parsing logic) ───────────
 
     @Test
     fun `STOCK_ADJUSTMENT with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "STOCK_ADJUSTMENT", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "STOCK_ADJUSTMENT", payload = "{{bad"))
     }
 
     @Test
@@ -119,6 +120,7 @@ class EntityApplierTest {
         // No DB means upsert won't be called, but the parsing check still runs
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(
                 entityType = "STOCK_ADJUSTMENT",
                 payload = """{"type":"INCREASE","quantity":5.0}"""
@@ -131,6 +133,7 @@ class EntityApplierTest {
     fun `STOCK_ADJUSTMENT INSERT missing type returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(
                 entityType = "STOCK_ADJUSTMENT",
                 payload = """{"product_id":"p-1","quantity":5.0}"""
@@ -142,13 +145,14 @@ class EntityApplierTest {
 
     @Test
     fun `CASH_REGISTER with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "CASH_REGISTER", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "CASH_REGISTER", payload = "{{bad"))
     }
 
     @Test
     fun `CASH_REGISTER missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "CASH_REGISTER", payload = """{"is_active":true}""")
         )
     }
@@ -157,13 +161,14 @@ class EntityApplierTest {
 
     @Test
     fun `REGISTER_SESSION with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "REGISTER_SESSION", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "REGISTER_SESSION", payload = "{{bad"))
     }
 
     @Test
     fun `REGISTER_SESSION missing register_id returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "REGISTER_SESSION", payload = """{"opened_by":"user-1"}""")
         )
     }
@@ -172,6 +177,7 @@ class EntityApplierTest {
     fun `REGISTER_SESSION missing opened_by returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "REGISTER_SESSION", payload = """{"register_id":"reg-1"}""")
         )
     }
@@ -180,13 +186,14 @@ class EntityApplierTest {
 
     @Test
     fun `CASH_MOVEMENT with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "CASH_MOVEMENT", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "CASH_MOVEMENT", payload = "{{bad"))
     }
 
     @Test
     fun `CASH_MOVEMENT missing session_id returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "CASH_MOVEMENT", payload = """{"type":"IN","amount":100.0}""")
         )
     }
@@ -195,13 +202,14 @@ class EntityApplierTest {
 
     @Test
     fun `TAX_GROUP with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "TAX_GROUP", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "TAX_GROUP", payload = "{{bad"))
     }
 
     @Test
     fun `TAX_GROUP missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "TAX_GROUP", payload = """{"rate":10.0}""")
         )
     }
@@ -210,13 +218,14 @@ class EntityApplierTest {
 
     @Test
     fun `UNIT_OF_MEASURE with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNIT_OF_MEASURE", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNIT_OF_MEASURE", payload = "{{bad"))
     }
 
     @Test
     fun `UNIT_OF_MEASURE missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "UNIT_OF_MEASURE", payload = """{"abbreviation":"kg"}""")
         )
     }
@@ -225,13 +234,14 @@ class EntityApplierTest {
 
     @Test
     fun `PAYMENT_SPLIT with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "PAYMENT_SPLIT", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "PAYMENT_SPLIT", payload = "{{bad"))
     }
 
     @Test
     fun `PAYMENT_SPLIT missing order_id returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "PAYMENT_SPLIT", payload = """{"method":"CASH","amount":50.0}""")
         )
     }
@@ -240,13 +250,14 @@ class EntityApplierTest {
 
     @Test
     fun `COUPON with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "COUPON", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "COUPON", payload = "{{bad"))
     }
 
     @Test
     fun `COUPON missing code returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "COUPON", payload = """{"name":"Summer Sale","discount_value":10.0}""")
         )
     }
@@ -255,6 +266,7 @@ class EntityApplierTest {
     fun `COUPON missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "COUPON", payload = """{"code":"SUMMER10","discount_value":10.0}""")
         )
     }
@@ -263,20 +275,21 @@ class EntityApplierTest {
 
     @Test
     fun `EXPENSE with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "EXPENSE", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "EXPENSE", payload = "{{bad"))
     }
 
     // ── SETTINGS ─────────────────────────────────────────────────────────
 
     @Test
     fun `SETTINGS with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "SETTINGS", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "SETTINGS", payload = "{{bad"))
     }
 
     @Test
     fun `SETTINGS missing key returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "SETTINGS", payload = """{"value":"some-value"}""")
         )
     }
@@ -285,13 +298,14 @@ class EntityApplierTest {
 
     @Test
     fun `PRODUCT with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "PRODUCT", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "PRODUCT", payload = "{{bad"))
     }
 
     @Test
     fun `PRODUCT missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "PRODUCT", payload = """{"price":9.99}""")
         )
     }
@@ -300,63 +314,68 @@ class EntityApplierTest {
     fun `PRODUCT payload with null name returns early - no DB exception`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "PRODUCT", payload = """{"name":null,"price":10.0}"""),
         )
     }
 
     @Test
     fun `CATEGORY with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "CATEGORY", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "CATEGORY", payload = "{{bad"))
     }
 
     @Test
     fun `CATEGORY missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "CATEGORY", payload = """{"sort_order":1}""")
         )
     }
 
     @Test
     fun `CUSTOMER with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "CUSTOMER", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "CUSTOMER", payload = "{{bad"))
     }
 
     @Test
     fun `CUSTOMER missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "CUSTOMER", payload = """{"email":"test@test.com"}""")
         )
     }
 
     @Test
     fun `SUPPLIER with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "SUPPLIER", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "SUPPLIER", payload = "{{bad"))
     }
 
     @Test
     fun `SUPPLIER missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "SUPPLIER", payload = """{"phone":"1234567890"}""")
         )
     }
 
     @Test
     fun `ORDER with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "ORDER", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "ORDER", payload = "{{bad"))
     }
 
     @Test
     fun `ORDER_ITEM with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "ORDER_ITEM", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "ORDER_ITEM", payload = "{{bad"))
     }
 
     @Test
     fun `ORDER_ITEM missing order_id returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "ORDER_ITEM", payload = """{"product_id":"p-1","quantity":1}""")
         )
     }
@@ -365,13 +384,14 @@ class EntityApplierTest {
     fun `ORDER_ITEM payload with null order_id returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "ORDER_ITEM", payload = """{"order_id":null,"product_id":"p1"}"""),
         )
     }
 
     @Test
     fun `AUDIT_ENTRY with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "AUDIT_ENTRY", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "AUDIT_ENTRY", payload = "{{bad"))
     }
 
     // ── AUDIT_ENTRY special behavior ─────────────────────────────────────
@@ -380,6 +400,7 @@ class EntityApplierTest {
     fun `AUDIT_ENTRY UPDATE is ignored - append-only`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(
                 entityType = "AUDIT_ENTRY",
                 operation = "UPDATE",
@@ -392,6 +413,7 @@ class EntityApplierTest {
     fun `AUDIT_ENTRY DELETE is ignored - append-only`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(
                 entityType = "AUDIT_ENTRY",
                 operation = "DELETE",
@@ -404,13 +426,14 @@ class EntityApplierTest {
 
     @Test
     fun `EMPLOYEE with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "EMPLOYEE", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "EMPLOYEE", payload = "{{bad"))
     }
 
     @Test
     fun `EMPLOYEE missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "EMPLOYEE", payload = """{"email":"alice@test.com","role":"MANAGER"}""")
         )
     }
@@ -419,13 +442,14 @@ class EntityApplierTest {
 
     @Test
     fun `EXPENSE_CATEGORY with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "EXPENSE_CATEGORY", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "EXPENSE_CATEGORY", payload = "{{bad"))
     }
 
     @Test
     fun `EXPENSE_CATEGORY missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "EXPENSE_CATEGORY", payload = """{"sort_order":1}""")
         )
     }
@@ -434,13 +458,14 @@ class EntityApplierTest {
 
     @Test
     fun `COUPON_USAGE with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "COUPON_USAGE", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "COUPON_USAGE", payload = "{{bad"))
     }
 
     @Test
     fun `COUPON_USAGE missing coupon_id returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "COUPON_USAGE", payload = """{"order_id":"ord-1","discount_amount":5.0}""")
         )
     }
@@ -449,6 +474,7 @@ class EntityApplierTest {
     fun `COUPON_USAGE missing order_id returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "COUPON_USAGE", payload = """{"coupon_id":"cpn-1","discount_amount":5.0}""")
         )
     }
@@ -457,13 +483,14 @@ class EntityApplierTest {
 
     @Test
     fun `PROMOTION with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "PROMOTION", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "PROMOTION", payload = "{{bad"))
     }
 
     @Test
     fun `PROMOTION missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "PROMOTION", payload = """{"type":"PERCENTAGE","value":10.0}""")
         )
     }
@@ -472,13 +499,14 @@ class EntityApplierTest {
 
     @Test
     fun `CUSTOMER_GROUP with invalid JSON is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "CUSTOMER_GROUP", payload = "{{bad"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "CUSTOMER_GROUP", payload = "{{bad"))
     }
 
     @Test
     fun `CUSTOMER_GROUP missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(entityType = "CUSTOMER_GROUP", payload = """{"discount_rate":5.0}""")
         )
     }
@@ -494,7 +522,7 @@ class EntityApplierTest {
             "EMPLOYEE", "EXPENSE_CATEGORY", "COUPON_USAGE", "PROMOTION", "CUSTOMER_GROUP"
         )
         for (type in types) {
-            applier.applyInTransaction("store-1", op(entityType = type, payload = "invalid"))
+            applier.applyInTransaction("store-1", "device-1", op(entityType = type, payload = "invalid"))
         }
     }
 
@@ -502,12 +530,12 @@ class EntityApplierTest {
 
     @Test
     fun `unrecognized operation type for unknown entity is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", operation = "MERGE"))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", operation = "MERGE"))
     }
 
     @Test
     fun `empty operation string for unknown entity is a no-op`() {
-        applier.applyInTransaction("store-1", op(entityType = "UNKNOWN_ENTITY", operation = ""))
+        applier.applyInTransaction("store-1", "device-1", op(entityType = "UNKNOWN_ENTITY", operation = ""))
     }
 
     // ── DELETE operations for known entity types require a DB transaction ──
@@ -523,6 +551,7 @@ class EntityApplierTest {
         // the fact that no exception is thrown proves the self-reference check works.
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(
                 entityType = "CATEGORY",
                 entityId = "cat-1",
@@ -539,6 +568,7 @@ class EntityApplierTest {
         assertFailsWith<IllegalStateException> {
             applier.applyInTransaction(
                 "store-1",
+                "device-1",
                 op(
                     entityType = "CATEGORY",
                     entityId = "cat-2",
@@ -552,6 +582,7 @@ class EntityApplierTest {
     fun `CATEGORY with missing name returns early`() {
         applier.applyInTransaction(
             "store-1",
+            "device-1",
             op(
                 entityType = "CATEGORY",
                 entityId = "cat-3",

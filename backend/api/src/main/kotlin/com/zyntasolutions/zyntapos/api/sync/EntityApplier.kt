@@ -7,6 +7,7 @@ import com.zyntasolutions.zyntapos.api.db.EmployeeStoreAssignments
 import com.zyntasolutions.zyntapos.api.db.ReplenishmentRules
 import com.zyntasolutions.zyntapos.api.db.WarehouseStock
 import com.zyntasolutions.zyntapos.api.models.SyncOperation
+import com.zyntasolutions.zyntapos.api.repository.DeadLetterRepository
 import com.zyntasolutions.zyntapos.api.service.MasterProducts
 import com.zyntasolutions.zyntapos.api.service.PurchaseOrders
 import com.zyntasolutions.zyntapos.api.service.Products
@@ -383,7 +384,11 @@ object CustomerGroups : Table("customer_groups") {
  * [applyInTransaction] is called from within an existing [newSuspendedTransaction]
  * so that the insert + apply are atomic — a failure rolls back both.
  */
-class EntityApplier {
+class EntityApplier(
+    // Injected so softDelete can route sync operations for missing entities to
+    // the dead-letter queue instead of silently logging them as warnings.
+    private val deadLetters: DeadLetterRepository,
+) {
     private val logger = LoggerFactory.getLogger(EntityApplier::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -391,46 +396,50 @@ class EntityApplier {
      * Apply a single operation inside an already-open transaction.
      * Must be called within a [newSuspendedTransaction] block.
      * Re-throws on failure so the surrounding transaction is rolled back.
+     *
+     * [deviceId] is carried so DLQ entries persisted from deep inside
+     * entity-specific branches (see [softDelete]) can identify the device
+     * that originated the orphaned operation.
      */
-    fun applyInTransaction(storeId: String, op: SyncOperation) {
+    suspend fun applyInTransaction(storeId: String, deviceId: String, op: SyncOperation) {
         // Normalize entity type to uppercase — KMM client sends lowercase
         val type = op.entityType.uppercase()
         try {
             when (type) {
-                "PRODUCT"           -> applyProduct(storeId, op)
-                "CATEGORY"          -> applyCategory(storeId, op)
-                "CUSTOMER"          -> applyCustomer(storeId, op)
-                "SUPPLIER"          -> applySupplier(storeId, op)
-                "ORDER"             -> applyOrder(storeId, op)
-                "ORDER_ITEM"        -> applyOrderItem(op)
-                "AUDIT_ENTRY"       -> applyAuditEntry(storeId, op)
-                "STOCK_ADJUSTMENT"  -> applyStockAdjustment(storeId, op)
-                "CASH_REGISTER"     -> applyCashRegister(storeId, op)
-                "REGISTER_SESSION"  -> applyRegisterSession(storeId, op)
-                "CASH_MOVEMENT"     -> applyCashMovement(storeId, op)
-                "TAX_GROUP"         -> applyTaxGroup(storeId, op)
-                "UNIT_OF_MEASURE"   -> applyUnitOfMeasure(storeId, op)
-                "PAYMENT_SPLIT"     -> applyPaymentSplit(storeId, op)
-                "COUPON"            -> applyCoupon(storeId, op)
-                "EXPENSE"           -> applyExpense(storeId, op)
-                "SETTINGS"          -> applySettings(storeId, op)
-                "EMPLOYEE"          -> applyEmployee(storeId, op)
-                "EXPENSE_CATEGORY"  -> applyExpenseCategory(storeId, op)
-                "COUPON_USAGE"      -> applyCouponUsage(storeId, op)
-                "PROMOTION"         -> applyPromotion(storeId, op)
-                "CUSTOMER_GROUP"    -> applyCustomerGroup(storeId, op)
-                "MASTER_PRODUCT"    -> applyMasterProduct(op)
-                "STORE_PRODUCT"     -> applyStoreProduct(storeId, op)
-                "WAREHOUSE_STOCK"   -> applyWarehouseStock(storeId, op)
-                "REPLENISHMENT_RULE" -> applyReplenishmentRule(op)
-                "STOCK_TRANSFER"    -> applyStockTransfer(storeId, op)
-                "PURCHASE_ORDER"    -> applyPurchaseOrder(storeId, op)
-                "PRICING_RULE"      -> applyPricingRule(storeId, op)
-                "REGIONAL_TAX_OVERRIDE" -> applyRegionalTaxOverride(storeId, op)
+                "PRODUCT"           -> applyProduct(storeId, deviceId, op)
+                "CATEGORY"          -> applyCategory(storeId, deviceId, op)
+                "CUSTOMER"          -> applyCustomer(storeId, deviceId, op)
+                "SUPPLIER"          -> applySupplier(storeId, deviceId, op)
+                "ORDER"             -> applyOrder(storeId, deviceId, op)
+                "ORDER_ITEM"        -> applyOrderItem(deviceId, op)
+                "AUDIT_ENTRY"       -> applyAuditEntry(storeId, deviceId, op)
+                "STOCK_ADJUSTMENT"  -> applyStockAdjustment(storeId, deviceId, op)
+                "CASH_REGISTER"     -> applyCashRegister(storeId, deviceId, op)
+                "REGISTER_SESSION"  -> applyRegisterSession(storeId, deviceId, op)
+                "CASH_MOVEMENT"     -> applyCashMovement(storeId, deviceId, op)
+                "TAX_GROUP"         -> applyTaxGroup(storeId, deviceId, op)
+                "UNIT_OF_MEASURE"   -> applyUnitOfMeasure(storeId, deviceId, op)
+                "PAYMENT_SPLIT"     -> applyPaymentSplit(storeId, deviceId, op)
+                "COUPON"            -> applyCoupon(storeId, deviceId, op)
+                "EXPENSE"           -> applyExpense(storeId, deviceId, op)
+                "SETTINGS"          -> applySettings(storeId, deviceId, op)
+                "EMPLOYEE"          -> applyEmployee(storeId, deviceId, op)
+                "EXPENSE_CATEGORY"  -> applyExpenseCategory(storeId, deviceId, op)
+                "COUPON_USAGE"      -> applyCouponUsage(storeId, deviceId, op)
+                "PROMOTION"         -> applyPromotion(storeId, deviceId, op)
+                "CUSTOMER_GROUP"    -> applyCustomerGroup(storeId, deviceId, op)
+                "MASTER_PRODUCT"    -> applyMasterProduct(deviceId, op)
+                "STORE_PRODUCT"     -> applyStoreProduct(storeId, deviceId, op)
+                "WAREHOUSE_STOCK"   -> applyWarehouseStock(storeId, deviceId, op)
+                "REPLENISHMENT_RULE" -> applyReplenishmentRule(deviceId, op)
+                "STOCK_TRANSFER"    -> applyStockTransfer(storeId, deviceId, op)
+                "PURCHASE_ORDER"    -> applyPurchaseOrder(storeId, deviceId, op)
+                "PRICING_RULE"      -> applyPricingRule(storeId, deviceId, op)
+                "REGIONAL_TAX_OVERRIDE" -> applyRegionalTaxOverride(storeId, deviceId, op)
                 // SECURITY: pass JWT-verified storeId so these methods cannot be directed
                 // at a different store via a crafted payload store_id field.
-                "USER_STORE_ACCESS" -> applyUserStoreAccess(storeId, op)
-                "EMPLOYEE_STORE_ASSIGNMENT" -> applyEmployeeStoreAssignment(storeId, op)
+                "USER_STORE_ACCESS" -> applyUserStoreAccess(storeId, deviceId, op)
+                "EMPLOYEE_STORE_ASSIGNMENT" -> applyEmployeeStoreAssignment(storeId, deviceId, op)
                 "TRANSIT_EVENT"     -> { /* append-only — stored via entity_snapshots; no normalized table */ }
                 else -> { /* entity_snapshots trigger handles any remaining types */ }
             }
@@ -442,7 +451,7 @@ class EntityApplier {
 
     // ── Product ───────────────────────────────────────────────────────────
 
-    private fun applyProduct(storeId: String, op: SyncOperation) {
+    private suspend fun applyProduct(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -467,13 +476,13 @@ class EntityApplier {
                     it[Products.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Products, Products.id, Products.isActive, Products.syncVersion, Products.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Products, Products.id, Products.isActive, Products.syncVersion, Products.updatedAt, op)
         }
     }
 
     // ── Master Product (global catalog — no storeId) ──────────────────────
 
-    private fun applyMasterProduct(op: SyncOperation) {
+    private suspend fun applyMasterProduct(deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -495,13 +504,13 @@ class EntityApplier {
                     it[MasterProducts.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(MasterProducts, MasterProducts.id, MasterProducts.isActive, MasterProducts.syncVersion, MasterProducts.updatedAt, op)
+            "DELETE" -> softDelete(null, deviceId, MasterProducts, MasterProducts.id, MasterProducts.isActive, MasterProducts.syncVersion, MasterProducts.updatedAt, op)
         }
     }
 
     // ── Store Product (per-store overrides) ─────────────────────────────────
 
-    private fun applyStoreProduct(storeId: String, op: SyncOperation) {
+    private suspend fun applyStoreProduct(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -529,7 +538,7 @@ class EntityApplier {
 
     // ── Category ──────────────────────────────────────────────────────────
 
-    private fun applyCategory(storeId: String, op: SyncOperation) {
+    private suspend fun applyCategory(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -560,7 +569,7 @@ class EntityApplier {
                     it[Categories.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Categories, Categories.id, Categories.isActive, Categories.syncVersion, Categories.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Categories, Categories.id, Categories.isActive, Categories.syncVersion, Categories.updatedAt, op)
         }
     }
 
@@ -589,7 +598,7 @@ class EntityApplier {
 
     // ── Customer ──────────────────────────────────────────────────────────
 
-    private fun applyCustomer(storeId: String, op: SyncOperation) {
+    private suspend fun applyCustomer(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -608,13 +617,13 @@ class EntityApplier {
                     it[Customers.updatedAt]     = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Customers, Customers.id, Customers.isActive, Customers.syncVersion, Customers.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Customers, Customers.id, Customers.isActive, Customers.syncVersion, Customers.updatedAt, op)
         }
     }
 
     // ── Supplier ──────────────────────────────────────────────────────────
 
-    private fun applySupplier(storeId: String, op: SyncOperation) {
+    private suspend fun applySupplier(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -633,13 +642,13 @@ class EntityApplier {
                     it[Suppliers.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Suppliers, Suppliers.id, Suppliers.isActive, Suppliers.syncVersion, Suppliers.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Suppliers, Suppliers.id, Suppliers.isActive, Suppliers.syncVersion, Suppliers.updatedAt, op)
         }
     }
 
     // ── Order ─────────────────────────────────────────────────────────────
 
-    private fun applyOrder(storeId: String, op: SyncOperation) {
+    private suspend fun applyOrder(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -661,13 +670,13 @@ class EntityApplier {
                     it[Orders.updatedAt]     = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Orders, Orders.id, Orders.isActive, Orders.syncVersion, Orders.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Orders, Orders.id, Orders.isActive, Orders.syncVersion, Orders.updatedAt, op)
         }
     }
 
     // ── Order Item ────────────────────────────────────────────────────────
 
-    private fun applyOrderItem(op: SyncOperation) {
+    private suspend fun applyOrderItem(deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -694,7 +703,7 @@ class EntityApplier {
 
     // ── Audit Entry ───────────────────────────────────────────────────────
 
-    private fun applyAuditEntry(storeId: String, op: SyncOperation) {
+    private suspend fun applyAuditEntry(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         // Audit entries are append-only — INSERT only, never UPDATE or DELETE
         when (op.operation) {
@@ -728,7 +737,7 @@ class EntityApplier {
 
     // ── Stock Adjustment (with stock_qty side-effect on products) ─────────
 
-    private fun applyStockAdjustment(storeId: String, op: SyncOperation) {
+    private suspend fun applyStockAdjustment(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE" -> {
@@ -782,13 +791,13 @@ class EntityApplier {
                     it[StockAdjustments.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(StockAdjustments, StockAdjustments.id, StockAdjustments.isActive, StockAdjustments.syncVersion, StockAdjustments.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, StockAdjustments, StockAdjustments.id, StockAdjustments.isActive, StockAdjustments.syncVersion, StockAdjustments.updatedAt, op)
         }
     }
 
     // ── Cash Register ────────────────────────────────────────────────────
 
-    private fun applyCashRegister(storeId: String, op: SyncOperation) {
+    private suspend fun applyCashRegister(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -803,13 +812,13 @@ class EntityApplier {
                     it[CashRegisters.updatedAt]        = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(CashRegisters, CashRegisters.id, CashRegisters.isActive, CashRegisters.syncVersion, CashRegisters.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, CashRegisters, CashRegisters.id, CashRegisters.isActive, CashRegisters.syncVersion, CashRegisters.updatedAt, op)
         }
     }
 
     // ── Register Session ─────────────────────────────────────────────────
 
-    private fun applyRegisterSession(storeId: String, op: SyncOperation) {
+    private suspend fun applyRegisterSession(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -831,13 +840,13 @@ class EntityApplier {
                     it[RegisterSessions.updatedAt]       = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(RegisterSessions, RegisterSessions.id, RegisterSessions.isActive, RegisterSessions.syncVersion, RegisterSessions.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, RegisterSessions, RegisterSessions.id, RegisterSessions.isActive, RegisterSessions.syncVersion, RegisterSessions.updatedAt, op)
         }
     }
 
     // ── Cash Movement ────────────────────────────────────────────────────
 
-    private fun applyCashMovement(storeId: String, op: SyncOperation) {
+    private suspend fun applyCashMovement(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -855,13 +864,13 @@ class EntityApplier {
                     it[CashMovements.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(CashMovements, CashMovements.id, CashMovements.isActive, CashMovements.syncVersion, CashMovements.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, CashMovements, CashMovements.id, CashMovements.isActive, CashMovements.syncVersion, CashMovements.updatedAt, op)
         }
     }
 
     // ── Tax Group ────────────────────────────────────────────────────────
 
-    private fun applyTaxGroup(storeId: String, op: SyncOperation) {
+    private suspend fun applyTaxGroup(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -877,13 +886,13 @@ class EntityApplier {
                     it[TaxGroups.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(TaxGroups, TaxGroups.id, TaxGroups.isActive, TaxGroups.syncVersion, TaxGroups.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, TaxGroups, TaxGroups.id, TaxGroups.isActive, TaxGroups.syncVersion, TaxGroups.updatedAt, op)
         }
     }
 
     // ── Unit of Measure ──────────────────────────────────────────────────
 
-    private fun applyUnitOfMeasure(storeId: String, op: SyncOperation) {
+    private suspend fun applyUnitOfMeasure(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -900,13 +909,13 @@ class EntityApplier {
                     it[UnitsOfMeasure.updatedAt]      = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(UnitsOfMeasure, UnitsOfMeasure.id, UnitsOfMeasure.isActive, UnitsOfMeasure.syncVersion, UnitsOfMeasure.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, UnitsOfMeasure, UnitsOfMeasure.id, UnitsOfMeasure.isActive, UnitsOfMeasure.syncVersion, UnitsOfMeasure.updatedAt, op)
         }
     }
 
     // ── Payment Split ────────────────────────────────────────────────────
 
-    private fun applyPaymentSplit(storeId: String, op: SyncOperation) {
+    private suspend fun applyPaymentSplit(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -930,7 +939,7 @@ class EntityApplier {
 
     // ── Coupon ───────────────────────────────────────────────────────────
 
-    private fun applyCoupon(storeId: String, op: SyncOperation) {
+    private suspend fun applyCoupon(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -957,13 +966,13 @@ class EntityApplier {
                     it[Coupons.updatedAt]        = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Coupons, Coupons.id, Coupons.isActive, Coupons.syncVersion, Coupons.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Coupons, Coupons.id, Coupons.isActive, Coupons.syncVersion, Coupons.updatedAt, op)
         }
     }
 
     // ── Expense ──────────────────────────────────────────────────────────
 
-    private fun applyExpense(storeId: String, op: SyncOperation) {
+    private suspend fun applyExpense(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -979,13 +988,13 @@ class EntityApplier {
                     it[Expenses.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Expenses, Expenses.id, Expenses.isActive, Expenses.syncVersion, Expenses.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Expenses, Expenses.id, Expenses.isActive, Expenses.syncVersion, Expenses.updatedAt, op)
         }
     }
 
     // ── Settings (key-value per store) ───────────────────────────────────
 
-    private fun applySettings(storeId: String, op: SyncOperation) {
+    private suspend fun applySettings(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1000,13 +1009,13 @@ class EntityApplier {
                     it[Settings.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Settings, Settings.id, Settings.isActive, Settings.syncVersion, Settings.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Settings, Settings.id, Settings.isActive, Settings.syncVersion, Settings.updatedAt, op)
         }
     }
 
     // ── Employee ──────────────────────────────────────────────────────────
 
-    private fun applyEmployee(storeId: String, op: SyncOperation) {
+    private suspend fun applyEmployee(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1027,13 +1036,13 @@ class EntityApplier {
                     it[Employees.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Employees, Employees.id, Employees.isActive, Employees.syncVersion, Employees.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Employees, Employees.id, Employees.isActive, Employees.syncVersion, Employees.updatedAt, op)
         }
     }
 
     // ── Expense Category ──────────────────────────────────────────────────
 
-    private fun applyExpenseCategory(storeId: String, op: SyncOperation) {
+    private suspend fun applyExpenseCategory(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1050,13 +1059,13 @@ class EntityApplier {
                     it[ExpenseCategories.updatedAt]   = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(ExpenseCategories, ExpenseCategories.id, ExpenseCategories.isActive, ExpenseCategories.syncVersion, ExpenseCategories.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, ExpenseCategories, ExpenseCategories.id, ExpenseCategories.isActive, ExpenseCategories.syncVersion, ExpenseCategories.updatedAt, op)
         }
     }
 
     // ── Coupon Usage ──────────────────────────────────────────────────────
 
-    private fun applyCouponUsage(storeId: String, op: SyncOperation) {
+    private suspend fun applyCouponUsage(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE" -> {
@@ -1098,7 +1107,7 @@ class EntityApplier {
 
     // ── Promotion ─────────────────────────────────────────────────────────
 
-    private fun applyPromotion(storeId: String, op: SyncOperation) {
+    private suspend fun applyPromotion(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1125,13 +1134,13 @@ class EntityApplier {
                     it[Promotions.updatedAt]       = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(Promotions, Promotions.id, Promotions.isActive, Promotions.syncVersion, Promotions.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, Promotions, Promotions.id, Promotions.isActive, Promotions.syncVersion, Promotions.updatedAt, op)
         }
     }
 
     // ── Customer Group ────────────────────────────────────────────────────
 
-    private fun applyCustomerGroup(storeId: String, op: SyncOperation) {
+    private suspend fun applyCustomerGroup(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1147,13 +1156,13 @@ class EntityApplier {
                     it[CustomerGroups.updatedAt]    = OffsetDateTime.now(ZoneOffset.UTC)
                 }
             }
-            "DELETE" -> softDelete(CustomerGroups, CustomerGroups.id, CustomerGroups.isActive, CustomerGroups.syncVersion, CustomerGroups.updatedAt, op)
+            "DELETE" -> softDelete(storeId, deviceId, CustomerGroups, CustomerGroups.id, CustomerGroups.isActive, CustomerGroups.syncVersion, CustomerGroups.updatedAt, op)
         }
     }
 
     // ── Warehouse Stock (C1.2) ────────────────────────────────────────────
 
-    private fun applyWarehouseStock(storeId: String, op: SyncOperation) {
+    private suspend fun applyWarehouseStock(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1176,7 +1185,7 @@ class EntityApplier {
 
     // ── Replenishment Rule (C1.5) ──────────────────────────────────────────
 
-    private fun applyReplenishmentRule(op: SyncOperation) {
+    private suspend fun applyReplenishmentRule(deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1201,7 +1210,7 @@ class EntityApplier {
 
     // ── Pricing Rule (C2.1) ──────────────────────────────────────────────
 
-    private fun applyPricingRule(storeId: String, op: SyncOperation) {
+    private suspend fun applyPricingRule(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1226,7 +1235,7 @@ class EntityApplier {
 
     // ── Regional Tax Override (C2.3) ──────────────────────────────────────
 
-    private fun applyRegionalTaxOverride(storeId: String, op: SyncOperation) {
+    private suspend fun applyRegionalTaxOverride(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1253,7 +1262,7 @@ class EntityApplier {
     // SECURITY FIX: storeId parameter comes from the JWT-verified claim in applyInTransaction().
     // The payload's store_id field is intentionally ignored to prevent a device authenticated
     // for Store A from granting access to Store B via a crafted sync payload.
-    private fun applyUserStoreAccess(storeId: String, op: SyncOperation) {
+    private suspend fun applyUserStoreAccess(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1275,7 +1284,7 @@ class EntityApplier {
     // ── Employee Store Assignment (C3.4) ─────────────────────────────────
 
     // SECURITY FIX: same pattern as applyUserStoreAccess — storeId comes from JWT, not payload.
-    private fun applyEmployeeStoreAssignment(storeId: String, op: SyncOperation) {
+    private suspend fun applyEmployeeStoreAssignment(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1294,7 +1303,7 @@ class EntityApplier {
 
     // ── Stock Transfer (C1.3) ────────────────────────────────────────────
 
-    private fun applyStockTransfer(storeId: String, op: SyncOperation) {
+    private suspend fun applyStockTransfer(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1321,7 +1330,7 @@ class EntityApplier {
 
     // ── Purchase Order (C1.3/C1.5) ───────────────────────────────────────
 
-    private fun applyPurchaseOrder(storeId: String, op: SyncOperation) {
+    private suspend fun applyPurchaseOrder(storeId: String, deviceId: String, op: SyncOperation) {
         val payload = parsePayload(op) ?: return
         when (op.operation) {
             "INSERT", "CREATE", "UPDATE" -> {
@@ -1352,7 +1361,25 @@ class EntityApplier {
         json.parseToJsonElement(op.payload).jsonObject
     }.getOrNull()
 
-    private fun softDelete(
+    /**
+     * Soft-delete a row by setting `is_active=false`.
+     *
+     * SECURITY: A DELETE for an entity that doesn't exist on the server must
+     * not silently accept. Earlier behaviour returned 0 rows updated, added
+     * the op to `accepted`, and the client stopped retrying, creating
+     * permanent sync divergence.
+     *
+     * DLQ routing: if no row matches, the operation is still *logged* and
+     * optionally inserted into the sync dead-letter queue (store-scoped).
+     * [storeId] may be `null` for cross-store tables (e.g. MasterProducts) —
+     * those cases are only logged because DLQ entries are per-store.
+     * Idempotent re-deliveries of a DELETE are common after reconnection so
+     * we intentionally don't throw (throwing would roll back the entire
+     * push batch).
+     */
+    private suspend fun softDelete(
+        storeId: String?,
+        deviceId: String,
         table: Table,
         idCol: Column<String>,
         activeCol: Column<Boolean>,
@@ -1360,21 +1387,28 @@ class EntityApplier {
         updatedCol: Column<OffsetDateTime>,
         op: SyncOperation,
     ) {
-        // SECURITY FIX: check that at least one row was updated. A DELETE for an entity that
-        // doesn't exist on the server silently returned 0 rows updated, yet the operation was
-        // still added to the accepted list — causing the client to believe the delete succeeded
-        // and stop retrying, leading to permanent sync state divergence.
-        //
-        // We log a warning rather than throwing so that idempotent re-deliveries of a DELETE
-        // (common after reconnection) don't fail the entire push batch. TODO: route to dead-letter
-        // queue once EntityApplier has DeadLetterRepository injected.
         val rowsUpdated = table.update({ idCol eq op.entityId }) {
             it[activeCol]  = false
             it[versionCol] = op.createdAt
             it[updatedCol] = OffsetDateTime.now(ZoneOffset.UTC)
         }
         if (rowsUpdated == 0) {
-            logger.warn("softDelete: no row found for ${op.entityType} id=${op.entityId} op=${op.id} — operation accepted but entity did not exist on server")
+            logger.warn(
+                "softDelete: no row found for ${op.entityType} id=${op.entityId} op=${op.id} — " +
+                "operation accepted but entity did not exist on server; routing to DLQ=${storeId != null}"
+            )
+            if (storeId != null) {
+                runCatching {
+                    deadLetters.insert(
+                        storeId  = storeId,
+                        deviceId = deviceId,
+                        op       = op,
+                        reason   = "softDelete miss: no row for ${op.entityType} id=${op.entityId}",
+                    )
+                }.onFailure { e ->
+                    logger.error("softDelete: DLQ insert failed for op ${op.id}: ${e.message}", e)
+                }
+            }
         }
     }
 
