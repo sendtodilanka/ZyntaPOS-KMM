@@ -12,11 +12,12 @@ import type { AdminUser, AdminRole, UserStatus } from '@/types/user';
 
 // H-001: filter state persisted in URL. Back/forward and deep links
 // preserve role + status + search instead of resetting on navigation.
+// Defaults are `undefined` so empty query params don't end up in the URL.
 interface UsersSearch {
   page?: number;
   q?: string;
-  role?: AdminRole | '';
-  status?: UserStatus | '';
+  role?: AdminRole;
+  status?: UserStatus;
 }
 
 const VALID_ROLES: AdminRole[] = ['ADMIN', 'OPERATOR', 'FINANCE', 'AUDITOR', 'HELPDESK'];
@@ -32,8 +33,8 @@ export const Route = createFileRoute('/users/')({
     return {
       page,
       q,
-      role: (VALID_ROLES as string[]).includes(roleRaw) ? (roleRaw as AdminRole) : '',
-      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as UserStatus) : '',
+      role: (VALID_ROLES as string[]).includes(roleRaw) ? (roleRaw as AdminRole) : undefined,
+      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as UserStatus) : undefined,
     };
   },
 });
@@ -110,7 +111,7 @@ function UsersPage() {
         <select
           aria-label="Filter by role"
           value={roleFilter}
-          onChange={(e) => updateSearch({ role: e.target.value as AdminRole | '' })}
+          onChange={(e) => updateSearch({ role: (e.target.value as AdminRole) || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
         >
           <option value="">All Roles</option>
@@ -123,7 +124,7 @@ function UsersPage() {
         <select
           aria-label="Filter by status"
           value={statusFilter}
-          onChange={(e) => updateSearch({ status: e.target.value as UserStatus | '' })}
+          onChange={(e) => updateSearch({ status: (e.target.value as UserStatus) || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
         >
           <option value="">All Statuses</option>

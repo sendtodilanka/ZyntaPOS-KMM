@@ -1,5 +1,6 @@
 package com.zyntasolutions.zyntapos.api.routes
 
+import com.zyntasolutions.zyntapos.api.auth.AdminPermissions
 import com.zyntasolutions.zyntapos.api.models.*
 import com.zyntasolutions.zyntapos.common.validation.validateOr422
 import com.zyntasolutions.zyntapos.api.service.AdminAuthService
@@ -36,15 +37,20 @@ fun Route.adminConfigRoutes() {
             call.respond(HttpStatusCode.OK, updated)
         }
 
-        // ── Tax Rates ──────────────────────────────────────────────────────────
+        // ── Tax Rates (G-004) ──────────────────────────────────────────────────
+        // Read: ADMIN, FINANCE, AUDITOR. Write: ADMIN, FINANCE.
+        // Previously guarded only by `Authenticated` which allowed every role
+        // (including HELPDESK) to mutate tax rate records — now explicit.
 
         get("/tax-rates") {
-            resolveAdminUser(call, authService) ?: return@get
+            val admin = resolveAdminUser(call, authService) ?: return@get
+            AdminPermissions.requirePermission(admin.role, "config:tax_rates:read")
             call.respond(HttpStatusCode.OK, configService.listTaxRates())
         }
 
         post("/tax-rates") {
-            resolveAdminUser(call, authService) ?: return@post
+            val admin = resolveAdminUser(call, authService) ?: return@post
+            AdminPermissions.requirePermission(admin.role, "config:tax_rates:write")
             val body = call.receive<TaxRateCreateRequest>()
 
             if (!call.validateOr422 {
@@ -58,7 +64,8 @@ fun Route.adminConfigRoutes() {
         }
 
         put("/tax-rates/{id}") {
-            resolveAdminUser(call, authService) ?: return@put
+            val admin = resolveAdminUser(call, authService) ?: return@put
+            AdminPermissions.requirePermission(admin.role, "config:tax_rates:write")
             val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                 ?: return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid tax rate ID"))
 
@@ -77,7 +84,8 @@ fun Route.adminConfigRoutes() {
         }
 
         delete("/tax-rates/{id}") {
-            resolveAdminUser(call, authService) ?: return@delete
+            val admin = resolveAdminUser(call, authService) ?: return@delete
+            AdminPermissions.requirePermission(admin.role, "config:tax_rates:write")
             val id = call.parameters["id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
                 ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("INVALID_ID", "Invalid tax rate ID"))
 

@@ -3,9 +3,10 @@ package com.zyntasolutions.zyntapos.api.auth
 import com.zyntasolutions.zyntapos.api.auth.AdminRole.*
 
 /**
- * 39 atomic permissions for the admin panel.
+ * Atomic permissions for the admin panel — 41 as of G-004
+ * (tax-rate read/write split out from the bare `Authenticated` guard).
  * Each permission maps to exactly one capability.
- * Backend enforces via [check]; frontend mirrors this in permissions.ts.
+ * Backend enforces via [check]; frontend mirrors this in hooks/use-auth.ts.
  */
 object AdminPermissions {
     private val permissions: Map<String, Set<AdminRole>> = mapOf(
@@ -66,6 +67,11 @@ object AdminPermissions {
         "email:logs"                to setOf(ADMIN, OPERATOR),
 
         // ── Inventory (C1.2 / C1.5) ──────────────────────────────────────────────
+        // G-003: FINANCE keeps inventory:read because the finance role needs
+        // cross-store stock counts for cost-of-goods-sold analysis. Admin panel
+        // inventory is cross-store reporting only; actual stock mutations happen
+        // in the POS app (ADR-009). Review the grant if COGS analysis is moved
+        // off the admin panel.
         "inventory:read"            to setOf(ADMIN, OPERATOR, FINANCE),
         "inventory:write"           to setOf(ADMIN, OPERATOR),
 
@@ -76,6 +82,13 @@ object AdminPermissions {
         "system:settings"           to setOf(ADMIN),
         "system:health"             to setOf(ADMIN, OPERATOR),
         "system:backup"             to setOf(ADMIN),
+
+        // ── Config :: Tax Rates (G-004) ──────────────────────────────────────
+        // Previously guarded only by `Authenticated` so any admin role could
+        // read/write. Split into explicit fine-grained scopes that mirror the
+        // rest of the permissions map.
+        "config:tax_rates:read"     to setOf(ADMIN, FINANCE, AUDITOR),
+        "config:tax_rates:write"    to setOf(ADMIN, FINANCE),
     )
 
     fun check(role: AdminRole, permission: String): Boolean =

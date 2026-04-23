@@ -14,11 +14,14 @@ import type { License, LicenseStatus, LicenseEdition } from '@/types/license';
 
 // H-003: persist filter state in the URL so navigation + back button
 // + bookmarks preserve status/edition/search selections.
+// Use `undefined` (never `''`) for default / "All" selections so TanStack
+// Router omits them from the serialized URL and we don't end up navigating
+// to `/licenses?status=&edition=`.
 interface LicensesSearch {
   page?: number;
   q?: string;
-  status?: LicenseStatus | '';
-  edition?: LicenseEdition | '';
+  status?: LicenseStatus;
+  edition?: LicenseEdition;
 }
 
 const VALID_STATUSES: LicenseStatus[] = ['ACTIVE', 'EXPIRED', 'REVOKED', 'SUSPENDED', 'EXPIRING_SOON'];
@@ -34,8 +37,8 @@ export const Route = createFileRoute('/licenses/')({
     return {
       page,
       q,
-      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as LicenseStatus) : '',
-      edition: (VALID_EDITIONS as string[]).includes(editionRaw) ? (editionRaw as LicenseEdition) : '',
+      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as LicenseStatus) : undefined,
+      edition: (VALID_EDITIONS as string[]).includes(editionRaw) ? (editionRaw as LicenseEdition) : undefined,
     };
   },
 });
@@ -122,7 +125,7 @@ function LicensesPage() {
         <select
           aria-label="Filter by status"
           value={statusFilter}
-          onChange={(e) => updateSearch({ status: e.target.value as LicenseStatus | '' })}
+          onChange={(e) => updateSearch({ status: (e.target.value as LicenseStatus) || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[140px]"
         >
           <option value="">All Statuses</option>
@@ -133,7 +136,7 @@ function LicensesPage() {
         <select
           aria-label="Filter by edition"
           value={editionFilter}
-          onChange={(e) => updateSearch({ edition: e.target.value as LicenseEdition | '' })}
+          onChange={(e) => updateSearch({ edition: (e.target.value as LicenseEdition) || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[140px]"
         >
           <option value="">All Editions</option>

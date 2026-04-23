@@ -298,6 +298,14 @@ function ReportsPage() {
               </tbody>
             </table>
           </div>
+          {/* F-002: tell the user the on-screen table is truncated when the
+               full result would exceed the 50-row display cap. CSV export
+               still returns the complete data set. */}
+          {!salesLoading && (salesData?.length ?? 0) > 50 && (
+            <div className="px-4 py-2 border-t border-surface-border text-xs text-slate-400">
+              Showing first 50 of {salesData!.length.toLocaleString()} rows &mdash; export CSV for the full breakdown.
+            </div>
+          )}
         </div>
       </div>}
 
