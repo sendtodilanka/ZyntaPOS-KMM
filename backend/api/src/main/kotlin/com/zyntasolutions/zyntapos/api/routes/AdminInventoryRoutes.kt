@@ -25,6 +25,12 @@ fun Route.adminInventoryRoutes() {
          * Query params:
          *   - productId (optional) — filter to a single product across all stores/warehouses
          *   - storeId   (optional) — scope to a single store's warehouses
+         *   - page      (optional, default 0)    — zero-based page index
+         *   - size      (optional, default 50)   — page size, clamped 1..200 (F-001)
+         *
+         * Response `total` and `lowStock` reflect the full (filtered) result set so
+         * the UI can show "X low-stock out of N rows" even when the user is
+         * paginating; `items` is the current page only.
          *
          * Roles: ADMIN, OPERATOR, FINANCE  (inventory:read)
          */
@@ -39,6 +45,8 @@ fun Route.adminInventoryRoutes() {
 
             val productId = call.request.queryParameters["productId"]
             val storeId   = call.request.queryParameters["storeId"]
+            val page      = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+            val size      = call.request.queryParameters["size"]?.toIntOrNull()?.coerceIn(1, 200) ?: 50
 
             val rows = if (storeId != null) {
                 repo.getByStore(storeId, productId)
@@ -46,10 +54,20 @@ fun Route.adminInventoryRoutes() {
                 repo.getGlobal(productId)
             }
 
+            val total    = rows.size
+            val lowStock = rows.count { it.isLowStock }
+            // F-001: paginate here so the UI can render Previous/Next controls
+            // without overflowing the browser when the filtered set is large.
+            val pageItems = rows.drop(page * size).take(size)
+            val totalPages = if (total == 0) 0 else (total + size - 1) / size
+
             call.respond(HttpStatusCode.OK, GlobalInventoryResponse(
-                total    = rows.size,
-                lowStock = rows.count { it.isLowStock },
-                items    = rows.map { it.toDto() },
+                total      = total,
+                lowStock   = lowStock,
+                page       = page,
+                size       = size,
+                totalPages = totalPages,
+                items      = pageItems.map { it.toDto() },
             ))
         }
     }
@@ -61,6 +79,9 @@ fun Route.adminInventoryRoutes() {
 data class GlobalInventoryResponse(
     val total: Int,
     val lowStock: Int,
+    val page: Int,
+    val size: Int,
+    val totalPages: Int,
     val items: List<WarehouseStockDto>,
 )
 
