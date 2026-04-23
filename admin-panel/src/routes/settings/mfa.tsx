@@ -170,8 +170,8 @@ function MfaSettingsPage() {
               These one-time codes let you access your account if you lose your authenticator device. Store them securely.
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {setupData.backupCodes.map((code, i) => (
-                <code key={i} className="text-xs font-mono text-slate-300 bg-surface-base px-2 py-1 rounded">
+              {setupData.backupCodes.map((code) => (
+                <code key={code} className="text-xs font-mono text-slate-300 bg-surface-base px-2 py-1 rounded">
                   {code}
                 </code>
               ))}

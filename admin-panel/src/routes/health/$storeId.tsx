@@ -115,7 +115,10 @@ function StoreHealthDetailPage() {
           </div>
           <div className="divide-y divide-surface-border max-h-64 overflow-y-auto">
             {data.errorLog.map((entry, i) => (
-              <div key={i} className="px-4 py-3 flex items-start gap-3">
+              // L-003: composite key — entries are immutable (server-rendered)
+              // and never reorder, but the array index alone misled React on
+              // re-renders. Combine timestamp+severity+index for stability.
+              <div key={`${entry.timestamp}-${entry.severity}-${i}`} className="px-4 py-3 flex items-start gap-3">
                 <span className={cn('text-xs font-mono pt-0.5 flex-shrink-0', severityColor(entry.severity))}>
                   [{entry.severity.toUpperCase()}]
                 </span>
