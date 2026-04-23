@@ -109,9 +109,17 @@ jobs:
             # but newer Caddy versions auto-redirect HTTP→HTTPS (308) for any host with
             # a named HTTPS block, which broke the test. HTTPS on localhost bypasses
             # that and lets the backend respond with its real /ping payload.
+            # Subdomains whose backend implements the canonical "/ping → 200 ok"
+            # liveness contract. docs (Cloudflare Pages) and status (uptime-kuma)
+            # do NOT — they serve full HTML on any path — so their /ping check
+            # only asserts a 2xx response, not the "ok" body.
             for sub in api license panel docs status sync; do
               PING_HTTP="000"
               PING_BODY=""
+              PING_BODY_REQUIRED="ok"
+              case "$sub" in
+                docs|status) PING_BODY_REQUIRED="" ;;  # accept any 2xx
+              esac
 
               for attempt in $(seq 1 "$MAX_RETRIES"); do
                 PING_HTTP=$(curl -sk --max-time "$CURL_TIMEOUT" -o /dev/null \
@@ -121,8 +129,10 @@ jobs:
                   --resolve "${sub}.zyntapos.com:443:127.0.0.1" \
                   "https://${sub}.zyntapos.com/ping" 2>/dev/null) || PING_BODY=""
 
-                if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
-                  break
+                if [ "$PING_HTTP" = "200" ]; then
+                  if [ -z "$PING_BODY_REQUIRED" ] || [ "$PING_BODY" = "$PING_BODY_REQUIRED" ]; then
+                    break
+                  fi
                 fi
 
                 if [ "$attempt" -lt "$MAX_RETRIES" ]; then
@@ -178,15 +188,23 @@ jobs:
                 done
               fi
 
-              if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
+              PING_OK=false
+              if [ "$PING_HTTP" = "200" ]; then
+                if [ -z "$PING_BODY_REQUIRED" ] || [ "$PING_BODY" = "$PING_BODY_REQUIRED" ]; then
+                  PING_OK=true
+                fi
+              fi
+
+              if $PING_OK; then
                 if [ -n "$HEALTH_DB" ] && [ "$HEALTH_DB" != "ok" ]; then
                   echo "  ❌  ${sub}.zyntapos.com  /ping ✅  /health db=${HEALTH_DB} ❌"
-                  echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`ok\` | \`${HOME_HTTP}\` | ❌ DB Degraded (db=${HEALTH_DB}) |" >> "$RESULTS_FILE"
+                  echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`${PING_BODY_REQUIRED:-2xx}\` | \`${HOME_HTTP}\` | ❌ DB Degraded (db=${HEALTH_DB}) |" >> "$RESULTS_FILE"
                   PASS=false
                 else
                   DB_NOTE=""; [ -n "$HEALTH_DB" ] && DB_NOTE=" db=${HEALTH_DB}"
-                  echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (ok)  / → ${HOME_HTTP}${DB_NOTE}"
-                  echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`ok\` | \`${HOME_HTTP}\` | ✅ Healthy${DB_NOTE} |" >> "$RESULTS_FILE"
+                  BODY_DISPLAY="${PING_BODY_REQUIRED:-2xx}"
+                  echo "  ✅  ${sub}.zyntapos.com  /ping → ${PING_HTTP} (${BODY_DISPLAY})  / → ${HOME_HTTP}${DB_NOTE}"
+                  echo "| \`${sub}.zyntapos.com\` | \`${PING_HTTP}\` | \`${BODY_DISPLAY}\` | \`${HOME_HTTP}\` | ✅ Healthy${DB_NOTE} |" >> "$RESULTS_FILE"
                 fi
               else
                 echo "  ❌  ${sub}.zyntapos.com  /ping → ${PING_HTTP}  / → ${HOME_HTTP}"
