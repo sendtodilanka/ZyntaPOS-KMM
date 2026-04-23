@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { buildQueryString } from '@/lib/utils';
+import { toast } from '@/stores/ui-store';
 import type {
   Ticket,
   TicketComment,
@@ -62,6 +63,7 @@ export function useCreateTicket() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    onError: () => toast.error('Failed to create ticket'),
   });
 }
 
@@ -74,6 +76,7 @@ export function useUpdateTicket() {
       qc.invalidateQueries({ queryKey: ticketKeys.detail(id) });
       qc.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    onError: () => toast.error('Failed to update ticket'),
   });
 }
 
@@ -86,6 +89,7 @@ export function useAssignTicket() {
       qc.invalidateQueries({ queryKey: ticketKeys.detail(id) });
       qc.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    onError: () => toast.error('Failed to assign ticket'),
   });
 }
 
@@ -98,6 +102,7 @@ export function useResolveTicket() {
       qc.invalidateQueries({ queryKey: ticketKeys.detail(id) });
       qc.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    onError: () => toast.error('Failed to resolve ticket'),
   });
 }
 
@@ -110,6 +115,7 @@ export function useCloseTicket() {
       qc.invalidateQueries({ queryKey: ticketKeys.detail(id) });
       qc.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    onError: () => toast.error('Failed to close ticket'),
   });
 }
 
@@ -122,6 +128,7 @@ export function useAddComment() {
       qc.invalidateQueries({ queryKey: ticketKeys.comments(ticketId) });
       qc.invalidateQueries({ queryKey: ticketKeys.detail(ticketId) });
     },
+    onError: () => toast.error('Failed to add comment'),
   });
 }
 
@@ -156,6 +163,7 @@ export function useBulkAssignTickets() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    onError: () => toast.error('Failed to bulk-assign tickets'),
   });
 }
 
@@ -167,5 +175,6 @@ export function useBulkResolveTickets() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    onError: () => toast.error('Failed to bulk-resolve tickets'),
   });
 }

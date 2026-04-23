@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { buildQueryString } from '@/lib/utils';
+import { toast } from '@/stores/ui-store';
 import type { Alert, AlertFilter, AlertsPage, AlertRule } from '@/types/alert';
 
 export const alertKeys = {
@@ -44,6 +45,7 @@ export function useAcknowledgeAlert() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: alertKeys.all });
     },
+    onError: () => toast.error('Failed to acknowledge alert'),
   });
 }
 
@@ -54,6 +56,7 @@ export function useResolveAlert() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: alertKeys.all });
     },
+    onError: () => toast.error('Failed to resolve alert'),
   });
 }
 
@@ -65,6 +68,7 @@ export function useSilenceAlert() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: alertKeys.all });
     },
+    onError: () => toast.error('Failed to silence alert'),
   });
 }
 
@@ -76,5 +80,6 @@ export function useToggleAlertRule() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: alertKeys.rules() });
     },
+    onError: () => toast.error('Failed to update alert rule'),
   });
 }
