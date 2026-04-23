@@ -102,17 +102,24 @@ jobs:
             # sync, docs — all routed by Caddy. Note: docs.zyntapos.com is served by
             # Cloudflare Pages (zyntapos-docs.pages.dev) — Caddy returns 200 via CF proxy,
             # not from a local container. /ping passes because Caddy handles the route.
+            #
+            # IMPORTANT: we hit HTTPS on port 443 with --resolve <host>:443:127.0.0.1
+            # and -k (skip cert verification). This exercises the same code path that
+            # real traffic takes. Earlier versions used plain HTTP with Host headers,
+            # but newer Caddy versions auto-redirect HTTP→HTTPS (308) for any host with
+            # a named HTTPS block, which broke the test. HTTPS on localhost bypasses
+            # that and lets the backend respond with its real /ping payload.
             for sub in api license panel docs status sync; do
               PING_HTTP="000"
               PING_BODY=""
 
               for attempt in $(seq 1 "$MAX_RETRIES"); do
-                PING_HTTP=$(curl -s --max-time "$CURL_TIMEOUT" -o /dev/null \
-                  -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
-                  "http://localhost/ping" 2>/dev/null) || PING_HTTP="000"
-                PING_BODY=$(curl -s --max-time "$CURL_TIMEOUT" \
-                  -H "Host: ${sub}.zyntapos.com" \
-                  "http://localhost/ping" 2>/dev/null) || PING_BODY=""
+                PING_HTTP=$(curl -sk --max-time "$CURL_TIMEOUT" -o /dev/null \
+                  -w "%{http_code}" --resolve "${sub}.zyntapos.com:443:127.0.0.1" \
+                  "https://${sub}.zyntapos.com/ping" 2>/dev/null) || PING_HTTP="000"
+                PING_BODY=$(curl -sk --max-time "$CURL_TIMEOUT" \
+                  --resolve "${sub}.zyntapos.com:443:127.0.0.1" \
+                  "https://${sub}.zyntapos.com/ping" 2>/dev/null) || PING_BODY=""
 
                 if [ "$PING_HTTP" = "200" ] && [ "$PING_BODY" = "ok" ]; then
                   break
@@ -124,9 +131,9 @@ jobs:
                 fi
               done
 
-              HOME_HTTP=$(curl -s --max-time "$CURL_TIMEOUT" -o /dev/null \
-                -w "%{http_code}" -H "Host: ${sub}.zyntapos.com" \
-                "http://localhost/" 2>/dev/null) || HOME_HTTP="000"
+              HOME_HTTP=$(curl -sk --max-time "$CURL_TIMEOUT" -o /dev/null \
+                -w "%{http_code}" --resolve "${sub}.zyntapos.com:443:127.0.0.1" \
+                "https://${sub}.zyntapos.com/" 2>/dev/null) || HOME_HTTP="000"
 
               # /ping → 200 "ok" is the canonical liveness signal.
               # For api and license services, also verify /health → db: "ok" to
@@ -232,14 +239,20 @@ jobs:
 
       - name: Check smoke test result
         id: smoke_gate
-        if: steps.smoke.outcome != 'success'
+        # GitHub Actions skips subsequent steps after a failure unless the step
+        # explicitly opts in via failure()/always(). We need this step to RUN
+        # on smoke failure so the rollback step downstream can see it failed.
+        if: always() && steps.smoke.outcome != 'success'
         run: |
           echo "::error::Smoke test failed — one or more endpoints are degraded"
           echo "Initiating automatic rollback..."
           exit 1
 
       - name: "Step[5b]: Rollback on Smoke Failure"
-        if: failure() && steps.smoke_gate.outcome == 'failure'
+        # Trigger rollback whenever the smoke step failed. We key off
+        # steps.smoke.outcome (not smoke_gate) so a hypothetical skip of the
+        # gate still fires rollback when the underlying smoke run was bad.
+        if: always() && steps.smoke.outcome != 'success'
         uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.VPS_HOST }}
