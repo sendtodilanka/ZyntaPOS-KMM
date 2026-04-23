@@ -25,3 +25,36 @@ export interface ConfigUpdatePayload {
   key: string;
   value: string | number | boolean;
 }
+
+// Tax Rates — mirrors backend AdminTaxRate in AdminApiModels.kt
+export interface TaxRate {
+  id: string;
+  name: string;
+  rate: number; // percentage 0-100
+  description: string;
+  applicableTo: string[];
+  isDefault: boolean;
+  country: string;
+  region: string | null;
+  active: boolean;
+}
+
+export interface TaxRateCreateRequest {
+  name: string;
+  rate: number;
+  description?: string;
+  applicableTo?: string[];
+  isDefault?: boolean;
+  country?: string;
+  region?: string;
+}
+
+export interface TaxRateUpdateRequest {
+  name?: string;
+  rate?: number;
+  description?: string;
+  applicableTo?: string[];
+  isDefault?: boolean;
+  country?: string;
+  region?: string;
+}

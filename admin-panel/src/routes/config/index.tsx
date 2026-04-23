@@ -1,18 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { Settings2, Flag } from 'lucide-react';
+import { Settings2, Flag, Percent } from 'lucide-react';
 import { FeatureFlagTable } from '@/components/config/FeatureFlagTable';
 import { ConfigEditor } from '@/components/config/ConfigEditor';
+import { TaxRatesTable } from '@/components/config/TaxRatesTable';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/config/')({
   component: ConfigPage,
 });
 
-type TabId = 'flags' | 'system';
+type TabId = 'flags' | 'tax-rates' | 'system';
 
 const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'flags', label: 'Feature Flags', icon: Flag },
+  { id: 'tax-rates', label: 'Tax Rates', icon: Percent },
   { id: 'system', label: 'System', icon: Settings2 },
 ];
 
@@ -22,7 +24,7 @@ function ConfigPage() {
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-100">Configuration</h1>
-        <p className="text-sm text-slate-400 mt-1">Manage feature flags and system settings</p>
+        <p className="text-sm text-slate-400 mt-1">Manage feature flags, tax rates, and system settings</p>
       </div>
       <div className="flex gap-1 bg-surface-elevated rounded-xl p-1 overflow-x-auto">
         {TABS.map((tab) => (
@@ -32,6 +34,7 @@ function ConfigPage() {
         ))}
       </div>
       {activeTab==='flags' && <FeatureFlagTable/>}
+      {activeTab==='tax-rates' && <TaxRatesTable/>}
       {activeTab==='system' && <ConfigEditor/>}
     </div>
   );
