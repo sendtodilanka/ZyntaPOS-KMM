@@ -4,8 +4,10 @@ import { Plus } from 'lucide-react';
 import { TicketTable } from '@/components/tickets/TicketTable';
 import { TicketCreateModal } from '@/components/tickets/TicketCreateModal';
 import { SearchInput } from '@/components/shared/SearchInput';
+import { ExportButton } from '@/components/shared/ExportButton';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
-import { useTickets, useTicketMetrics } from '@/api/tickets';
+import { useTickets, useTicketMetrics, exportTickets } from '@/api/tickets';
+import { toast } from '@/stores/ui-store';
 import { useAuth } from '@/hooks/use-auth';
 import { useDebounce } from '@/hooks/use-debounce';
 import { TICKET_CATEGORY_TREE } from '@/types/ticket';
@@ -51,15 +53,32 @@ function TicketsPage() {
           <h1 className="panel-title">Support Tickets</h1>
           <p className="panel-subtitle">{data?.total ?? 0} tickets total</p>
         </div>
-        {hasPermission('tickets:create') && (
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Ticket</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <ExportButton
+            onExportCsv={async () => {
+              try {
+                await exportTickets({
+                  status: statusFilter || undefined,
+                  priority: priorityFilter || undefined,
+                  category: categoryFilter || undefined,
+                  search: debouncedSearch || undefined,
+                });
+                toast.success('Export complete', 'Tickets downloaded as CSV.');
+              } catch {
+                toast.error('Export failed');
+              }
+            }}
+          />
+          {hasPermission('tickets:create') && (
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-medium rounded-lg transition-colors min-h-[44px]"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Ticket</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Metrics cards */}

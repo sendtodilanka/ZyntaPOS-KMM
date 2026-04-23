@@ -167,6 +167,32 @@ export function useBulkAssignTickets() {
   });
 }
 
+// GET /admin/tickets/export — streams CSV directly (not JSON). Downloads the
+// response body as a .csv file via an anchor click. (A-003)
+export async function exportTickets(filter: TicketFilter = {}): Promise<void> {
+  const qs = new URLSearchParams();
+  if (filter.status) qs.set('status', filter.status);
+  if (filter.priority) qs.set('priority', filter.priority);
+  if (filter.category) qs.set('category', filter.category);
+  if (filter.assignedTo) qs.set('assignedTo', filter.assignedTo);
+  if (filter.storeId) qs.set('storeId', filter.storeId);
+  if (filter.search) qs.set('search', filter.search);
+  // Backend responds text/csv; skip the .json() parse and read raw body.
+  const csv = await apiClient
+    .get(`admin/tickets/export${qs.toString() ? `?${qs}` : ''}`)
+    .text();
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `tickets-${new Date().toISOString().split('T')[0]}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export function useBulkResolveTickets() {
   const qc = useQueryClient();
   return useMutation({
