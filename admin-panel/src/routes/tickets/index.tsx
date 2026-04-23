@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { TicketTable } from '@/components/tickets/TicketTable';
 import { TicketCreateModal } from '@/components/tickets/TicketCreateModal';
 import { SearchInput } from '@/components/shared/SearchInput';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useTickets, useTicketMetrics } from '@/api/tickets';
 import { useAuth } from '@/hooks/use-auth';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -29,7 +30,7 @@ function TicketsPage() {
   const { data: metrics } = useTicketMetrics();
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data, isLoading } = useTickets({
+  const { data, isLoading, isError, refetch } = useTickets({
     page,
     size: 20,
     search: debouncedSearch || undefined,
@@ -160,20 +161,24 @@ function TicketsPage() {
         />
       </div>
 
-      <TicketTable
-        data={data?.items ?? []}
-        isLoading={isLoading}
-        page={page}
-        totalPages={totalPages}
-        total={data?.total ?? 0}
-        onPageChange={setPage}
-        filter={{
-          status: statusFilter || undefined,
-          priority: priorityFilter || undefined,
-          category: categoryFilter || undefined,
-          search: debouncedSearch || undefined,
-        }}
-      />
+      {isError ? (
+        <ErrorBanner message="Failed to load tickets." onRetry={() => refetch()} />
+      ) : (
+        <TicketTable
+          data={data?.items ?? []}
+          isLoading={isLoading}
+          page={page}
+          totalPages={totalPages}
+          total={data?.total ?? 0}
+          onPageChange={setPage}
+          filter={{
+            status: statusFilter || undefined,
+            priority: priorityFilter || undefined,
+            category: categoryFilter || undefined,
+            search: debouncedSearch || undefined,
+          }}
+        />
+      )}
 
       <TicketCreateModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>

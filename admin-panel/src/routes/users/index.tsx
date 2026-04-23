@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { UserTable } from '@/components/users/UserTable';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { UserCreateForm } from '@/components/users/UserCreateForm';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { useAdminUsers } from '@/api/users';
@@ -23,7 +24,7 @@ function UsersPage() {
   const [editUser, setEditUser] = useState<AdminUser | undefined>();
 
   const debouncedSearch = useDebounce(search, 300);
-  const { data, isLoading } = useAdminUsers({
+  const { data, isLoading, isError, refetch } = useAdminUsers({
     page, size: 20,
     search: debouncedSearch || undefined,
     role: roleFilter || undefined,
@@ -83,15 +84,19 @@ function UsersPage() {
         </select>
       </div>
 
-      <UserTable
-        data={data?.data ?? []}
-        isLoading={isLoading}
-        page={page}
-        totalPages={data?.totalPages ?? 1}
-        total={data?.total ?? 0}
-        onPageChange={setPage}
-        onEdit={handleEdit}
-      />
+      {isError ? (
+        <ErrorBanner message="Failed to load users." onRetry={() => refetch()} />
+      ) : (
+        <UserTable
+          data={data?.data ?? []}
+          isLoading={isLoading}
+          page={page}
+          totalPages={data?.totalPages ?? 1}
+          total={data?.total ?? 0}
+          onPageChange={setPage}
+          onEdit={handleEdit}
+        />
+      )}
 
       <UserCreateForm open={formOpen} onClose={handleClose} editUser={editUser} />
     </div>

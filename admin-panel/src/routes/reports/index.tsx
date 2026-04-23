@@ -6,6 +6,7 @@ import {
   LineChart, Line, Legend,
 } from 'recharts';
 import { useSalesReport, useProductPerformance } from '@/api/metrics';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { exportToCsv } from '@/lib/export';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -50,15 +51,23 @@ function ReportsPage() {
   const [activeTab, setActiveTab] = useState<'sales' | 'products'>('sales');
   const debouncedStoreId = useDebounce(storeIdFilter, 300);
 
-  const { data: salesData, isLoading: salesLoading } = useSalesReport({
+  const salesQ = useSalesReport({
     period,
     storeId: debouncedStoreId || undefined,
   });
-  const { data: productData, isLoading: productLoading } = useProductPerformance({
+  const productQ = useProductPerformance({
     period,
     storeId: debouncedStoreId || undefined,
     limit: 20,
   });
+  const { data: salesData, isLoading: salesLoading, isError: salesError } = salesQ;
+  const { data: productData, isLoading: productLoading, isError: productError } = productQ;
+
+  const anyReportError = salesError || productError;
+  const retryReports = () => {
+    if (salesError) salesQ.refetch();
+    if (productError) productQ.refetch();
+  };
 
   const handleExportSales = () => {
     if (!salesData?.length) return;
@@ -149,6 +158,13 @@ function ReportsPage() {
           </button>
         ))}
       </div>
+
+      {anyReportError && (
+        <ErrorBanner
+          message="Failed to load report data — zeros and empty charts below do not reflect actual sales."
+          onRetry={retryReports}
+        />
+      )}
 
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

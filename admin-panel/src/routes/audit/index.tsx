@@ -4,6 +4,7 @@ import { AuditLogTable } from '@/components/audit/AuditLogTable';
 import { AuditFilterPanel } from '@/components/audit/AuditFilterPanel';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { ExportButton } from '@/components/shared/ExportButton';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useAuditLogs, exportAuditLogs } from '@/api/audit';
 import { useDebounce } from '@/hooks/use-debounce';
 import { toast } from '@/stores/ui-store';
@@ -19,7 +20,7 @@ function AuditPage() {
   const debouncedSearch = useDebounce(search, 300);
 
   const effectiveFilters = { ...filters, search: debouncedSearch || undefined };
-  const { data, isLoading } = useAuditLogs(effectiveFilters);
+  const { data, isLoading, isError, refetch } = useAuditLogs(effectiveFilters);
 
   const handleExport = async () => {
     try {
@@ -53,14 +54,18 @@ function AuditPage() {
         />
       </div>
 
-      <AuditLogTable
-        data={data?.data ?? []}
-        isLoading={isLoading}
-        page={filters.page ?? 0}
-        totalPages={data?.totalPages ?? 1}
-        total={data?.total ?? 0}
-        onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))}
-      />
+      {isError ? (
+        <ErrorBanner message="Failed to load audit log — compliance events may be missing from this view." onRetry={() => refetch()} />
+      ) : (
+        <AuditLogTable
+          data={data?.data ?? []}
+          isLoading={isLoading}
+          page={filters.page ?? 0}
+          totalPages={data?.totalPages ?? 1}
+          total={data?.total ?? 0}
+          onPageChange={(p) => setFilters((f) => ({ ...f, page: p }))}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { CheckCircle, AlertTriangle, XCircle, HelpCircle, RefreshCw } from 'lucide-react';
 import { useSystemHealth, useAllStoreHealth } from '@/api/health';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import type { ServiceStatus, ServiceHealth, StoreHealthSummary } from '@/types/health';
 import { cn, formatRelativeTime } from '@/lib/utils';
 
@@ -88,8 +89,13 @@ function StoreRow({ store }: { store: StoreHealthSummary }) {
 }
 
 function HealthPage() {
-  const { data: system, isLoading: sysLoading, refetch: refetchSystem, isFetching: sysFetching } = useSystemHealth();
-  const { data: stores, isLoading: storesLoading } = useAllStoreHealth();
+  const { data: system, isLoading: sysLoading, isError: sysError, refetch: refetchSystem, isFetching: sysFetching } = useSystemHealth();
+  const { data: stores, isLoading: storesLoading, isError: storesError, refetch: refetchStores } = useAllStoreHealth();
+
+  const retryAll = () => {
+    if (sysError) refetchSystem();
+    if (storesError) refetchStores();
+  };
 
   const healthyCount = (stores ?? []).filter(s => s.status === 'healthy').length;
   const degradedCount = (stores ?? []).filter(s => s.status === 'degraded').length;
@@ -113,8 +119,23 @@ function HealthPage() {
         </button>
       </div>
 
+      {/* Error banner — API call failed; health status is unknown */}
+      {(sysError || storesError) && (
+        <ErrorBanner
+          message={
+            sysError && storesError
+              ? 'Failed to load system and store health — actual status is unknown.'
+              : sysError
+              ? 'Failed to load system health — actual status is unknown.'
+              : 'Failed to load store health — per-store status is unknown.'
+          }
+          onRetry={retryAll}
+          isRetrying={sysFetching}
+        />
+      )}
+
       {/* Overall Status Banner */}
-      {!sysLoading && system && (
+      {!sysLoading && !sysError && system && (
         <div className={cn('flex items-center gap-3 p-4 rounded-xl border', statusColor(system.overall))}>
           {statusIcon(system.overall, 'w-5 h-5')}
           <div>

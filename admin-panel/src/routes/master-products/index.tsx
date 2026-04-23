@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useMasterProducts, useCreateMasterProduct, useDeleteMasterProduct } from '@/api/master-products';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import type { MasterProduct, CreateMasterProductRequest } from '@/types/master-product';
 
 export const Route = createFileRoute('/master-products/')({
@@ -16,7 +17,7 @@ function MasterProductsPage() {
   const [deleteTarget, setDeleteTarget] = useState<MasterProduct | null>(null);
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data, isLoading } = useMasterProducts({
+  const { data, isLoading, isError, refetch } = useMasterProducts({
     page,
     size: 20,
     search: debouncedSearch || undefined,
@@ -56,7 +57,9 @@ function MasterProductsPage() {
         />
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <ErrorBanner message="Failed to load master products." onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="text-center py-12 text-slate-400">Loading…</div>
       ) : (
         <>

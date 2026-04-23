@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { StoreDetailPanel } from '@/components/stores/StoreDetailPanel';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { PageLoader } from '@/components/shared/LoadingState';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useStore } from '@/api/stores';
 
 export const Route = createFileRoute('/stores/$storeId')({
@@ -12,9 +13,10 @@ export const Route = createFileRoute('/stores/$storeId')({
 function StoreDetailPage() {
   const { storeId } = Route.useParams();
   const navigate = useNavigate();
-  const { data: store, isLoading } = useStore(storeId);
+  const { data: store, isLoading, isError, refetch } = useStore(storeId);
 
   if (isLoading) return <PageLoader />;
+  if (isError) return <ErrorBanner message="Failed to load store." onRetry={() => refetch()} />;
   if (!store) return <div className="text-center py-16 text-slate-400">Store not found.</div>;
 
   return (

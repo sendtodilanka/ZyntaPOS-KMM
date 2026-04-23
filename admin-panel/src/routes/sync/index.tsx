@@ -5,6 +5,7 @@ import { SyncDashboard } from '@/components/sync/SyncDashboard';
 import { SyncHealthChart } from '@/components/charts/SyncHealthChart';
 import { DataTable, type Column } from '@/components/shared/DataTable';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { useSyncStatus, useConflictLog, useDeadLetters, useRetryDeadLetter, useDiscardDeadLetter } from '@/api/sync';
 import { useTimezone } from '@/hooks/use-timezone';
 import { cn } from '@/lib/utils';
@@ -165,7 +166,7 @@ function DeadLettersTab() {
 }
 
 function SyncPage() {
-  const { data: stores = [], isLoading } = useSyncStatus();
+  const { data: stores = [], isLoading, isError, refetch } = useSyncStatus();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const healthyCount = stores.filter((s) => s.status === 'SYNCED').length;
@@ -213,7 +214,11 @@ function SyncPage() {
             <h2 className="panel-title text-base mb-4">Queue Depth (24h)</h2>
             <SyncHealthChart />
           </div>
-          <SyncDashboard stores={stores} isLoading={isLoading} />
+          {isError ? (
+            <ErrorBanner message="Failed to load sync status — per-store state is unknown." onRetry={() => refetch()} />
+          ) : (
+            <SyncDashboard stores={stores} isLoading={isLoading} />
+          )}
         </>
       )}
 

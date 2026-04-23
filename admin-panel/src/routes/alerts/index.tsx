@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Bell, CheckCheck, Check, AlertTriangle, AlertCircle, Info, Zap } from 'lucide-react';
 import { useAlerts, useAlertCounts, useAlertRules, useAcknowledgeAlert, useResolveAlert, useToggleAlertRule } from '@/api/alerts';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import type { Alert, AlertFilter, AlertSeverity, AlertStatus, AlertCategory, AlertRule } from '@/types/alert';
 import { cn, formatRelativeTime } from '@/lib/utils';
 
@@ -171,7 +172,7 @@ function AlertsPage() {
     category: categoryFilter || undefined,
   };
 
-  const { data: alertsPage, isLoading } = useAlerts(effectiveFilter);
+  const { data: alertsPage, isLoading, isError, refetch } = useAlerts(effectiveFilter);
   const { data: counts } = useAlertCounts();
   const { data: rules, isLoading: rulesLoading } = useAlertRules();
 
@@ -266,7 +267,9 @@ function AlertsPage() {
         </div>
       ) : (
         <div className="bg-surface-card border border-surface-border rounded-xl overflow-hidden">
-          {isLoading ? (
+          {isError ? (
+            <ErrorBanner message="Failed to load alerts — critical events may be missing from this view." onRetry={() => refetch()} />
+          ) : isLoading ? (
             <div className="p-4 space-y-4">{[1,2,3,4,5].map(i=><div key={i} className="h-20 bg-surface-elevated rounded animate-pulse"/>)}</div>
           ) : alerts.length===0 ? (
             <div className="text-center py-12">
