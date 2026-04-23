@@ -195,7 +195,7 @@ describe('TicketsPage', () => {
       replace: true,
     }));
     // Execute the search updater to verify the patch it produces.
-    const lastCall = mockNavigate.mock.calls.at(-1)![0] as {
+    const lastCall = mockNavigate.mock.calls[mockNavigate.mock.calls.length - 1][0] as {
       search: (prev: Record<string, unknown>) => Record<string, unknown>;
     };
     expect(lastCall.search({})).toEqual(expect.objectContaining({ status: 'OPEN' }));
@@ -206,7 +206,7 @@ describe('TicketsPage', () => {
     const select = screen.getByRole('combobox', { name: /priority/i });
     fireEvent.change(select, { target: { value: 'HIGH' } });
     expect(mockNavigate).toHaveBeenCalled();
-    const lastCall = mockNavigate.mock.calls.at(-1)![0] as {
+    const lastCall = mockNavigate.mock.calls[mockNavigate.mock.calls.length - 1][0] as {
       search: (prev: Record<string, unknown>) => Record<string, unknown>;
     };
     expect(lastCall.search({})).toEqual(expect.objectContaining({ priority: 'HIGH' }));
