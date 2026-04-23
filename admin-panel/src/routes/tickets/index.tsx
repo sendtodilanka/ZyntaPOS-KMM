@@ -13,14 +13,14 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { TICKET_CATEGORY_TREE } from '@/types/ticket';
 import type { TicketStatus, TicketPriority, TicketCategory } from '@/types/ticket';
 
-// H-002: persist all ticket filters in the URL (status, priority, category,
-// date range, body-search toggle) so bookmarks + browser back preserve them.
+// H-002: persist all ticket filters in the URL. Defaults are `undefined`
+// so TanStack Router omits them from the serialized URL.
 interface TicketsSearch {
   page?: number;
   q?: string;
-  status?: TicketStatus | '';
-  priority?: TicketPriority | '';
-  category?: TicketCategory | '';
+  status?: TicketStatus;
+  priority?: TicketPriority;
+  category?: TicketCategory;
   body?: boolean;  // searchBody toggle
   from?: string;   // createdAfter — YYYY-MM-DD
   to?: string;     // createdBefore — YYYY-MM-DD
@@ -49,9 +49,9 @@ export const Route = createFileRoute('/tickets/')({
       page,
       q,
       body,
-      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as TicketStatus) : '',
-      priority: (VALID_PRIORITIES as string[]).includes(priorityRaw) ? (priorityRaw as TicketPriority) : '',
-      category: isValidCategory(categoryRaw) ? categoryRaw : '',
+      status: (VALID_STATUSES as string[]).includes(statusRaw) ? (statusRaw as TicketStatus) : undefined,
+      priority: (VALID_PRIORITIES as string[]).includes(priorityRaw) ? (priorityRaw as TicketPriority) : undefined,
+      category: isValidCategory(categoryRaw) ? categoryRaw : undefined,
       from,
       to,
     };
@@ -190,7 +190,7 @@ function TicketsPage() {
         <select
           aria-label="Filter by status"
           value={statusFilter}
-          onChange={(e) => updateSearch({ status: e.target.value as TicketStatus | '' })}
+          onChange={(e) => updateSearch({ status: (e.target.value as TicketStatus) || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[140px]"
         >
           <option value="">All Statuses</option>
@@ -204,7 +204,7 @@ function TicketsPage() {
         <select
           aria-label="Filter by priority"
           value={priorityFilter}
-          onChange={(e) => updateSearch({ priority: e.target.value as TicketPriority | '' })}
+          onChange={(e) => updateSearch({ priority: (e.target.value as TicketPriority) || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]"
         >
           <option value="">All Priorities</option>
@@ -216,7 +216,7 @@ function TicketsPage() {
         <select
           aria-label="Filter by category"
           value={categoryFilter}
-          onChange={(e) => updateSearch({ category: e.target.value as TicketCategory | '' })}
+          onChange={(e) => updateSearch({ category: (e.target.value as TicketCategory) || undefined })}
           className="h-10 bg-surface-elevated border border-surface-border rounded-lg px-3 text-sm text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 min-w-[180px]"
         >
           <option value="">All Categories</option>
