@@ -5,6 +5,7 @@ import { useCurrentUser, useChangePassword, useListSessions } from '@/api/auth';
 import { useRevokeSessions } from '@/api/users';
 import { useAuthStore } from '@/stores/auth-store';
 import { useTimezone } from '@/hooks/use-timezone';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
 export const Route = createFileRoute('/settings/profile')({
   component: ProfileSettingsPage,
@@ -21,6 +22,7 @@ function ProfileSettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmRevokeAll, setConfirmRevokeAll] = useState(false);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +156,7 @@ function ProfileSettingsPage() {
             <h2 className="text-slate-200 font-semibold">Active Sessions</h2>
           </div>
           <button
-            onClick={handleRevokeAll}
+            onClick={() => setConfirmRevokeAll(true)}
             disabled={revokeSessions.isPending || !sessions?.length}
             className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-medium disabled:opacity-40 transition-colors"
           >
@@ -189,6 +191,20 @@ function ProfileSettingsPage() {
           </ul>
         )}
       </section>
+
+      <ConfirmDialog
+        open={confirmRevokeAll}
+        onClose={() => setConfirmRevokeAll(false)}
+        onConfirm={() => {
+          setConfirmRevokeAll(false);
+          handleRevokeAll();
+        }}
+        title="Revoke all sessions?"
+        description="Every active session — including this one — will be signed out immediately. You will be returned to the login screen."
+        confirmLabel="Revoke All"
+        variant="destructive"
+        isLoading={revokeSessions.isPending}
+      />
     </div>
   );
 }

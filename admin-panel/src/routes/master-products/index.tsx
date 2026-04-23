@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useMasterProducts, useCreateMasterProduct, useDeleteMasterProduct } from '@/api/master-products';
 import { useDebounce } from '@/hooks/use-debounce';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import type { MasterProduct, CreateMasterProductRequest } from '@/types/master-product';
 
 export const Route = createFileRoute('/master-products/')({
@@ -12,6 +13,7 @@ function MasterProductsPage() {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<MasterProduct | null>(null);
   const debouncedSearch = useDebounce(search, 300);
 
   const { data, isLoading } = useMasterProducts({
@@ -98,8 +100,9 @@ function MasterProductsPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => deleteMutation.mutate(p.id)}
-                        className="text-red-400 hover:text-red-300 text-xs"
+                        onClick={() => setDeleteTarget(p)}
+                        disabled={deleteMutation.isPending}
+                        className="text-red-400 hover:text-red-300 text-xs disabled:opacity-50"
                       >
                         Delete
                       </button>
@@ -148,6 +151,23 @@ function MasterProductsPage() {
           isLoading={createMutation.isPending}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            deleteMutation.mutate(deleteTarget.id, {
+              onSettled: () => setDeleteTarget(null),
+            });
+          }
+        }}
+        title={deleteTarget ? `Delete "${deleteTarget.name}"?` : 'Delete master product?'}
+        description="This permanently removes the product from all stores. This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }
