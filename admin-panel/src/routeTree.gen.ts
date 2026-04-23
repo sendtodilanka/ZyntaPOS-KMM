@@ -9,7 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as TicketsIndexRouteImport } from './routes/tickets/index'
@@ -17,31 +19,41 @@ import { Route as SyncIndexRouteImport } from './routes/sync/index'
 import { Route as StoresIndexRouteImport } from './routes/stores/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
+import { Route as SecurityIndexRouteImport } from './routes/security/index'
 import { Route as ReportsIndexRouteImport } from './routes/reports/index'
+import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
 import { Route as LicensesIndexRouteImport } from './routes/licenses/index'
+import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
 import { Route as HealthIndexRouteImport } from './routes/health/index'
+import { Route as DiagnosticIndexRouteImport } from './routes/diagnostic/index'
+import { Route as CustomersIndexRouteImport } from './routes/customers/index'
 import { Route as ConfigIndexRouteImport } from './routes/config/index'
 import { Route as AuditIndexRouteImport } from './routes/audit/index'
-import { Route as SecurityIndexRouteImport } from './routes/security/index'
 import { Route as AlertsIndexRouteImport } from './routes/alerts/index'
 import { Route as TicketsTicketIdRouteImport } from './routes/tickets/$ticketId'
+import { Route as TicketStatusTokenRouteImport } from './routes/ticket-status/$token'
 import { Route as StoresStoreIdRouteImport } from './routes/stores/$storeId'
 import { Route as SettingsProfileRouteImport } from './routes/settings/profile'
 import { Route as SettingsMfaRouteImport } from './routes/settings/mfa'
-import { Route as SettingsEmailRouteImport } from './routes/settings/email'
 import { Route as SettingsExchangeRatesRouteImport } from './routes/settings/exchange-rates'
+import { Route as SettingsEmailRouteImport } from './routes/settings/email'
+import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
 import { Route as LicensesLicenseKeyRouteImport } from './routes/licenses/$licenseKey'
 import { Route as HealthStoreIdRouteImport } from './routes/health/$storeId'
-import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
-import { Route as CustomersIndexRouteImport } from './routes/customers/index'
-import { Route as DiagnosticIndexRouteImport } from './routes/diagnostic/index'
-import { Route as MasterProductsIndexRouteImport } from './routes/master-products/index'
-import { Route as MasterProductsMasterProductIdRouteImport } from './routes/master-products/$masterProductId'
-import { Route as TicketStatusTokenRouteImport } from './routes/ticket-status/$token'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -79,9 +91,19 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecurityIndexRoute = SecurityIndexRouteImport.update({
+  id: '/security/',
+  path: '/security/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
   id: '/reports/',
   path: '/reports/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterProductsIndexRoute = MasterProductsIndexRouteImport.update({
+  id: '/master-products/',
+  path: '/master-products/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LicensesIndexRoute = LicensesIndexRouteImport.update({
@@ -89,9 +111,24 @@ const LicensesIndexRoute = LicensesIndexRouteImport.update({
   path: '/licenses/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventoryIndexRoute = InventoryIndexRouteImport.update({
+  id: '/inventory/',
+  path: '/inventory/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HealthIndexRoute = HealthIndexRouteImport.update({
   id: '/health/',
   path: '/health/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticIndexRoute = DiagnosticIndexRouteImport.update({
+  id: '/diagnostic/',
+  path: '/diagnostic/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomersIndexRoute = CustomersIndexRouteImport.update({
+  id: '/customers/',
+  path: '/customers/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigIndexRoute = ConfigIndexRouteImport.update({
@@ -104,44 +141,19 @@ const AuditIndexRoute = AuditIndexRouteImport.update({
   path: '/audit/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SecurityIndexRoute = SecurityIndexRouteImport.update({
-  id: '/security/',
-  path: '/security/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AlertsIndexRoute = AlertsIndexRouteImport.update({
   id: '/alerts/',
   path: '/alerts/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const InventoryIndexRoute = InventoryIndexRouteImport.update({
-  id: '/inventory/',
-  path: '/inventory/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomersIndexRoute = CustomersIndexRouteImport.update({
-  id: '/customers/',
-  path: '/customers/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DiagnosticIndexRoute = DiagnosticIndexRouteImport.update({
-  id: '/diagnostic/',
-  path: '/diagnostic/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MasterProductsIndexRoute = MasterProductsIndexRouteImport.update({
-  id: '/master-products/',
-  path: '/master-products/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MasterProductsMasterProductIdRoute = MasterProductsMasterProductIdRouteImport.update({
-  id: '/master-products/$masterProductId',
-  path: '/master-products/$masterProductId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TicketsTicketIdRoute = TicketsTicketIdRouteImport.update({
   id: '/tickets/$ticketId',
   path: '/tickets/$ticketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TicketStatusTokenRoute = TicketStatusTokenRouteImport.update({
+  id: '/ticket-status/$token',
+  path: '/ticket-status/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoresStoreIdRoute = StoresStoreIdRouteImport.update({
@@ -159,16 +171,22 @@ const SettingsMfaRoute = SettingsMfaRouteImport.update({
   path: '/settings/mfa',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsEmailRoute = SettingsEmailRouteImport.update({
-  id: '/settings/email',
-  path: '/settings/email',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SettingsExchangeRatesRoute = SettingsExchangeRatesRouteImport.update({
   id: '/settings/exchange-rates',
   path: '/settings/exchange-rates',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsEmailRoute = SettingsEmailRouteImport.update({
+  id: '/settings/email',
+  path: '/settings/email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterProductsMasterProductIdRoute =
+  MasterProductsMasterProductIdRouteImport.update({
+    id: '/master-products/$masterProductId',
+    path: '/master-products/$masterProductId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LicensesLicenseKeyRoute = LicensesLicenseKeyRouteImport.update({
   id: '/licenses/$licenseKey',
   path: '/licenses/$licenseKey',
@@ -179,15 +197,12 @@ const HealthStoreIdRoute = HealthStoreIdRouteImport.update({
   path: '/health/$storeId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TicketStatusTokenRoute = TicketStatusTokenRouteImport.update({
-  id: '/ticket-status/$token',
-  path: '/ticket-status/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
   '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
@@ -196,16 +211,16 @@ export interface FileRoutesByFullPath {
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
-  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/ticket-status/$token': typeof TicketStatusTokenRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/diagnostic/': typeof DiagnosticIndexRoute
   '/health/': typeof HealthIndexRoute
-  '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
-  '/customers/': typeof CustomersIndexRoute
+  '/licenses/': typeof LicensesIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -218,7 +233,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
   '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
@@ -227,16 +244,16 @@ export interface FileRoutesByTo {
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
-  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/ticket-status/$token': typeof TicketStatusTokenRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/alerts': typeof AlertsIndexRoute
   '/audit': typeof AuditIndexRoute
   '/config': typeof ConfigIndexRoute
+  '/customers': typeof CustomersIndexRoute
   '/diagnostic': typeof DiagnosticIndexRoute
   '/health': typeof HealthIndexRoute
-  '/licenses': typeof LicensesIndexRoute
   '/inventory': typeof InventoryIndexRoute
-  '/customers': typeof CustomersIndexRoute
+  '/licenses': typeof LicensesIndexRoute
   '/master-products': typeof MasterProductsIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/security': typeof SecurityIndexRoute
@@ -250,7 +267,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/health/$storeId': typeof HealthStoreIdRoute
   '/licenses/$licenseKey': typeof LicensesLicenseKeyRoute
   '/master-products/$masterProductId': typeof MasterProductsMasterProductIdRoute
@@ -259,16 +278,16 @@ export interface FileRoutesById {
   '/settings/mfa': typeof SettingsMfaRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/stores/$storeId': typeof StoresStoreIdRoute
-  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/ticket-status/$token': typeof TicketStatusTokenRoute
+  '/tickets/$ticketId': typeof TicketsTicketIdRoute
   '/alerts/': typeof AlertsIndexRoute
   '/audit/': typeof AuditIndexRoute
   '/config/': typeof ConfigIndexRoute
+  '/customers/': typeof CustomersIndexRoute
   '/diagnostic/': typeof DiagnosticIndexRoute
   '/health/': typeof HealthIndexRoute
-  '/licenses/': typeof LicensesIndexRoute
   '/inventory/': typeof InventoryIndexRoute
-  '/customers/': typeof CustomersIndexRoute
+  '/licenses/': typeof LicensesIndexRoute
   '/master-products/': typeof MasterProductsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/security/': typeof SecurityIndexRoute
@@ -283,7 +302,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
     | '/master-products/$masterProductId'
@@ -292,15 +313,15 @@ export interface FileRouteTypes {
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
-    | '/tickets/$ticketId'
     | '/ticket-status/$token'
+    | '/tickets/$ticketId'
     | '/alerts/'
     | '/audit/'
     | '/config/'
+    | '/customers/'
     | '/diagnostic/'
     | '/health/'
     | '/inventory/'
-    | '/customers/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -314,7 +335,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
     | '/master-products/$masterProductId'
@@ -323,14 +346,15 @@ export interface FileRouteTypes {
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
+    | '/ticket-status/$token'
     | '/tickets/$ticketId'
     | '/alerts'
     | '/audit'
     | '/config'
+    | '/customers'
     | '/diagnostic'
     | '/health'
     | '/inventory'
-    | '/customers'
     | '/licenses'
     | '/master-products'
     | '/reports'
@@ -344,7 +368,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/health/$storeId'
     | '/licenses/$licenseKey'
     | '/master-products/$masterProductId'
@@ -353,15 +379,15 @@ export interface FileRouteTypes {
     | '/settings/mfa'
     | '/settings/profile'
     | '/stores/$storeId'
-    | '/tickets/$ticketId'
     | '/ticket-status/$token'
+    | '/tickets/$ticketId'
     | '/alerts/'
     | '/audit/'
     | '/config/'
+    | '/customers/'
     | '/diagnostic/'
     | '/health/'
     | '/inventory/'
-    | '/customers/'
     | '/licenses/'
     | '/master-products/'
     | '/reports/'
@@ -376,26 +402,28 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   HealthStoreIdRoute: typeof HealthStoreIdRoute
-  InventoryIndexRoute: typeof InventoryIndexRoute
-  CustomersIndexRoute: typeof CustomersIndexRoute
-  DiagnosticIndexRoute: typeof DiagnosticIndexRoute
   LicensesLicenseKeyRoute: typeof LicensesLicenseKeyRoute
   MasterProductsMasterProductIdRoute: typeof MasterProductsMasterProductIdRoute
-  MasterProductsIndexRoute: typeof MasterProductsIndexRoute
   SettingsEmailRoute: typeof SettingsEmailRoute
   SettingsExchangeRatesRoute: typeof SettingsExchangeRatesRoute
   SettingsMfaRoute: typeof SettingsMfaRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   StoresStoreIdRoute: typeof StoresStoreIdRoute
-  TicketsTicketIdRoute: typeof TicketsTicketIdRoute
   TicketStatusTokenRoute: typeof TicketStatusTokenRoute
+  TicketsTicketIdRoute: typeof TicketsTicketIdRoute
   AlertsIndexRoute: typeof AlertsIndexRoute
   AuditIndexRoute: typeof AuditIndexRoute
   ConfigIndexRoute: typeof ConfigIndexRoute
+  CustomersIndexRoute: typeof CustomersIndexRoute
+  DiagnosticIndexRoute: typeof DiagnosticIndexRoute
   HealthIndexRoute: typeof HealthIndexRoute
+  InventoryIndexRoute: typeof InventoryIndexRoute
   LicensesIndexRoute: typeof LicensesIndexRoute
+  MasterProductsIndexRoute: typeof MasterProductsIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
   SecurityIndexRoute: typeof SecurityIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -408,11 +436,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -464,11 +506,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/security/': {
+      id: '/security/'
+      path: '/security'
+      fullPath: '/security/'
+      preLoaderRoute: typeof SecurityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports/': {
       id: '/reports/'
       path: '/reports'
       fullPath: '/reports/'
       preLoaderRoute: typeof ReportsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master-products/': {
+      id: '/master-products/'
+      path: '/master-products'
+      fullPath: '/master-products/'
+      preLoaderRoute: typeof MasterProductsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/licenses/': {
@@ -478,11 +534,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LicensesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventory/': {
+      id: '/inventory/'
+      path: '/inventory'
+      fullPath: '/inventory/'
+      preLoaderRoute: typeof InventoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/health/': {
       id: '/health/'
       path: '/health'
       fullPath: '/health/'
       preLoaderRoute: typeof HealthIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostic/': {
+      id: '/diagnostic/'
+      path: '/diagnostic'
+      fullPath: '/diagnostic/'
+      preLoaderRoute: typeof DiagnosticIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customers/': {
+      id: '/customers/'
+      path: '/customers'
+      fullPath: '/customers/'
+      preLoaderRoute: typeof CustomersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config/': {
@@ -499,13 +576,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/security/': {
-      id: '/security/'
-      path: '/security'
-      fullPath: '/security/'
-      preLoaderRoute: typeof SecurityIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/alerts/': {
       id: '/alerts/'
       path: '/alerts'
@@ -513,46 +583,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlertsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/inventory/': {
-      id: '/inventory/'
-      path: '/inventory'
-      fullPath: '/inventory/'
-      preLoaderRoute: typeof InventoryIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customers/': {
-      id: '/customers/'
-      path: '/customers'
-      fullPath: '/customers/'
-      preLoaderRoute: typeof CustomersIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/diagnostic/': {
-      id: '/diagnostic/'
-      path: '/diagnostic'
-      fullPath: '/diagnostic/'
-      preLoaderRoute: typeof DiagnosticIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/master-products/': {
-      id: '/master-products/'
-      path: '/master-products'
-      fullPath: '/master-products/'
-      preLoaderRoute: typeof MasterProductsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/master-products/$masterProductId': {
-      id: '/master-products/$masterProductId'
-      path: '/master-products/$masterProductId'
-      fullPath: '/master-products/$masterProductId'
-      preLoaderRoute: typeof MasterProductsMasterProductIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tickets/$ticketId': {
       id: '/tickets/$ticketId'
       path: '/tickets/$ticketId'
       fullPath: '/tickets/$ticketId'
       preLoaderRoute: typeof TicketsTicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ticket-status/$token': {
+      id: '/ticket-status/$token'
+      path: '/ticket-status/$token'
+      fullPath: '/ticket-status/$token'
+      preLoaderRoute: typeof TicketStatusTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/stores/$storeId': {
@@ -576,6 +618,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsMfaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/exchange-rates': {
+      id: '/settings/exchange-rates'
+      path: '/settings/exchange-rates'
+      fullPath: '/settings/exchange-rates'
+      preLoaderRoute: typeof SettingsExchangeRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings/email': {
       id: '/settings/email'
       path: '/settings/email'
@@ -583,11 +632,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/exchange-rates': {
-      id: '/settings/exchange-rates'
-      path: '/settings/exchange-rates'
-      fullPath: '/settings/exchange-rates'
-      preLoaderRoute: typeof SettingsExchangeRatesRouteImport
+    '/master-products/$masterProductId': {
+      id: '/master-products/$masterProductId'
+      path: '/master-products/$masterProductId'
+      fullPath: '/master-products/$masterProductId'
+      preLoaderRoute: typeof MasterProductsMasterProductIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/licenses/$licenseKey': {
@@ -604,38 +653,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthStoreIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ticket-status/$token': {
-      id: '/ticket-status/$token'
-      path: '/ticket-status/$token'
-      fullPath: '/ticket-status/$token'
-      preLoaderRoute: typeof TicketStatusTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   HealthStoreIdRoute: HealthStoreIdRoute,
-  InventoryIndexRoute: InventoryIndexRoute,
-  CustomersIndexRoute: CustomersIndexRoute,
-  DiagnosticIndexRoute: DiagnosticIndexRoute,
   LicensesLicenseKeyRoute: LicensesLicenseKeyRoute,
   MasterProductsMasterProductIdRoute: MasterProductsMasterProductIdRoute,
-  MasterProductsIndexRoute: MasterProductsIndexRoute,
   SettingsEmailRoute: SettingsEmailRoute,
   SettingsExchangeRatesRoute: SettingsExchangeRatesRoute,
   SettingsMfaRoute: SettingsMfaRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   StoresStoreIdRoute: StoresStoreIdRoute,
-  TicketsTicketIdRoute: TicketsTicketIdRoute,
   TicketStatusTokenRoute: TicketStatusTokenRoute,
+  TicketsTicketIdRoute: TicketsTicketIdRoute,
   AlertsIndexRoute: AlertsIndexRoute,
   AuditIndexRoute: AuditIndexRoute,
   ConfigIndexRoute: ConfigIndexRoute,
+  CustomersIndexRoute: CustomersIndexRoute,
+  DiagnosticIndexRoute: DiagnosticIndexRoute,
   HealthIndexRoute: HealthIndexRoute,
+  InventoryIndexRoute: InventoryIndexRoute,
   LicensesIndexRoute: LicensesIndexRoute,
+  MasterProductsIndexRoute: MasterProductsIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
   SecurityIndexRoute: SecurityIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
