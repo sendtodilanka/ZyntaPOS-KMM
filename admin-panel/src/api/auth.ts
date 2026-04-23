@@ -201,6 +201,35 @@ export function useChangePassword() {
   });
 }
 
+// ── Forgot / reset password ───────────────────────────────────────────────
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+// POST /admin/auth/forgot-password — always returns 202 (no email enumeration)
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (data: ForgotPasswordRequest) =>
+      apiClient.post('admin/auth/forgot-password', { json: data }),
+    onError: () => toast.error('Failed to send reset email', 'Please try again in a moment.'),
+  });
+}
+
+// POST /admin/auth/reset-password — returns 204 on success, 422 on invalid/expired token
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (data: ResetPasswordRequest) =>
+      apiClient.post('admin/auth/reset-password', { json: data }),
+    onError: () => toast.error('Failed to reset password', 'The reset link may be invalid or expired.'),
+  });
+}
+
 // ── Active sessions ───────────────────────────────────────────────────────
 
 export interface AdminSession {
