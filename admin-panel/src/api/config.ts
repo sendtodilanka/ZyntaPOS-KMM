@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
+import { toast } from '@/stores/ui-store';
 import type { FeatureFlag, SystemConfig, ConfigUpdatePayload } from '@/types/config';
 
 // Query keys
@@ -26,6 +27,7 @@ export function useUpdateFeatureFlag() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: configKeys.flags() });
     },
+    onError: () => toast.error('Failed to update feature flag'),
   });
 }
 
@@ -46,5 +48,6 @@ export function useUpdateSystemConfig() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: configKeys.system() });
     },
+    onError: () => toast.error('Failed to update system config'),
   });
 }
