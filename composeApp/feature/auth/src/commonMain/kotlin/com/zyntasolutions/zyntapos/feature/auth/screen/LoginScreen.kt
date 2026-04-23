@@ -27,6 +27,7 @@ import com.zyntasolutions.zyntapos.designsystem.components.StoreItem
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButton
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaButtonSize
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaSnackbarHost
+import com.zyntasolutions.zyntapos.designsystem.components.ZyntaBrandMark
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaStoreSelector
 import com.zyntasolutions.zyntapos.designsystem.components.ZyntaTextField
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaSplitPane
@@ -394,8 +395,6 @@ private fun LoginIllustrationPanel(modifier: Modifier = Modifier) {
 @Composable
 private fun ZyntaLogoHeader(modifier: Modifier = Modifier) {
     val s = LocalStrings.current
-    // TODO: Replace with SVG vector asset in Sprint 9 design-system polish pass.
-    // For now, render a text-based logotype consistent with Material 3 brand guidance.
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -407,11 +406,9 @@ private fun ZyntaLogoHeader(modifier: Modifier = Modifier) {
             modifier = Modifier.size(40.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = "Z",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.ExtraBold,
+                ZyntaBrandMark(
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary,
                 )
             }
         }

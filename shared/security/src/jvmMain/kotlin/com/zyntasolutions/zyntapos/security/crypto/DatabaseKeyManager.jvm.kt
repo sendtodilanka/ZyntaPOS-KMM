@@ -17,9 +17,23 @@ private const val DEK_SIZE_BYTES = 32
 /**
  * Desktop (JVM) actual: 256-bit AES key stored in a PKCS12 KeyStore.
  *
- * The KeyStore file is located at `~/.zyntapos/.db_keystore.p12` and protected
- * with a machine-fingerprint derived password (SHA-256 of `user.name|os.name|os.arch`).
- * The 32-byte key is directly extractable on the JVM (`secretKey.encoded` returns raw bytes).
+ * The KeyStore file is located at `~/.zyntapos/.db_keystore.p12`. The keystore
+ * password resolution prefers the platform OS credential manager (macOS
+ * Keychain via `security`, Linux libsecret via `secret-tool`) and falls back
+ * to a machine-fingerprint derivation (SHA-256 of
+ * `user.name|os.name|os.arch`) when the keyring is unavailable — e.g. Windows
+ * or stripped-down Linux environments without libsecret-tools installed.
+ *
+ * Resolution order (first match wins):
+ *   1. `OsKeyring.retrieve()` — password previously persisted in OS vault.
+ *   2. Legacy fingerprint — if the keystore file already exists (covers
+ *      upgrades from pre-keyring installs).
+ *   3. Fresh random password — generated on first launch, persisted via
+ *      `OsKeyring.store()`. If persistence fails, fingerprint is used so
+ *      the store remains recoverable on the next launch.
+ *
+ * The 32-byte DEK is directly extractable on the JVM (`secretKey.encoded`
+ * returns raw bytes).
  */
 actual class DatabaseKeyManager actual constructor() {
 
@@ -28,14 +42,41 @@ actual class DatabaseKeyManager actual constructor() {
         ".zyntapos/.db_keystore.p12",
     )
 
-    private val keystorePassword: CharArray by lazy {
+    private val keystorePassword: CharArray by lazy { resolveKeystorePassword() }
+
+    private fun resolveKeystorePassword(): CharArray {
+        OsKeyring.retrieve()?.let {
+            ZyntaLogger.d(TAG, "Keystore password loaded from OS keyring")
+            return it.toCharArray()
+        }
+        if (keystoreFile.exists()) {
+            ZyntaLogger.d(TAG, "Keystore password derived from machine fingerprint (legacy install)")
+            return fingerprintPassword()
+        }
+        val random = generateRandomPassword()
+        if (OsKeyring.store(String(random))) {
+            ZyntaLogger.d(TAG, "Keystore password generated and stored in OS keyring")
+            return random
+        }
+        ZyntaLogger.d(TAG, "OS keyring unavailable — falling back to machine fingerprint")
+        return fingerprintPassword()
+    }
+
+    private fun fingerprintPassword(): CharArray {
         val fingerprint = "${System.getProperty("user.name")}|" +
             "${System.getProperty("os.name")}|" +
             System.getProperty("os.arch")
         val digest = java.security.MessageDigest.getInstance("SHA-256")
-        digest.digest(fingerprint.encodeToByteArray())
+        return digest.digest(fingerprint.encodeToByteArray())
             .joinToString("") { "%02x".format(it) }
             .toCharArray()
+    }
+
+    private fun generateRandomPassword(): CharArray {
+        // 32 random bytes → 64 hex chars → 256 bits of entropy for the PKCS12 MAC/encryption key
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }.toCharArray()
     }
 
     private fun loadKeyStore(): KeyStore {
