@@ -282,8 +282,10 @@ function ReportsPage() {
                       ))}
                     </tr>
                   ))
-                ) : (salesData ?? []).slice(0, 50).map((row, i) => (
-                  <tr key={i} className="border-b border-surface-border hover:bg-surface-elevated transition-colors">
+                ) : (salesData ?? []).slice(0, 50).map((row) => (
+                  // L-004: stable composite key — date+storeId uniquely
+                  // identifies a row in the daily breakdown.
+                  <tr key={`${row.date}-${row.storeId ?? 'all'}`} className="border-b border-surface-border hover:bg-surface-elevated transition-colors">
                     <td className="px-4 py-3 text-sm text-slate-300 font-mono">{row.date}</td>
                     <td className="px-4 py-3 text-sm text-slate-300">{row.storeName ?? row.storeId}</td>
                     <td className="px-4 py-3 text-sm text-slate-100 font-medium">{formatCurrency(row.revenue)}</td>
@@ -377,7 +379,9 @@ function ReportsPage() {
                     </thead>
                     <tbody>
                       {productData.map((row, i) => (
-                        <tr key={i} className="border-b border-surface-border hover:bg-surface-elevated transition-colors">
+                        // L-004: use productId as stable key; keep `i` only
+                        // for the display-rank column.
+                        <tr key={row.productId} className="border-b border-surface-border hover:bg-surface-elevated transition-colors">
                           <td className="px-4 py-3 text-slate-500 tabular-nums">{i + 1}</td>
                           <td className="px-4 py-3 text-slate-200 font-medium">{row.productName ?? row.productId}</td>
                           <td className="px-4 py-3 text-slate-300 tabular-nums">{row.unitsSold.toLocaleString()}</td>
