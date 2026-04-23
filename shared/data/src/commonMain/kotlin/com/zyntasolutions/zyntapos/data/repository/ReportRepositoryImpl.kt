@@ -54,10 +54,6 @@ import kotlinx.datetime.toLocalDateTime
  *
  * All methods dispatch on [Dispatchers.IO] and return pure Kotlin data objects
  * (no [kotlinx.coroutines.flow.Flow] — reports are always one-shot snapshots).
- *
- * Methods for complex enterprise reports that require schema extensions not yet
- * present (e.g., purchase_orders table, multi-store store registry) return sensible
- * empty/zero stubs with a TODO comment indicating what is needed.
  */
 class ReportRepositoryImpl(
     private val db: ZyntaDatabase,
