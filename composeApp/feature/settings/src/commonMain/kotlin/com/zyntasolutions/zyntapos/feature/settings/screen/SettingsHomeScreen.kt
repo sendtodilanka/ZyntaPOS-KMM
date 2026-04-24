@@ -16,7 +16,9 @@ import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.FactCheck
 import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.HistoryToggleOff
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.PersonOutline
@@ -26,6 +28,7 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.SupervisedUserCircle
 import androidx.compose.material.icons.filled.Tune
@@ -120,6 +123,12 @@ enum class SettingsRoute {
     LABEL_PRINTER, SCANNER_SETTINGS, PRINTER_PROFILES, EDITION_MANAGEMENT,
     /** Multi-store user access management — grant/revoke staff access to stores (C3.2). */
     STORE_USER_ACCESS,
+    /** Advanced security policy (session timeout, PIN, lockout, biometric) — Sprint 23. */
+    SECURITY_POLICY,
+    /** Audit log / sync queue / report data retention windows — Sprint 23. */
+    DATA_RETENTION,
+    /** Audit log category toggles — Sprint 23. */
+    AUDIT_POLICY,
     /** Debug Console — only presented when [SettingsHomeScreen] receives `isDebug = true`. */
     DEBUG_CONSOLE,
 }
@@ -152,6 +161,9 @@ private fun rememberSettingsGroups(): List<SettingsGroup> {
                     SettingsEntry(s[StringResource.SETTINGS_USER_MANAGEMENT], s[StringResource.SETTINGS_USER_MANAGEMENT_SUBTITLE], Icons.Filled.PersonOutline, SettingsRoute.USERS),
                     SettingsEntry(s[StringResource.SETTINGS_STORE_USER_ACCESS], s[StringResource.SETTINGS_STORE_USER_ACCESS_SUBTITLE], Icons.Filled.SupervisedUserCircle, SettingsRoute.STORE_USER_ACCESS),
                     SettingsEntry(s[StringResource.SETTINGS_SECURITY], s[StringResource.SETTINGS_SECURITY_SUBTITLE], Icons.Filled.Security, SettingsRoute.SECURITY),
+                    SettingsEntry(s[StringResource.SETTINGS_SECURITY_POLICY], s[StringResource.SETTINGS_SECURITY_POLICY_SUBTITLE], Icons.Filled.Shield, SettingsRoute.SECURITY_POLICY),
+                    SettingsEntry(s[StringResource.SETTINGS_DATA_RETENTION], s[StringResource.SETTINGS_DATA_RETENTION_SUBTITLE], Icons.Filled.HistoryToggleOff, SettingsRoute.DATA_RETENTION),
+                    SettingsEntry(s[StringResource.SETTINGS_AUDIT_POLICY], s[StringResource.SETTINGS_AUDIT_POLICY_SUBTITLE], Icons.Filled.FactCheck, SettingsRoute.AUDIT_POLICY),
                     SettingsEntry(s[StringResource.SETTINGS_ROLES_PERMISSIONS], s[StringResource.SETTINGS_ROLES_PERMISSIONS_SUBTITLE], Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT),
                     SettingsEntry(s[StringResource.SETTINGS_EDITION_MANAGEMENT], s[StringResource.SETTINGS_EDITION_MANAGEMENT_SUBTITLE], Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT),
                     SettingsEntry(s[StringResource.SETTINGS_BACKUP], s[StringResource.SETTINGS_BACKUP_SUBTITLE], Icons.Filled.Backup, SettingsRoute.BACKUP),

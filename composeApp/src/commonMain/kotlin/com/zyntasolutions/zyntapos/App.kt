@@ -106,13 +106,16 @@ import com.zyntasolutions.zyntapos.feature.reports.StockReportScreen
 import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
 import com.zyntasolutions.zyntapos.feature.settings.screen.AboutScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.AppearanceSettingsScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.AuditPolicySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.BackupSettingsScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.DataRetentionSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.GeneralSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PosSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.RbacManagementScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.SecurityPolicySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.TaxSettingsScreen
@@ -734,6 +737,17 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
         )
+    },
+
+    // ── Settings: Security Policy / Data Retention / Audit Policy (Sprint 23 scaffolds) ──
+    securityPolicy = { onNavigateUp ->
+        SecurityPolicySettingsScreen(onBack = onNavigateUp)
+    },
+    dataRetention = { onNavigateUp ->
+        DataRetentionSettingsScreen(onBack = onNavigateUp)
+    },
+    auditPolicy = { onNavigateUp ->
+        AuditPolicySettingsScreen(onBack = onNavigateUp)
     },
 
     // ── Settings: Edition Management ─────────────────────────────────────────

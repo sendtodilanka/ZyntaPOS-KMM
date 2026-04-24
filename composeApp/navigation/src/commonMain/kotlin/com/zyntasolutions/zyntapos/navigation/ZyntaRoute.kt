@@ -280,6 +280,18 @@ sealed class ZyntaRoute {
     @Serializable
     data object RbacManagement : ZyntaRoute()
 
+    /** Platform-wide security policy (session timeout, PIN, lockouts, biometric). */
+    @Serializable
+    data object SecurityPolicy : ZyntaRoute()
+
+    /** Data retention windows for audit log, sync queue, and report data. */
+    @Serializable
+    data object DataRetention : ZyntaRoute()
+
+    /** Toggles controlling which action categories generate audit log entries. */
+    @Serializable
+    data object AuditPolicy : ZyntaRoute()
+
     /**
      * Edition and feature management — displays the current store edition and
      * allows administrators to enable or disable optional [ZyntaFeature]s.

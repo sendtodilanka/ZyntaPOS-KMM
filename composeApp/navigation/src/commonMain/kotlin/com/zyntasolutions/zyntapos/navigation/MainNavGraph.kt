@@ -330,6 +330,9 @@ fun NavGraphBuilder.mainNavGraph(
                             "POS" -> navigationController.navigate(ZyntaRoute.PosSettings)
                             "SYSTEM_HEALTH" -> navigationController.navigate(ZyntaRoute.SystemHealthSettings)
                             "SECURITY" -> navigationController.navigate(ZyntaRoute.SecuritySettings)
+                            "SECURITY_POLICY" -> navigationController.navigate(ZyntaRoute.SecurityPolicy)
+                            "DATA_RETENTION" -> navigationController.navigate(ZyntaRoute.DataRetention)
+                            "AUDIT_POLICY" -> navigationController.navigate(ZyntaRoute.AuditPolicy)
                             "RBAC_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.RbacManagement)
                             "EDITION_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.EditionManagement)
                             "STORE_USER_ACCESS" -> navigationController.navigate(ZyntaRoute.StoreUserAccess("default"))
@@ -422,6 +425,24 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.RbacManagement> {
                 screens.rbacManagement(
                     { navigationController.navigateUp(ZyntaRoute.SecuritySettings) },
+                )
+            }
+
+            composable<ZyntaRoute.SecurityPolicy> {
+                screens.securityPolicy(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.DataRetention> {
+                screens.dataRetention(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
+                )
+            }
+
+            composable<ZyntaRoute.AuditPolicy> {
+                screens.auditPolicy(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
 
@@ -912,6 +933,9 @@ private fun MainScaffoldShell(
         is ZyntaRoute.SystemHealthSettings,
         is ZyntaRoute.SecuritySettings,
         is ZyntaRoute.RbacManagement,
+        is ZyntaRoute.SecurityPolicy,
+        is ZyntaRoute.DataRetention,
+        is ZyntaRoute.AuditPolicy,
         is ZyntaRoute.EditionManagement,
         is ZyntaRoute.StoreUserAccess -> item.route is ZyntaRoute.Settings
 
