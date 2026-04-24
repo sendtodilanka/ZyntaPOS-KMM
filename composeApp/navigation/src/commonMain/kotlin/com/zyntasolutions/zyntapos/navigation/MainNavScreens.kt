@@ -157,6 +157,18 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
+    val securityPolicy: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val dataRetention: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
+    val auditPolicy: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     val editionManagement: @Composable (
         onNavigateUp: () -> Unit,
     ) -> Unit,

@@ -68,6 +68,9 @@ class NavGraphCompletenessTest {
         "systemHealthSettings",
         "securitySettings",
         "rbacManagement",
+        "securityPolicy",
+        "dataRetention",
+        "auditPolicy",
         "editionManagement",
 
         // Deep-link target
