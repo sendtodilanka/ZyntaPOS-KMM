@@ -91,14 +91,14 @@ package com.zyntasolutions.zyntapos.feature.settings.screen
  *
  * Layout:
  * - "System Roles" section (read-only):
- *   ADMIN, MANAGER, CASHIER, CUSTOMER_SERVICE, REPORTER
+ *   ADMIN, STORE_MANAGER, CASHIER, ACCOUNTANT, STOCK_MANAGER
  *   Each shows permission count badge; no edit/delete
  * - "Custom Roles" section:
  *   Custom roles with edit + delete buttons
  *   Delete: disabled if any active users have this role
  * - FAB: "Create Custom Role" → RoleEditorScreen(roleId=null)
  *
- * RBAC: requires Permission.VIEW_ADMIN_PANEL (ADMIN role).
+ * RBAC: requires Permission.ADMIN_ACCESS (ADMIN role).
  */
 @Composable
 fun RoleListScreen(
@@ -210,16 +210,22 @@ package com.zyntasolutions.zyntapos.feature.settings.screen
  *   Individual permission rows: name, description, checkbox
  * - Save button → SaveCustomRoleUseCase
  *
- * Permission groups (GetPermissionsTreeUseCase output):
- *   POS:         POS_ACCESS, CREATE_ORDER, VOID_ORDER, APPLY_DISCOUNT, PROCESS_PAYMENT
- *   Inventory:   VIEW_INVENTORY, MANAGE_PRODUCTS, MANAGE_CATEGORIES, MANAGE_STOCK
- *   Staff:       VIEW_STAFF, MANAGE_STAFF, MANAGE_ATTENDANCE, APPROVE_LEAVE, MANAGE_PAYROLL
- *   Reports:     VIEW_REPORTS, EXPORT_REPORTS
- *   Customers:   VIEW_CUSTOMERS, MANAGE_CUSTOMERS
- *   Settings:    VIEW_SETTINGS, MANAGE_SETTINGS, VIEW_ADMIN_PANEL
- *   Admin:       MANAGE_BACKUPS, VIEW_AUDIT_LOGS, MANAGE_MEDIA
- *   E-Invoice:   MANAGE_EINVOICE, VIEW_ACCOUNTING
- *   Multi-Store: MANAGE_MULTI_STORE
+ * Permission groups (GetPermissionsTreeUseCase output — names sourced from the
+ * canonical [com.zyntasolutions.zyntapos.domain.model.Permission] enum):
+ *   POS:         PROCESS_SALE, VOID_ORDER, APPLY_DISCOUNT, HOLD_ORDER, PROCESS_REFUND
+ *   Register:    OPEN_REGISTER, CLOSE_REGISTER, RECORD_CASH_MOVEMENT
+ *   Inventory:   MANAGE_PRODUCTS, MANAGE_CATEGORIES, ADJUST_STOCK, MANAGE_SUPPLIERS, MANAGE_STOCKTAKE
+ *   Staff:       MANAGE_STAFF
+ *   Reports:     VIEW_REPORTS, EXPORT_REPORTS, PRINT_INVOICE
+ *   Customers:   MANAGE_CUSTOMERS, MANAGE_CUSTOMER_GROUPS, MANAGE_WALLETS, MANAGE_LOYALTY
+ *   Coupons:     MANAGE_COUPONS
+ *   Expenses:    MANAGE_EXPENSES, APPROVE_EXPENSES
+ *   Settings:    MANAGE_USERS, MANAGE_SETTINGS, MANAGE_TAX, MANAGE_HARDWARE
+ *   Admin:       ADMIN_ACCESS, MANAGE_BACKUP, VIEW_AUDIT_LOG
+ *   Accounting:  MANAGE_ACCOUNTING
+ *   Multi-Store: MANAGE_WAREHOUSES, MANAGE_STOCK_TRANSFERS
+ *
+ * IRD e-invoicing permissions deferred to Phase 4 (see CLAUDE.md note).
  */
 @Composable
 fun RoleEditorScreen(
@@ -384,88 +390,106 @@ private fun PermissionRow(
 
 ## i18n Completion
 
-### Sinhala and Tamil Translation Files
+### Sinhala and Tamil Translation Tables
 
-**Location:** `shared/core/src/commonMain/resources/`
+**Location:** `shared/core/src/commonMain/kotlin/com/zyntasolutions/zyntapos/core/i18n/`
 
-Files: `strings_si.json`, `strings_ta.json`
+Files: `SinhalaStrings.kt`, `TamilStrings.kt`
 
-These files contain the complete translation for all 800+ string keys used in the app. Below are the Phase 3 additions (added on top of Phase 2 stubs):
+> **Architecture note (reconciled 2026-04-26):** This codebase ships translations as
+> Kotlin `Map<StringResource, String>` tables — see `EnglishStrings.kt` (~2104 lines).
+> The `LocalizationManager` registers each table via `registerStrings(locale, table)`
+> at startup (see `composeApp/src/commonMain/.../App.kt`). The Phase 2 stub mention in
+> earlier drafts of this plan was incorrect — neither `SinhalaStrings.kt` nor
+> `TamilStrings.kt` exists yet. The full surface to translate is the
+> ~1997-entry `StringResource` enum (not the "800+" originally cited).
 
-```json
-// strings_si.json — Phase 3 additions (Staff, Admin, Media, E-Invoice)
-{
-  "staff.employees": "සේවකයින්",
-  "staff.attendance": "පැමිණීම",
-  "staff.leave": "නිවාඩු",
-  "staff.payroll": "ගෙවීම්",
-  "staff.shift": "ෂිෆ්ට්",
-  "staff.clock_in": "කාලය ලොග් කිරීම",
-  "staff.clock_out": "කාලය ලොග් කිරීම අවසන්",
-  "staff.generate_payroll": "ගෙවීම් ජනනය කරන්න",
-  "admin.system_health": "පද්ධති සෞඛ්‍යය",
-  "admin.backup": "අනුග්‍රාහකය",
-  "admin.restore": "යථා තත්ත්වයට ගෙන ඒම",
-  "admin.audit_log": "විගණන ලොගය",
-  "admin.database": "දත්ත ගබඩාව",
-  "media.library": "මාධ්‍ය පුස්තකාලය",
-  "media.upload": "උඩුගත කිරීම",
-  "media.crop": "කැපීම",
-  "einvoice.title": "ඊ-ඉන්වොයිස්",
-  "einvoice.submit": "IRD වෙත ඉදිරිපත් කිරීම",
-  "einvoice.compliance": "අනුකූලතා වාර්තාව"
-}
-
-// strings_ta.json — Phase 3 additions
-{
-  "staff.employees": "ஊழியர்கள்",
-  "staff.attendance": "வருகை",
-  "staff.leave": "விடுப்பு",
-  "staff.payroll": "சம்பள பட்டியல்",
-  "staff.shift": "பணி நேரம்",
-  "staff.clock_in": "நேர பதிவு",
-  "staff.clock_out": "நேர பதிவு முடிவு",
-  "staff.generate_payroll": "சம்பளம் உருவாக்கு",
-  "admin.system_health": "கணினி ஆரோக்கியம்",
-  "admin.backup": "காப்புப்பிரதி",
-  "admin.restore": "மீட்டமை",
-  "admin.audit_log": "தணிக்கை பதிவு",
-  "media.library": "மீடியா நூலகம்",
-  "media.upload": "பதிவேற்றம்",
-  "media.crop": "வெட்டுதல்",
-  "einvoice.title": "இ-இன்வாய்ஸ்",
-  "einvoice.submit": "IRD சமர்பிக்கவும்",
-  "einvoice.compliance": "இணக்க அறிக்கை"
-}
-```
-
-### `LocalizationManager` Updates
+Each translation file follows the exact pattern below:
 
 ```kotlin
-// In LocalizationManager (shared/core):
-// Add font loading for Sinhala and Tamil scripts:
+// SinhalaStrings.kt
+package com.zyntasolutions.zyntapos.core.i18n
 
-fun loadFontForLanguage(language: String): FontFamily {
-    return when (language) {
-        "si" -> FontFamily(Font("fonts/NotoSansSinhala-Regular.ttf"))
-        "ta" -> FontFamily(Font("fonts/NotoSansTamil-Regular.ttf"))
-        else -> FontFamily.Default
-    }
+@Suppress("detekt:LargeClass")
+internal object SinhalaStrings {
+    val table: Map<StringResource, String> = mapOf(
+        // Phase 3 sample additions — Staff, Admin, Media (IRD e-invoicing
+        // translations are deferred to Phase 4 along with the IRD code path).
+        StringResource.STAFF_EMPLOYEES to "සේවකයින්",
+        StringResource.STAFF_ATTENDANCE to "පැමිණීම",
+        StringResource.STAFF_LEAVE to "නිවාඩු",
+        StringResource.STAFF_PAYROLL to "ගෙවීම්",
+        StringResource.STAFF_SHIFT to "ෂිෆ්ට්",
+        StringResource.STAFF_CLOCK_IN to "කාලය ලොග් කිරීම",
+        StringResource.STAFF_CLOCK_OUT to "කාලය ලොග් කිරීම අවසන්",
+        StringResource.STAFF_GENERATE_PAYROLL to "ගෙවීම් ජනනය කරන්න",
+        StringResource.ADMIN_SYSTEM_HEALTH to "පද්ධති සෞඛ්‍යය",
+        StringResource.ADMIN_BACKUP to "අනුග්‍රාහකය",
+        StringResource.ADMIN_RESTORE to "යථා තත්ත්වයට ගෙන ඒම",
+        StringResource.ADMIN_AUDIT_LOG to "විගණන ලොගය",
+        StringResource.ADMIN_DATABASE to "දත්ත ගබඩාව",
+        StringResource.MEDIA_LIBRARY to "මාධ්‍ය පුස්තකාලය",
+        StringResource.MEDIA_UPLOAD to "උඩුගත කිරීම",
+        StringResource.MEDIA_CROP to "කැපීම",
+        // ... remaining ~1980 keys to fill — needs native-speaker review.
+    )
 }
 
-// Add key validation (dev/debug builds only):
-fun validateKeys(targetLanguage: String): List<String> {
-    val englishKeys = loadJson("strings_en.json").keys
-    val targetKeys  = loadJson("strings_${targetLanguage}.json").keys
-    val missing = englishKeys - targetKeys
-    if (missing.isNotEmpty()) {
-        Logger.withTag("Localization").w { "[$targetLanguage] ${missing.size} missing keys: ${missing.take(5)}" }
-    }
-    return missing.toList()
+// TamilStrings.kt (parallel structure)
+internal object TamilStrings {
+    val table: Map<StringResource, String> = mapOf(
+        StringResource.STAFF_EMPLOYEES to "ஊழியர்கள்",
+        StringResource.STAFF_ATTENDANCE to "வருகை",
+        // ... remaining ~1980 keys to fill — needs native-speaker review.
+    )
 }
 ```
 
-**Font files location:** `shared/core/src/commonMain/resources/fonts/`
+> **IRD / e-invoicing rows removed (2026-04-26):** Earlier drafts listed
+> `einvoice.title`, `einvoice.submit`, `einvoice.compliance` rows in both SI/TA
+> tables. IRD e-invoicing has been deferred to Phase 4 (see CLAUDE.md), so the
+> matching `StringResource` keys may not exist; do not translate them as part of
+> this sprint.
+
+### `LocalizationManager` reconciliation
+
+The font-loading and key-validation utilities have **already been implemented**
+under different names than the original Sprint 23 spec. Current API:
+
+```kotlin
+// Already present in shared/core/.../i18n/LocalizationManager.kt:
+
+fun fontFamilyForLanguage(languageCode: String): String? = when (languageCode) {
+    "si" -> "Noto Sans Sinhala"
+    "ta" -> "Noto Sans Tamil"
+    "hi" -> "Noto Sans Devanagari"
+    "ar" -> "Noto Sans Arabic"
+    "ja" -> "Noto Sans JP"
+    "zh" -> "Noto Sans SC"
+    else -> null   // Latin-script languages use the system default
+}
+
+fun validateKeys(locale: SupportedLocale): List<String> {
+    val missing = missingKeys(locale)
+    return missing.map { it.name }
+}
+
+fun missingKeys(locale: SupportedLocale): Set<StringResource> {
+    val table = tables[locale] ?: return StringResource.entries.toSet()
+    return StringResource.entries.filter { it !in table }.toSet()
+}
+```
+
+> **Note:** The current `fontFamilyForLanguage` returns the font *name* as a
+> `String?`; the platform layer is expected to map the name to a Compose
+> `FontFamily`. Sprint 23 task 23.8 should therefore be reduced to:
+>   1. Bundle Noto Sans Sinhala + Tamil `.ttf` files (Task 23.7).
+>   2. Wire each platform's `Font(...)` resolution to the name returned by
+>      `fontFamilyForLanguage` (Android: `androidx.compose.ui.text.googlefonts`;
+>      JVM: classpath resource lookup).
+>   3. No method renames are required.
+
+**Font files location:** `composeApp/src/{androidMain,jvmMain}/resources/fonts/`
 - `NotoSansSinhala-Regular.ttf` — Noto Sans Sinhala (Google Fonts, OFL license)
 - `NotoSansTamil-Regular.ttf` — Noto Sans Tamil (Google Fonts, OFL license)
 
@@ -571,19 +595,23 @@ data object AuditPolicy : ZyntaRoute()
 
 ## Tasks
 
-- [ ] **23.1** Create `PermissionGroup.kt` and `PermissionItem.kt` domain models
-- [ ] **23.2** Create `GetPermissionsTreeUseCase`, `GetRolesUseCase`, `SaveCustomRoleUseCase`, `DeleteCustomRoleUseCase`, `CloneRoleUseCase` interfaces
-- [ ] **23.3** Implement `GetPermissionsTreeUseCaseImpl` returning all permissions grouped by module
-- [ ] **23.4** Implement `RoleListScreen.kt` with system/custom role separation
-- [ ] **23.5** Implement `RoleEditorScreen.kt` with `PermissionGroupHeader` (tri-state) and `PermissionRow` checkboxes
-- [ ] **23.6** Complete `strings_si.json` and `strings_ta.json` with all 800+ Phase 1–3 keys
-- [ ] **23.7** Add Noto Sans Sinhala + Tamil font files to `shared/core/src/commonMain/resources/fonts/`
-- [ ] **23.8** Update `LocalizationManager` with `loadFontForLanguage()` and `validateKeys()` (debug only)
-- [ ] **23.9** Implement `SecurityPolicySettingsScreen.kt`, `DataRetentionSettingsScreen.kt`, `AuditPolicySettingsScreen.kt`
-- [ ] **23.10** Wire all 5 new settings routes in `MainNavGraph.kt`
-- [ ] **23.11** Write `RoleEditorViewModelTest` — test permission selection, indeterminate state, save role
-- [ ] **23.12** Write `LocalizationTest` — validate all SI/TA keys present vs EN baseline
-- [ ] **23.13** Verify: `./gradlew :shared:core:assemble && ./gradlew :composeApp:feature:settings:assemble`
+> Status legend: ✅ done, ⚠️ partial, ❌ not started.
+> Status reconciled with codebase on **2026-04-26** after PR #640.
+> See `docs/audit/sprint23-integrity-audit-2026-04-26-1650.md` for the full audit.
+
+- [x] **23.1** Create `PermissionGroup.kt` and `PermissionItem.kt` domain models. ✅ Done — single file at `shared/domain/.../model/PermissionGroup.kt` (15 LOC, both classes).
+- [ ] **23.2** Create `GetCustomRolesUseCase`, `SaveCustomRoleUseCase`, `DeleteCustomRoleUseCase`, `CloneRoleUseCase`, `GetPermissionsTreeUseCase` interfaces. ⚠️ Partial — 5 files exist; `GetCustomRolesUseCase` is a `class` returning `Flow<List<CustomRole>>`; `SaveCustomRoleUseCase` is a `class` with extra `isUpdate: Boolean` parameter and `Result<Unit>` return; `CloneRoleUseCase` and `GetPermissionsTreeUseCase` are bare `fun interface` stubs.
+- [ ] **23.3** Implement `GetPermissionsTreeUseCaseImpl` returning all permissions grouped by module. ❌ Not done — interface exists, no impl class anywhere; not bound in Koin.
+- [ ] **23.4** Implement `RoleListScreen.kt` with system/custom role separation. ❌ Not done — file does not exist; legacy single-screen `RbacManagementScreen.kt` covers this functionally without the dedicated split.
+- [ ] **23.5** Implement `RoleEditorScreen.kt` with `PermissionGroupHeader` (tri-state) and `PermissionRow` checkboxes. ❌ Not done — file does not exist; zero `TriStateCheckbox` usage anywhere in the settings module.
+- [ ] **23.6** Complete `SinhalaStrings.kt` and `TamilStrings.kt` with all ~1997 Phase 1–3 `StringResource` keys. (Format: Kotlin `Map<StringResource, String>` matching `EnglishStrings.kt`.) ❌ Not done — neither file exists.
+- [ ] **23.7** Add Noto Sans Sinhala + Tamil font files to `composeApp/src/{androidMain,jvmMain}/resources/fonts/`. ❌ Not done.
+- [x] **23.8** Update `LocalizationManager` with `fontFamilyForLanguage()` and `validateKeys()`. ✅ Effectively done — both methods already exist (note: `fontFamilyForLanguage` returns the font *name*; platform layer must map the name to a Compose `FontFamily`).
+- [x] **23.9** Implement `SecurityPolicySettingsScreen.kt`, `DataRetentionSettingsScreen.kt`, `AuditPolicySettingsScreen.kt`. ⚠️ Partial — read-only shells shipped (Batch 14, PR #640); persistence layer (`settings` table read/write), dropdowns, biometric toggle, and `SettingsViewModel` injection are deferred to Sprint 24.
+- [ ] **23.10** Wire all 5 new settings routes in `MainNavGraph.kt`. ⚠️ 3/5 — SecurityPolicy / DataRetention / AuditPolicy fully wired; `RoleList` + `RoleEditor` still missing.
+- [ ] **23.11** Write `RoleEditorViewModelTest` — test permission selection, indeterminate state, save role. ❌ Not done.
+- [ ] **23.12** Write `LocalizationTest` — validate all SI/TA keys present vs EN baseline. ⚠️ Stub only — `LocalizationManagerTest.kt` exercises `missingKeys` / `registerStrings` with synthetic data; cannot assert real coverage until 23.6 lands.
+- [x] **23.13** Verify: `./gradlew :shared:core:assemble && ./gradlew :composeApp:feature:settings:assemble`. ✅ Verified by CI on PR #640.
 
 ---
 
@@ -601,13 +629,15 @@ data object AuditPolicy : ZyntaRoute()
 
 ## Definition of Done
 
-- [ ] `RoleListScreen` correctly distinguishes system roles (read-only) from custom roles (editable)
-- [ ] `RoleEditorScreen` permission tree has tri-state module checkboxes and individual permission rows
-- [ ] `SaveCustomRoleUseCase` persists role to `roles` table with permissions
-- [ ] `strings_si.json` and `strings_ta.json` have zero missing keys vs `strings_en.json`
-- [ ] Noto Sans Sinhala and Tamil fonts load without errors
-- [ ] `LocalizationManager.validateKeys()` reports no missing keys in debug build
-- [ ] All three advanced settings screens implement correct read/write to `settings` table
+> Status reconciled 2026-04-26 (post-Batch 14 / PR #640).
+
+- [ ] `RoleListScreen` correctly distinguishes system roles (read-only) from custom roles (editable). ❌ File does not exist.
+- [ ] `RoleEditorScreen` permission tree has tri-state module checkboxes and individual permission rows. ❌ File does not exist; no tri-state UI anywhere in the module.
+- [ ] `SaveCustomRoleUseCase` persists role to `custom_roles` table with permissions. ⚠️ Use case exists with diverged signature (`(CustomRole, isUpdate): Result<Unit>`); end-to-end persistence not yet validated.
+- [ ] `SinhalaStrings.kt` and `TamilStrings.kt` have zero missing keys vs `EnglishStrings.kt` baseline. ❌ Both files absent.
+- [ ] Noto Sans Sinhala and Tamil fonts load without errors. ❌ Font assets absent.
+- [ ] `LocalizationManager.validateKeys()` reports no missing keys in debug build. ⚠️ Method exists; cannot validate without SI/TA tables.
+- [ ] All three advanced settings screens implement correct read/write to `settings` table. ❌ Read-only shells only — KDocs explicitly defer persistence to Sprint 24.
 - [ ] Role editor tests pass (permission selection, tri-state, save)
 - [ ] Localization test (no missing keys) passes
 - [ ] Commit: `feat(settings): add custom role editor, complete SI/TA translations, and advanced security settings`
