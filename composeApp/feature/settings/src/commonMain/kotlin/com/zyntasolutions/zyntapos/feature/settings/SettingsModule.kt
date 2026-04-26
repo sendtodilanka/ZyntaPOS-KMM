@@ -7,6 +7,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.feature.GetAllFeatureConfigsUs
 import com.zyntasolutions.zyntapos.domain.usecase.feature.IsFeatureEnabledUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.feature.SetFeatureEnabledUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.GetPermissionsTreeUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.GetPermissionsTreeUseCaseImpl
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.DeleteTaxOverrideUseCase
@@ -54,6 +56,7 @@ val settingsModule = module {
     factoryOf(::RevokeStoreAccessUseCase)
     factoryOf(::SaveCustomRoleUseCase)
     factoryOf(::DeleteCustomRoleUseCase)
+    factory<GetPermissionsTreeUseCase> { GetPermissionsTreeUseCaseImpl() }
 
     // ── Feature registry use cases (Edition Management) ───────────────────────
     // FeatureRegistryRepository is bound in :shared:data dataModule.
