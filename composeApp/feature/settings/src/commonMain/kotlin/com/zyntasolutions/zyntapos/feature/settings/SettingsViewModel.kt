@@ -23,6 +23,7 @@ import com.zyntasolutions.zyntapos.domain.model.PrinterPaperWidth
 import com.zyntasolutions.zyntapos.domain.model.PrinterProfile
 import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.CloneRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.model.RegionalTaxOverride
@@ -81,6 +82,7 @@ class SettingsViewModel(
     private val setPinUseCase: SetPinUseCase,
     private val saveCustomRoleUseCase: SaveCustomRoleUseCase,
     private val deleteCustomRoleUseCase: DeleteCustomRoleUseCase,
+    private val cloneRoleUseCase: CloneRoleUseCase,
     private val printTestPageUseCase: PrintTestPageUseCase,
     private val backupService: BackupService,
     private val getLabelPrinterConfigUseCase: GetLabelPrinterConfigUseCase,
@@ -200,6 +202,7 @@ class SettingsViewModel(
         is SettingsIntent.ToggleCustomRolePermission -> toggleCustomRolePermission(intent.permission)
         SettingsIntent.SaveCustomRole                -> saveCustomRole()
         is SettingsIntent.DeleteCustomRole           -> deleteCustomRole(intent.id)
+        is SettingsIntent.CloneCustomRole            -> cloneCustomRole(intent.sourceId, intent.newName)
         is SettingsIntent.ToggleBuiltInRolePermission -> toggleBuiltInRolePermission(intent.role, intent.permission)
         is SettingsIntent.ResetBuiltInRolePermissions -> resetBuiltInRolePermissions(intent.role)
         // Backup
@@ -734,6 +737,17 @@ class SettingsViewModel(
         viewModelScope.launch {
             deleteCustomRoleUseCase(id)
                 .onSuccess { sendEffect(SettingsEffect.RoleDeleted) }
+                .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
+        }
+    }
+
+    private fun cloneCustomRole(sourceId: String, newName: String) {
+        viewModelScope.launch {
+            cloneRoleUseCase(sourceId, newName)
+                .onSuccess { newRole ->
+                    sendEffect(SettingsEffect.RoleCloned(newRoleId = newRole.id))
+                    auditLogger.logCustomRoleModified(currentUserId, newRole.name)
+                }
                 .onError { e -> updateState { copy(rbac = rbac.copy(saveError = e.message)) } }
         }
     }
