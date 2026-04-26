@@ -32,7 +32,6 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.SupervisedUserCircle
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -120,7 +119,7 @@ data class SettingsGroup(
 
 /** All routes the settings home screen can navigate to. */
 enum class SettingsRoute {
-    GENERAL, POS, TAX, PRINTER, USERS, SECURITY, RBAC_MANAGEMENT, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
+    GENERAL, POS, TAX, PRINTER, USERS, SECURITY, BACKUP, APPEARANCE, SYSTEM_HEALTH, ABOUT,
     LABEL_PRINTER, SCANNER_SETTINGS, PRINTER_PROFILES, EDITION_MANAGEMENT,
     /** Multi-store user access management — grant/revoke staff access to stores (C3.2). */
     STORE_USER_ACCESS,
@@ -167,8 +166,7 @@ private fun rememberSettingsGroups(): List<SettingsGroup> {
                     SettingsEntry(s[StringResource.SETTINGS_SECURITY_POLICY], s[StringResource.SETTINGS_SECURITY_POLICY_SUBTITLE], Icons.Filled.Shield, SettingsRoute.SECURITY_POLICY),
                     SettingsEntry(s[StringResource.SETTINGS_DATA_RETENTION], s[StringResource.SETTINGS_DATA_RETENTION_SUBTITLE], Icons.Filled.HistoryToggleOff, SettingsRoute.DATA_RETENTION),
                     SettingsEntry(s[StringResource.SETTINGS_AUDIT_POLICY], s[StringResource.SETTINGS_AUDIT_POLICY_SUBTITLE], Icons.Filled.FactCheck, SettingsRoute.AUDIT_POLICY),
-                    SettingsEntry(s[StringResource.SETTINGS_ROLES_PERMISSIONS], s[StringResource.SETTINGS_ROLES_PERMISSIONS_SUBTITLE], Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT),
-                    SettingsEntry(s[StringResource.RBAC_SYSTEM_ROLES], s[StringResource.COMMON_READ_ONLY], Icons.Filled.Verified, SettingsRoute.ROLE_LIST),
+                    SettingsEntry(s[StringResource.SETTINGS_ROLES_PERMISSIONS], s[StringResource.SETTINGS_ROLES_PERMISSIONS_SUBTITLE], Icons.Filled.AdminPanelSettings, SettingsRoute.ROLE_LIST),
                     SettingsEntry(s[StringResource.SETTINGS_EDITION_MANAGEMENT], s[StringResource.SETTINGS_EDITION_MANAGEMENT_SUBTITLE], Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT),
                     SettingsEntry(s[StringResource.SETTINGS_BACKUP], s[StringResource.SETTINGS_BACKUP_SUBTITLE], Icons.Filled.Backup, SettingsRoute.BACKUP),
                 ),

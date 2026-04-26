@@ -54,7 +54,7 @@ fun SecuritySettingsScreen(
     state: SettingsState.SecurityState,
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
-    onNavigateToRbacManagement: () -> Unit = {},
+    onNavigateToRoles: () -> Unit = {},
 ) {
     val s = LocalStrings.current
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadSecuritySettings) }
@@ -190,7 +190,7 @@ fun SecuritySettingsScreen(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onNavigateToRbacManagement() },
+                            .clickable { onNavigateToRoles() },
                     )
                 }
             }
@@ -293,7 +293,7 @@ private fun SecuritySettingsScreenPreview() {
             state = SettingsState.SecurityState(autoLockMinutes = 5),
             onIntent = {},
             onBack = {},
-            onNavigateToRbacManagement = {},
+            onNavigateToRoles = {},
         )
     }
 }
