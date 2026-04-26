@@ -1,5 +1,7 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.domain.usecase.audit.GetAuditPolicyUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.audit.SetAuditPolicyEnabledUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.GrantStoreAccessUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.RevokeStoreAccessUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
@@ -61,6 +63,10 @@ val settingsModule = module {
     factory<GetPermissionsTreeUseCase> { GetPermissionsTreeUseCaseImpl() }
     factory<CloneRoleUseCase> { CloneRoleUseCaseImpl(get()) }
 
+    // ── Audit policy use cases (Sprint 23 task 23.9 — persistence slice) ──────
+    factoryOf(::GetAuditPolicyUseCase)
+    factoryOf(::SetAuditPolicyEnabledUseCase)
+
     // ── Feature registry use cases (Edition Management) ───────────────────────
     // FeatureRegistryRepository is bound in :shared:data dataModule.
     factoryOf(::GetAllFeatureConfigsUseCase)
@@ -113,4 +119,5 @@ val settingsModule = module {
     viewModelOf(::RegionalTaxOverrideViewModel)
     viewModelOf(::StoreUserAccessViewModel)
     viewModelOf(::RoleEditorViewModel)
+    viewModelOf(::AuditPolicyViewModel)
 }

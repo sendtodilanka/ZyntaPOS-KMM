@@ -103,6 +103,8 @@ import com.zyntasolutions.zyntapos.feature.reports.CustomerReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.ExpenseReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.SalesReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.StockReportScreen
+import com.zyntasolutions.zyntapos.feature.settings.AuditPolicyIntent
+import com.zyntasolutions.zyntapos.feature.settings.AuditPolicyViewModel
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
@@ -778,7 +780,14 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         DataRetentionSettingsScreen(onBack = onNavigateUp)
     },
     auditPolicy = { onNavigateUp ->
-        AuditPolicySettingsScreen(onBack = onNavigateUp)
+        val vm: AuditPolicyViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        LaunchedEffect(Unit) { vm.dispatch(AuditPolicyIntent.Load) }
+        AuditPolicySettingsScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
     },
 
     // ── Settings: Edition Management ─────────────────────────────────────────
