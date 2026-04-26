@@ -6,6 +6,8 @@ import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.feature.GetAllFeatureConfigsUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.feature.IsFeatureEnabledUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.feature.SetFeatureEnabledUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.CloneRoleUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.CloneRoleUseCaseImpl
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.GetPermissionsTreeUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.GetPermissionsTreeUseCaseImpl
@@ -57,6 +59,7 @@ val settingsModule = module {
     factoryOf(::SaveCustomRoleUseCase)
     factoryOf(::DeleteCustomRoleUseCase)
     factory<GetPermissionsTreeUseCase> { GetPermissionsTreeUseCaseImpl() }
+    factory<CloneRoleUseCase> { CloneRoleUseCaseImpl(get()) }
 
     // ── Feature registry use cases (Edition Management) ───────────────────────
     // FeatureRegistryRepository is bound in :shared:data dataModule.
