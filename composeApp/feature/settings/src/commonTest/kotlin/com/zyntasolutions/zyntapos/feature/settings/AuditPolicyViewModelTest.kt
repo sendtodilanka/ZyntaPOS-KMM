@@ -1,9 +1,12 @@
 package com.zyntasolutions.zyntapos.feature.settings
 
+import com.zyntasolutions.zyntapos.core.result.Result
 import com.zyntasolutions.zyntapos.domain.model.AuditPolicy
+import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.usecase.audit.GetAuditPolicyUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.audit.SetAuditPolicyEnabledUseCase
-import com.zyntasolutions.zyntapos.domain.usecase.fakes.FakeSettingsRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -15,7 +18,25 @@ import kotlin.test.assertTrue
 
 class AuditPolicyViewModelTest {
 
-    private fun newVm(repo: FakeSettingsRepository = FakeSettingsRepository()) = AuditPolicyViewModel(
+    /**
+     * In-memory test double. Mirrors `shared/domain/.../FakeSettingsRepository`
+     * but is replicated inline because `composeApp:feature:settings:commonTest`
+     * does not see other modules' test-source classpaths in this project's
+     * Gradle setup.
+     */
+    private class InMemorySettingsRepository : SettingsRepository {
+        private val store = mutableMapOf<String, String>()
+        fun put(key: String, value: String) { store[key] = value }
+        override suspend fun get(key: String): String? = store[key]
+        override suspend fun set(key: String, value: String): Result<Unit> {
+            store[key] = value
+            return Result.Success(Unit)
+        }
+        override suspend fun getAll(): Map<String, String> = store.toMap()
+        override fun observe(key: String): Flow<String?> = MutableStateFlow(store[key])
+    }
+
+    private fun newVm(repo: InMemorySettingsRepository = InMemorySettingsRepository()) = AuditPolicyViewModel(
         getAuditPolicyUseCase = GetAuditPolicyUseCase(repo),
         setAuditPolicyEnabledUseCase = SetAuditPolicyEnabledUseCase(repo),
     ) to repo
