@@ -202,3 +202,27 @@ Already exists — allows runtime creation with arbitrary permission sets. Phase
 2. RBAC read-only role list (day 3, foundational)
 3. Security Policy settings shell (day 3–4, UI reuse)
 
+---
+
+## Status — 2026-04-26
+
+This scaffold doc was authored **2026-04-23** as situational research before Batch 14.
+After PR #640 merged, the integrity audit
+(`docs/audit/sprint23-integrity-audit-2026-04-26-1650.md`) re-verified each
+claim. Summary of what is now stale:
+
+| Section | Original claim | Status after Batch 14 |
+|---------|----------------|----------------------|
+| §3 — "112 hardcoded `Text()` instances vs 690 localised; 86% coverage" | Asserted as a baseline | **Refuted as a false positive.** Every spot-checked instance interpolates a `StringResource` lookup or renders a numeric badge. Production composables in `composeApp/feature/` are effectively 100% localised. |
+| §3 — "Sinhala and Tamil JSON translation files already exist with Phase 2 stubs" | Phase 2 stubs assumed | **False.** Neither `strings_si.json`/`strings_ta.json` nor `SinhalaStrings.kt`/`TamilStrings.kt` exists. No `commonMain/resources/` directory. |
+| §3 — "~1966 enum keys (line count: 2136 total file)" | Sized using line count | **Close but slightly low.** Real `StringResource` enum has ~1997 entries; file is 2151 lines. |
+| §4 — "Existing screens (VERIFIED count: 15 screen files)" | Pre-Batch-14 count | **Stale by 3.** Screen file count is now 18 after Batch 14 added `SecurityPolicySettingsScreen`, `DataRetentionSettingsScreen`, `AuditPolicySettingsScreen`. |
+| §4 — "New routes needed for Batch 14: SecurityPolicy / DataRetention / AuditPolicy" | "Needed" framing | **Done.** All three routes wired through `ZyntaRoute` → `MainNavScreens` → `MainNavGraph` → `App.kt` → `SettingsHomeScreen` → `NavGraphCompletenessTest`. |
+| §4 Claim 4 — "Minimum-Viable Slice: Security Policy Shell" | Recommendation | **Implemented faithfully** in Batch 14 — hardcoded values, `Card` + `ListItem` layout, no edit controls, route + home wiring. |
+| §2 — "RbacManagementScreen already scaffolded; hardcoded strings present in current UI (to be migrated)" | Suggested string migration | **Stale.** `RbacManagementScreen.kt` already pulls every label via `LocalStrings.current[StringResource.SETTINGS_RBAC_*]`. No hardcoded strings remain. |
+| §5 — "Recommendation: i18n Migration (Smallest, Most Isolated)" | Recommended starting point | **Historically stale.** Batch 14 chose the Settings shells path instead. Recommendation was a menu, not a contract. |
+
+The scaffold doc is preserved for historical context — it is not the source of
+truth for Sprint 23 execution. The current canonical Sprint 23 status table
+lives in `docs/plans/phase/p3/Phase3_Sprint23.md` (Tasks + Definition of Done
+sections, both annotated 2026-04-26).
