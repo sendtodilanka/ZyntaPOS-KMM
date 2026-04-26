@@ -68,6 +68,7 @@ class NavGraphCompletenessTest {
         "systemHealthSettings",
         "securitySettings",
         "rbacManagement",
+        "roleList",
         "securityPolicy",
         "dataRetention",
         "auditPolicy",

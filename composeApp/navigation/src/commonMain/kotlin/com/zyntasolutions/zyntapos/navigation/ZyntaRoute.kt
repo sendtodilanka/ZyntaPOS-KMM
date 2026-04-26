@@ -280,6 +280,14 @@ sealed class ZyntaRoute {
     @Serializable
     data object RbacManagement : ZyntaRoute()
 
+    /**
+     * Read-only role catalog (Sprint 23 task 23.4) — system roles +
+     * custom roles with permission counts. Editing is reachable from
+     * here once the editor screen lands in task 23.5.
+     */
+    @Serializable
+    data object RoleList : ZyntaRoute()
+
     /** Platform-wide security policy (session timeout, PIN, lockouts, biometric). */
     @Serializable
     data object SecurityPolicy : ZyntaRoute()
