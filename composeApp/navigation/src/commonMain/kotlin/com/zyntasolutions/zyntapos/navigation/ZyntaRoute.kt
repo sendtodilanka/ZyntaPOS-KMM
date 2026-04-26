@@ -283,10 +283,19 @@ sealed class ZyntaRoute {
     /**
      * Read-only role catalog (Sprint 23 task 23.4) — system roles +
      * custom roles with permission counts. Editing is reachable from
-     * here once the editor screen lands in task 23.5.
+     * here via the FAB / per-row actions; both navigate to [RoleEditor].
      */
     @Serializable
     data object RoleList : ZyntaRoute()
+
+    /**
+     * Custom-role editor (Sprint 23 task 23.5).
+     *
+     * @property roleId Existing custom-role id when editing; `null` when
+     *   creating a new role from blank or via clone.
+     */
+    @Serializable
+    data class RoleEditor(val roleId: String? = null) : ZyntaRoute()
 
     /** Platform-wide security policy (session timeout, PIN, lockouts, biometric). */
     @Serializable

@@ -111,4 +111,5 @@ val settingsModule = module {
     viewModelOf(::EditionManagementViewModel)
     viewModelOf(::RegionalTaxOverrideViewModel)
     viewModelOf(::StoreUserAccessViewModel)
+    viewModelOf(::RoleEditorViewModel)
 }
