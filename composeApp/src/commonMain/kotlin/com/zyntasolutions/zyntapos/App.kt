@@ -114,7 +114,9 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.PosSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementScreen
+import com.zyntasolutions.zyntapos.feature.settings.RoleEditorViewModel
 import com.zyntasolutions.zyntapos.feature.settings.screen.RbacManagementScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.RoleEditorScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.RoleListScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecurityPolicySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScreen
@@ -740,13 +742,29 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         )
     },
 
-    // ── Settings: Role Catalog (Sprint 23 task 23.4 — read-only foundation) ──
-    roleList = { onNavigateUp ->
+    // ── Settings: Role Catalog (Sprint 23 task 23.4) ─────────────────────────
+    roleList = { onNavigateUp, onNavigateToEditor ->
         val vm: SettingsViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         RoleListScreen(
             state = state.rbac,
             onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+            onCreateRole = { onNavigateToEditor(null) },
+            onEditRole = onNavigateToEditor,
+        )
+    },
+
+    // ── Settings: Role Editor (Sprint 23 task 23.5) ──────────────────────────
+    roleEditor = { roleId, onNavigateUp ->
+        val vm: RoleEditorViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        RoleEditorScreen(
+            roleId = roleId,
+            state = state,
+            effects = vm.effects,
+            onIntent = vm::dispatch,
+            onSaved = onNavigateUp,
             onBack = onNavigateUp,
         )
     },

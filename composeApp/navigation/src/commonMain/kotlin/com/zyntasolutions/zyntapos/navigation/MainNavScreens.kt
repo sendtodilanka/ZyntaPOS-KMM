@@ -159,6 +159,12 @@ data class MainNavScreens(
 
     val roleList: @Composable (
         onNavigateUp: () -> Unit,
+        onNavigateToEditor: (roleId: String?) -> Unit,
+    ) -> Unit,
+
+    val roleEditor: @Composable (
+        roleId: String?,
+        onNavigateUp: () -> Unit,
     ) -> Unit,
 
     val securityPolicy: @Composable (

@@ -69,6 +69,7 @@ class NavGraphCompletenessTest {
         "securitySettings",
         "rbacManagement",
         "roleList",
+        "roleEditor",
         "securityPolicy",
         "dataRetention",
         "auditPolicy",

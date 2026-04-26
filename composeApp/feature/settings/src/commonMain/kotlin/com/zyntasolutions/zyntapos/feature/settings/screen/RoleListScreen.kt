@@ -8,13 +8,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +71,8 @@ fun RoleListScreen(
     state: SettingsState.RbacState,
     onIntent: (SettingsIntent) -> Unit,
     onBack: () -> Unit,
+    onCreateRole: () -> Unit = {},
+    onEditRole: (roleId: String) -> Unit = {},
 ) {
     val s = LocalStrings.current
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadRbac) }
@@ -73,6 +80,11 @@ fun RoleListScreen(
     ZyntaPageScaffold(
         title = s[StringResource.SETTINGS_ROLES_PERMISSIONS],
         onNavigateBack = onBack,
+        floatingActionButton = {
+            FloatingActionButton(onClick = onCreateRole) {
+                Icon(Icons.Default.Add, contentDescription = s[StringResource.RBAC_CREATE_ROLE])
+            }
+        },
     ) { innerPadding ->
         LazyColumn(
             contentPadding = PaddingValues(
@@ -134,19 +146,16 @@ fun RoleListScreen(
                         ),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        CustomRoleRow(role = role, labelStrings = s)
+                        CustomRoleRow(
+                            role = role,
+                            labelStrings = s,
+                            onEdit = { onEditRole(role.id) },
+                            onDelete = { onIntent(SettingsIntent.DeleteCustomRole(role.id)) },
+                        )
                     }
                 }
             }
 
-            item {
-                Text(
-                    text = s[StringResource.COMMON_READ_ONLY],
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = ZyntaSpacing.xs, top = ZyntaSpacing.sm),
-                )
-            }
         }
     }
 }
@@ -187,6 +196,8 @@ private fun SystemRoleRow(
 private fun CustomRoleRow(
     role: CustomRole,
     labelStrings: StringResolver,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     ListItem(
         leadingContent = {
@@ -211,6 +222,22 @@ private fun CustomRoleRow(
                         role.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
+        trailingContent = {
+            androidx.compose.foundation.layout.Row {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = labelStrings[StringResource.RBAC_EDIT_ROLE],
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = labelStrings[StringResource.RBAC_DELETE_ROLE],
                     )
                 }
             }

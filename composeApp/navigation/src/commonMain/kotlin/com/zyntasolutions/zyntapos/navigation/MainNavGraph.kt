@@ -432,6 +432,15 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.RoleList> {
                 screens.roleList(
                     { navigationController.navigateUp(ZyntaRoute.Settings) },
+                    { roleId -> navigationController.navigate(ZyntaRoute.RoleEditor(roleId)) },
+                )
+            }
+
+            composable<ZyntaRoute.RoleEditor> { backStackEntry ->
+                val route = backStackEntry.toRoute<ZyntaRoute.RoleEditor>()
+                screens.roleEditor(
+                    route.roleId,
+                    { navigationController.navigateUp(ZyntaRoute.RoleList) },
                 )
             }
 
@@ -941,6 +950,7 @@ private fun MainScaffoldShell(
         is ZyntaRoute.SecuritySettings,
         is ZyntaRoute.RbacManagement,
         is ZyntaRoute.RoleList,
+        is ZyntaRoute.RoleEditor,
         is ZyntaRoute.SecurityPolicy,
         is ZyntaRoute.DataRetention,
         is ZyntaRoute.AuditPolicy,
