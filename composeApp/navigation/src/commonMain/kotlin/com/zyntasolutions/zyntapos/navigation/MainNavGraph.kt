@@ -334,6 +334,7 @@ fun NavGraphBuilder.mainNavGraph(
                             "DATA_RETENTION" -> navigationController.navigate(ZyntaRoute.DataRetention)
                             "AUDIT_POLICY" -> navigationController.navigate(ZyntaRoute.AuditPolicy)
                             "RBAC_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.RbacManagement)
+                            "ROLE_LIST" -> navigationController.navigate(ZyntaRoute.RoleList)
                             "EDITION_MANAGEMENT" -> navigationController.navigate(ZyntaRoute.EditionManagement)
                             "STORE_USER_ACCESS" -> navigationController.navigate(ZyntaRoute.StoreUserAccess("default"))
                             "DEBUG_CONSOLE" -> if (debugScreen != null) {
@@ -425,6 +426,12 @@ fun NavGraphBuilder.mainNavGraph(
             composable<ZyntaRoute.RbacManagement> {
                 screens.rbacManagement(
                     { navigationController.navigateUp(ZyntaRoute.SecuritySettings) },
+                )
+            }
+
+            composable<ZyntaRoute.RoleList> {
+                screens.roleList(
+                    { navigationController.navigateUp(ZyntaRoute.Settings) },
                 )
             }
 
@@ -933,6 +940,7 @@ private fun MainScaffoldShell(
         is ZyntaRoute.SystemHealthSettings,
         is ZyntaRoute.SecuritySettings,
         is ZyntaRoute.RbacManagement,
+        is ZyntaRoute.RoleList,
         is ZyntaRoute.SecurityPolicy,
         is ZyntaRoute.DataRetention,
         is ZyntaRoute.AuditPolicy,

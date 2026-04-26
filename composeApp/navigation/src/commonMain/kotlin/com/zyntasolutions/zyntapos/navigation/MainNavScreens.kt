@@ -157,6 +157,10 @@ data class MainNavScreens(
         onNavigateUp: () -> Unit,
     ) -> Unit,
 
+    val roleList: @Composable (
+        onNavigateUp: () -> Unit,
+    ) -> Unit,
+
     val securityPolicy: @Composable (
         onNavigateUp: () -> Unit,
     ) -> Unit,

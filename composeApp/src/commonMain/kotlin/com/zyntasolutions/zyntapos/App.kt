@@ -115,6 +115,7 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.RbacManagementScreen
+import com.zyntasolutions.zyntapos.feature.settings.screen.RoleListScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecurityPolicySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecuritySettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SystemHealthScreen
@@ -734,6 +735,17 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         RbacManagementScreen(
             state = state.rbac,
             effects = vm.effects,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
+    },
+
+    // ── Settings: Role Catalog (Sprint 23 task 23.4 — read-only foundation) ──
+    roleList = { onNavigateUp ->
+        val vm: SettingsViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        RoleListScreen(
+            state = state.rbac,
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
         )

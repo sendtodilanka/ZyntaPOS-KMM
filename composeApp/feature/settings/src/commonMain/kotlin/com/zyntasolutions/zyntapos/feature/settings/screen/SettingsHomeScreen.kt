@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.filled.SupervisedUserCircle
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -129,6 +130,8 @@ enum class SettingsRoute {
     DATA_RETENTION,
     /** Audit log category toggles — Sprint 23. */
     AUDIT_POLICY,
+    /** Read-only system + custom role catalog (Sprint 23 task 23.4). */
+    ROLE_LIST,
     /** Debug Console — only presented when [SettingsHomeScreen] receives `isDebug = true`. */
     DEBUG_CONSOLE,
 }
@@ -165,6 +168,7 @@ private fun rememberSettingsGroups(): List<SettingsGroup> {
                     SettingsEntry(s[StringResource.SETTINGS_DATA_RETENTION], s[StringResource.SETTINGS_DATA_RETENTION_SUBTITLE], Icons.Filled.HistoryToggleOff, SettingsRoute.DATA_RETENTION),
                     SettingsEntry(s[StringResource.SETTINGS_AUDIT_POLICY], s[StringResource.SETTINGS_AUDIT_POLICY_SUBTITLE], Icons.Filled.FactCheck, SettingsRoute.AUDIT_POLICY),
                     SettingsEntry(s[StringResource.SETTINGS_ROLES_PERMISSIONS], s[StringResource.SETTINGS_ROLES_PERMISSIONS_SUBTITLE], Icons.Filled.AdminPanelSettings, SettingsRoute.RBAC_MANAGEMENT),
+                    SettingsEntry(s[StringResource.RBAC_SYSTEM_ROLES], s[StringResource.COMMON_READ_ONLY], Icons.Filled.Verified, SettingsRoute.ROLE_LIST),
                     SettingsEntry(s[StringResource.SETTINGS_EDITION_MANAGEMENT], s[StringResource.SETTINGS_EDITION_MANAGEMENT_SUBTITLE], Icons.Filled.WorkspacePremium, SettingsRoute.EDITION_MANAGEMENT),
                     SettingsEntry(s[StringResource.SETTINGS_BACKUP], s[StringResource.SETTINGS_BACKUP_SUBTITLE], Icons.Filled.Backup, SettingsRoute.BACKUP),
                 ),
