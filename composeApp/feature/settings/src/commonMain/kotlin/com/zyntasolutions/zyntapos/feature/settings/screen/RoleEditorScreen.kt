@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -129,7 +130,7 @@ fun RoleEditorScreen(
                 }
             }
 
-            state.tree.forEach { group ->
+            items(items = state.tree, key = { group -> "group_${group.module}" }) { group ->
                 val groupPermissions = group.permissions.map { it.permission }.toSet()
                 val allSelected = groupPermissions.isNotEmpty() && groupPermissions.all { it in state.selected }
                 val anySelected = groupPermissions.any { it in state.selected }
@@ -138,20 +139,20 @@ fun RoleEditorScreen(
                     anySelected -> ToggleableState.Indeterminate
                     else -> ToggleableState.Off
                 }
-                item(key = "group_${group.module}") {
+                Column {
                     PermissionGroupHeader(
                         group = group,
                         triState = triState,
                         permissionCountLabel = s[StringResource.RBAC_PERMISSION_COUNT, group.permissions.size],
                         onToggle = { onIntent(RoleEditorIntent.ToggleGroup(group)) },
                     )
-                }
-                items(group.permissions) { item ->
-                    PermissionRow(
-                        item = item,
-                        checked = item.permission in state.selected,
-                        onToggle = { onIntent(RoleEditorIntent.TogglePermission(item.permission)) },
-                    )
+                    group.permissions.forEach { permItem ->
+                        PermissionRow(
+                            item = permItem,
+                            checked = permItem.permission in state.selected,
+                            onToggle = { onIntent(RoleEditorIntent.TogglePermission(permItem.permission)) },
+                        )
+                    }
                 }
             }
         }
