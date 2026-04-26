@@ -92,6 +92,7 @@ val settingsModule = module {
             setPinUseCase              = get(),
             saveCustomRoleUseCase      = get(),
             deleteCustomRoleUseCase    = get(),
+            cloneRoleUseCase           = get(),
             printTestPageUseCase       = get(),
             backupService              = get(),
             getLabelPrinterConfigUseCase  = get(),

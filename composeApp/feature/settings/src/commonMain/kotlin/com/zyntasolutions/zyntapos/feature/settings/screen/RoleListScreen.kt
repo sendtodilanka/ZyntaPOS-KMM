@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
@@ -73,6 +74,7 @@ fun RoleListScreen(
     onBack: () -> Unit,
     onCreateRole: () -> Unit = {},
     onEditRole: (roleId: String) -> Unit = {},
+    onCloneRole: (CustomRole) -> Unit = {},
 ) {
     val s = LocalStrings.current
     LaunchedEffect(Unit) { onIntent(SettingsIntent.LoadRbac) }
@@ -151,6 +153,7 @@ fun RoleListScreen(
                             labelStrings = s,
                             onEdit = { onEditRole(role.id) },
                             onDelete = { onIntent(SettingsIntent.DeleteCustomRole(role.id)) },
+                            onClone = { onCloneRole(role) },
                         )
                     }
                 }
@@ -198,6 +201,7 @@ private fun CustomRoleRow(
     labelStrings: StringResolver,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onClone: () -> Unit,
 ) {
     ListItem(
         leadingContent = {
@@ -228,6 +232,12 @@ private fun CustomRoleRow(
         },
         trailingContent = {
             androidx.compose.foundation.layout.Row {
+                IconButton(onClick = onClone) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = labelStrings[StringResource.RBAC_CLONE_ROLE],
+                    )
+                }
                 IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Default.Edit,

@@ -100,6 +100,18 @@ sealed interface SettingsIntent {
     data class ToggleCustomRolePermission(val permission: Permission) : SettingsIntent
     data object SaveCustomRole : SettingsIntent
     data class DeleteCustomRole(val id: String) : SettingsIntent
+
+    /**
+     * Clone an existing custom role (Sprint 23 / RBAC).
+     *
+     * Persists a new [com.zyntasolutions.zyntapos.domain.model.CustomRole]
+     * with a fresh UUID, current timestamps, [newName], and the source
+     * role's permission set copied verbatim. The reactive
+     * `getAllCustomRoles()` Flow refreshes [SettingsState.RbacState.customRoles]
+     * automatically on success.
+     */
+    data class CloneCustomRole(val sourceId: String, val newName: String) : SettingsIntent
+
     data class ToggleBuiltInRolePermission(val role: Role, val permission: Permission) : SettingsIntent
     data class ResetBuiltInRolePermissions(val role: Role) : SettingsIntent
 

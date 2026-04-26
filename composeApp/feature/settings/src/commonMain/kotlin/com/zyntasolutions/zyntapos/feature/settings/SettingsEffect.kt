@@ -13,6 +13,13 @@ sealed interface SettingsEffect {
     data object PinUpdated : SettingsEffect
     data object RoleSaved : SettingsEffect
     data object RoleDeleted : SettingsEffect
+
+    /**
+     * Emitted after a successful clone-role operation. Carries the new
+     * role's id so the host can navigate the user into the editor for the
+     * cloned role to fine-tune name + permissions.
+     */
+    data class RoleCloned(val newRoleId: String) : SettingsEffect
     data class BackupComplete(val filePath: String) : SettingsEffect
     data object RestoreComplete : SettingsEffect
     data class ThemeModeChanged(val mode: ThemeMode) : SettingsEffect

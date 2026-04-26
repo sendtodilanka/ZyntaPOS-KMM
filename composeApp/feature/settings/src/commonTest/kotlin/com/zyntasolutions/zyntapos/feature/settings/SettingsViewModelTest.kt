@@ -18,6 +18,7 @@ import com.zyntasolutions.zyntapos.domain.repository.UserRepository
 import com.zyntasolutions.zyntapos.security.audit.SecurityAuditLogger
 import com.zyntasolutions.zyntapos.domain.usecase.auth.SetPinUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.inventory.SaveTaxGroupUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.rbac.CloneRoleUseCaseImpl
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.DeleteCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.rbac.SaveCustomRoleUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileUseCase
@@ -309,6 +310,7 @@ class SettingsViewModelTest {
             setPinUseCase                = SetPinUseCase(fakeAuthRepository),
             saveCustomRoleUseCase        = SaveCustomRoleUseCase(fakeRoleRepository),
             deleteCustomRoleUseCase      = DeleteCustomRoleUseCase(fakeRoleRepository),
+            cloneRoleUseCase             = CloneRoleUseCaseImpl(fakeRoleRepository),
             printTestPageUseCase         = fakePrintTestPageUseCase,
             backupService                = fakeBackupService,
             getLabelPrinterConfigUseCase = GetLabelPrinterConfigUseCase(fakeLabelPrinterConfigRepository),
@@ -533,6 +535,31 @@ class SettingsViewModelTest {
 
         assertTrue(deletedRoleIds.contains("role-to-delete"))
     }
+
+    @Test
+    fun `CloneCustomRole persists a clone with newName and source permissions`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val source = CustomRole(
+                id = "role-src",
+                name = "Senior Cashier",
+                description = "Source description",
+                permissions = setOf(Permission.PROCESS_SALE, Permission.APPLY_DISCOUNT),
+                createdAt = Instant.fromEpochSeconds(1_000),
+                updatedAt = Instant.fromEpochSeconds(1_000),
+            )
+            fakeCustomRolesFlow.value = listOf(source)
+
+            viewModel.dispatch(SettingsIntent.CloneCustomRole(source.id, "Copy of Senior Cashier"))
+
+            // One createCustomRole call landed; the new role copies permissions
+            // verbatim and reuses neither the source's id nor description.
+            assertEquals(1, createdRoles.size)
+            val clone = createdRoles.single()
+            assertEquals("Copy of Senior Cashier", clone.name)
+            assertEquals(source.permissions, clone.permissions)
+            assertTrue(clone.id.isNotBlank())
+            assertEquals("", clone.description)
+        }
 
     // ── User management — admin guard (TODO-001) ──────────────────────────────
 

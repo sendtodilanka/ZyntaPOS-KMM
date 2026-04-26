@@ -103,6 +103,8 @@ import com.zyntasolutions.zyntapos.feature.reports.CustomerReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.ExpenseReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.SalesReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.StockReportScreen
+import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
+import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
 import com.zyntasolutions.zyntapos.feature.settings.screen.AboutScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.AppearanceSettingsScreen
@@ -733,12 +735,24 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     roleList = { onNavigateUp, onNavigateToEditor ->
         val vm: SettingsViewModel = koinViewModel()
         val state by vm.state.collectAsState()
+        // Hop into the editor on the cloned role so the admin can refine
+        // its name + permissions before it lands in production use.
+        LaunchedEffect(vm) {
+            vm.effects.collect { effect ->
+                if (effect is SettingsEffect.RoleCloned) {
+                    onNavigateToEditor(effect.newRoleId)
+                }
+            }
+        }
         RoleListScreen(
             state = state.rbac,
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
             onCreateRole = { onNavigateToEditor(null) },
             onEditRole = onNavigateToEditor,
+            onCloneRole = { role ->
+                vm.dispatch(SettingsIntent.CloneCustomRole(role.id, "Copy of ${role.name}"))
+            },
         )
     },
 
