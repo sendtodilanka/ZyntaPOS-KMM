@@ -5,7 +5,7 @@ import com.zyntasolutions.zyntapos.core.result.ValidationException
 import com.zyntasolutions.zyntapos.core.utils.IdGenerator
 import com.zyntasolutions.zyntapos.domain.model.CustomRole
 import com.zyntasolutions.zyntapos.domain.repository.RoleRepository
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 /**
  * Default implementation of [CloneRoleUseCase].
@@ -37,6 +37,7 @@ class CloneRoleUseCaseImpl(private val roleRepository: RoleRepository) : CloneRo
         val source = when (val lookup = roleRepository.getCustomRoleById(sourceRoleId)) {
             is Result.Success -> lookup.data
             is Result.Error -> return Result.Error(lookup.exception)
+            Result.Loading -> return Result.Loading
         }
         val now = Clock.System.now()
         val cloned = CustomRole(
@@ -50,6 +51,7 @@ class CloneRoleUseCaseImpl(private val roleRepository: RoleRepository) : CloneRo
         return when (val persisted = roleRepository.createCustomRole(cloned)) {
             is Result.Success -> Result.Success(cloned)
             is Result.Error -> Result.Error(persisted.exception)
+            Result.Loading -> Result.Loading
         }
     }
 }
