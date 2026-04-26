@@ -115,7 +115,6 @@ import com.zyntasolutions.zyntapos.feature.settings.screen.PrinterSettingsScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SettingsHomeScreen
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.RoleEditorViewModel
-import com.zyntasolutions.zyntapos.feature.settings.screen.RbacManagementScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.RoleEditorScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.RoleListScreen
 import com.zyntasolutions.zyntapos.feature.settings.screen.SecurityPolicySettingsScreen
@@ -719,26 +718,14 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
     },
 
     // ── Settings: Security ───────────────────────────────────────────────────
-    securitySettings = { onNavigateUp, onNavigateToRbacManagement ->
+    securitySettings = { onNavigateUp, onNavigateToRoles ->
         val vm: SettingsViewModel = koinViewModel()
         val state by vm.state.collectAsState()
         SecuritySettingsScreen(
             state = state.security,
             onIntent = vm::dispatch,
             onBack = onNavigateUp,
-            onNavigateToRbacManagement = onNavigateToRbacManagement,
-        )
-    },
-
-    // ── Settings: RBAC Management ────────────────────────────────────────────
-    rbacManagement = { onNavigateUp ->
-        val vm: SettingsViewModel = koinViewModel()
-        val state by vm.state.collectAsState()
-        RbacManagementScreen(
-            state = state.rbac,
-            effects = vm.effects,
-            onIntent = vm::dispatch,
-            onBack = onNavigateUp,
+            onNavigateToRoles = onNavigateToRoles,
         )
     },
 

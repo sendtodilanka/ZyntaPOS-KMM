@@ -150,11 +150,7 @@ data class MainNavScreens(
 
     val securitySettings: @Composable (
         onNavigateUp: () -> Unit,
-        onNavigateToRbacManagement: () -> Unit,
-    ) -> Unit,
-
-    val rbacManagement: @Composable (
-        onNavigateUp: () -> Unit,
+        onNavigateToRoles: () -> Unit,
     ) -> Unit,
 
     val roleList: @Composable (
