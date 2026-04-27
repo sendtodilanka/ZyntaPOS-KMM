@@ -122,42 +122,7 @@ fun DataRetentionSettingsScreen(
         }
     }
 
-    when (openDialog) {
-        DialogKind.AUDIT_LOG -> RetentionChoiceDialog(
-            title = s[StringResource.SETTINGS_AUDIT_RETENTION],
-            options = DataRetentionPolicy.ALLOWED_AUDIT_LOG_DAYS,
-            current = state.policy.auditLogRetentionDays,
-            unitSuffix = " days",
-            onSelect = { value ->
-                onIntent(DataRetentionIntent.Apply(state.policy.copy(auditLogRetentionDays = value)))
-                openDialog = null
-            },
-            onDismiss = { openDialog = null },
-        )
-        DialogKind.SYNC_QUEUE -> RetentionChoiceDialog(
-            title = s[StringResource.SETTINGS_SYNC_RETENTION],
-            options = DataRetentionPolicy.ALLOWED_SYNC_QUEUE_DAYS,
-            current = state.policy.syncQueueRetentionDays,
-            unitSuffix = " days",
-            onSelect = { value ->
-                onIntent(DataRetentionIntent.Apply(state.policy.copy(syncQueueRetentionDays = value)))
-                openDialog = null
-            },
-            onDismiss = { openDialog = null },
-        )
-        DialogKind.REPORTS -> RetentionChoiceDialog(
-            title = s[StringResource.SETTINGS_REPORT_RETENTION],
-            options = DataRetentionPolicy.ALLOWED_REPORT_MONTHS,
-            current = state.policy.reportRetentionMonths,
-            unitSuffix = " months",
-            onSelect = { value ->
-                onIntent(DataRetentionIntent.Apply(state.policy.copy(reportRetentionMonths = value)))
-                openDialog = null
-            },
-            onDismiss = { openDialog = null },
-        )
-        null -> Unit
-    }
+    // dialog block + helpers temporarily removed for bisect
 }
 
 private enum class DialogKind { AUDIT_LOG, SYNC_QUEUE, REPORTS }
@@ -192,43 +157,4 @@ private fun RetentionRow(
     )
 }
 
-@Composable
-private fun RetentionChoiceDialog(
-    title: String,
-    options: List<Int>,
-    current: Int,
-    unitSuffix: String,
-    onSelect: (Int) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val s = LocalStrings.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column {
-                options.forEach { value ->
-                    ListItem(
-                        headlineContent = {
-                            Text(
-                                "$value$unitSuffix",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (value == current)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurface,
-                            )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(value) },
-                    )
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
-        },
-    )
-}
+// RetentionChoiceDialog helper temporarily removed for bisect
