@@ -201,7 +201,7 @@ private fun RetentionRow(
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .let { if (enabled) it.clickable(onClick = onClick) else it },
+            .clickable(enabled = enabled, onClick = onClick),
     )
 }
 
