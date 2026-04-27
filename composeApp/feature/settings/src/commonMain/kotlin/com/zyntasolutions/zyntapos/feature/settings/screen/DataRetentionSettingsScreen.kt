@@ -109,7 +109,20 @@ fun DataRetentionSettingsScreen(
                     )
                 }
             }
-            // Run Purge Now button — temporarily removed to bisect Step[1] failure
+            item {
+                Button(
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(
+                        Icons.Default.CleaningServices,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = ZyntaSpacing.xs),
+                    )
+                    Text(s[StringResource.SETTINGS_PURGE_NOW])
+                }
+            }
             state.error?.let { msg ->
                 item {
                     Text(
@@ -122,7 +135,42 @@ fun DataRetentionSettingsScreen(
         }
     }
 
-    // dialog block + helpers temporarily removed for bisect
+    when (openDialog) {
+        RetentionDialogKind.AUDIT_LOG -> RetentionChoiceDialog(
+            title = s[StringResource.SETTINGS_AUDIT_RETENTION],
+            options = DataRetentionPolicy.ALLOWED_AUDIT_LOG_DAYS,
+            current = state.policy.auditLogRetentionDays,
+            unitSuffix = " days",
+            onSelect = { value ->
+                onIntent(DataRetentionIntent.Apply(state.policy.copy(auditLogRetentionDays = value)))
+                openDialog = null
+            },
+            onDismiss = { openDialog = null },
+        )
+        RetentionDialogKind.SYNC_QUEUE -> RetentionChoiceDialog(
+            title = s[StringResource.SETTINGS_SYNC_RETENTION],
+            options = DataRetentionPolicy.ALLOWED_SYNC_QUEUE_DAYS,
+            current = state.policy.syncQueueRetentionDays,
+            unitSuffix = " days",
+            onSelect = { value ->
+                onIntent(DataRetentionIntent.Apply(state.policy.copy(syncQueueRetentionDays = value)))
+                openDialog = null
+            },
+            onDismiss = { openDialog = null },
+        )
+        RetentionDialogKind.REPORTS -> RetentionChoiceDialog(
+            title = s[StringResource.SETTINGS_REPORT_RETENTION],
+            options = DataRetentionPolicy.ALLOWED_REPORT_MONTHS,
+            current = state.policy.reportRetentionMonths,
+            unitSuffix = " months",
+            onSelect = { value ->
+                onIntent(DataRetentionIntent.Apply(state.policy.copy(reportRetentionMonths = value)))
+                openDialog = null
+            },
+            onDismiss = { openDialog = null },
+        )
+        null -> Unit
+    }
 }
 
 private enum class RetentionDialogKind { AUDIT_LOG, SYNC_QUEUE, REPORTS }
@@ -157,4 +205,43 @@ private fun RetentionRow(
     )
 }
 
-// RetentionChoiceDialog helper temporarily removed for bisect
+@Composable
+private fun RetentionChoiceDialog(
+    title: String,
+    options: List<Int>,
+    current: Int,
+    unitSuffix: String,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val s = LocalStrings.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                options.forEach { value ->
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                "$value$unitSuffix",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (value == current)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(value) },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
+        },
+    )
+}
