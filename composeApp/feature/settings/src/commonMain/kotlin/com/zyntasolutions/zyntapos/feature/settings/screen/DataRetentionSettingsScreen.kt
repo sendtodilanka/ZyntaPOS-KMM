@@ -64,7 +64,7 @@ fun DataRetentionSettingsScreen(
     onBack: () -> Unit,
 ) {
     val s = LocalStrings.current
-    var openDialog by remember { mutableStateOf<DialogKind?>(null) }
+    var openDialog by remember { mutableStateOf<RetentionDialogKind?>(null) }
 
     ZyntaPageScaffold(
         title = s[StringResource.SETTINGS_DATA_RETENTION],
@@ -91,21 +91,21 @@ fun DataRetentionSettingsScreen(
                         value = "${state.policy.auditLogRetentionDays} days",
                         icon = Icons.Default.HistoryToggleOff,
                         enabled = !state.isLoading,
-                        onClick = { openDialog = DialogKind.AUDIT_LOG },
+                        onClick = { openDialog = RetentionDialogKind.AUDIT_LOG },
                     )
                     RetentionRow(
                         label = s[StringResource.SETTINGS_SYNC_RETENTION],
                         value = "${state.policy.syncQueueRetentionDays} days",
                         icon = Icons.Default.Sync,
                         enabled = !state.isLoading,
-                        onClick = { openDialog = DialogKind.SYNC_QUEUE },
+                        onClick = { openDialog = RetentionDialogKind.SYNC_QUEUE },
                     )
                     RetentionRow(
                         label = s[StringResource.SETTINGS_REPORT_RETENTION],
                         value = "${state.policy.reportRetentionMonths} months",
                         icon = Icons.Default.Assessment,
                         enabled = !state.isLoading,
-                        onClick = { openDialog = DialogKind.REPORTS },
+                        onClick = { openDialog = RetentionDialogKind.REPORTS },
                     )
                 }
             }
@@ -125,7 +125,7 @@ fun DataRetentionSettingsScreen(
     // dialog block + helpers temporarily removed for bisect
 }
 
-private enum class DialogKind { AUDIT_LOG, SYNC_QUEUE, REPORTS }
+private enum class RetentionDialogKind { AUDIT_LOG, SYNC_QUEUE, REPORTS }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
