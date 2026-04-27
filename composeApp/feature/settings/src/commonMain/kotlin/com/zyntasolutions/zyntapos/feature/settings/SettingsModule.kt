@@ -18,10 +18,12 @@ import com.zyntasolutions.zyntapos.domain.usecase.settings.DeletePrinterProfileU
 import com.zyntasolutions.zyntapos.domain.usecase.settings.DeleteTaxOverrideUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.GetLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.GetPrinterProfilesUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.GetSecurityPolicyUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.GetTaxOverridesUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.PrintTestPageUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveLabelPrinterConfigUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SavePrinterProfileUseCase
+import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveSecurityPolicyUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveTaxOverrideUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.settings.SaveUserUseCase
 import com.zyntasolutions.zyntapos.feature.settings.edition.EditionManagementViewModel
@@ -66,6 +68,10 @@ val settingsModule = module {
     // ── Audit policy use cases (Sprint 23 task 23.9 — persistence slice) ──────
     factoryOf(::GetAuditPolicyUseCase)
     factoryOf(::SetAuditPolicyEnabledUseCase)
+
+    // ── Security policy use cases (Sprint 23 task 23.9 — slice 2/3) ───────────
+    factoryOf(::GetSecurityPolicyUseCase)
+    factoryOf(::SaveSecurityPolicyUseCase)
 
     // ── Feature registry use cases (Edition Management) ───────────────────────
     // FeatureRegistryRepository is bound in :shared:data dataModule.
@@ -120,4 +126,5 @@ val settingsModule = module {
     viewModelOf(::StoreUserAccessViewModel)
     viewModelOf(::RoleEditorViewModel)
     viewModelOf(::AuditPolicyViewModel)
+    viewModelOf(::SecurityPolicyViewModel)
 }

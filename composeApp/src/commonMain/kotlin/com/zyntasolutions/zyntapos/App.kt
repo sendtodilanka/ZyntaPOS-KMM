@@ -105,6 +105,8 @@ import com.zyntasolutions.zyntapos.feature.reports.SalesReportScreen
 import com.zyntasolutions.zyntapos.feature.reports.StockReportScreen
 import com.zyntasolutions.zyntapos.feature.settings.AuditPolicyIntent
 import com.zyntasolutions.zyntapos.feature.settings.AuditPolicyViewModel
+import com.zyntasolutions.zyntapos.feature.settings.SecurityPolicyIntent
+import com.zyntasolutions.zyntapos.feature.settings.SecurityPolicyViewModel
 import com.zyntasolutions.zyntapos.feature.settings.SettingsEffect
 import com.zyntasolutions.zyntapos.feature.settings.SettingsIntent
 import com.zyntasolutions.zyntapos.feature.settings.SettingsViewModel
@@ -772,9 +774,16 @@ private fun buildMainNavScreens(isDebug: Boolean) = MainNavScreens(
         )
     },
 
-    // ── Settings: Security Policy / Data Retention / Audit Policy (Sprint 23 scaffolds) ──
+    // ── Settings: Security Policy / Data Retention / Audit Policy (Sprint 23) ──
     securityPolicy = { onNavigateUp ->
-        SecurityPolicySettingsScreen(onBack = onNavigateUp)
+        val vm: SecurityPolicyViewModel = koinViewModel()
+        val state by vm.state.collectAsState()
+        LaunchedEffect(Unit) { vm.dispatch(SecurityPolicyIntent.Load) }
+        SecurityPolicySettingsScreen(
+            state = state,
+            onIntent = vm::dispatch,
+            onBack = onNavigateUp,
+        )
     },
     dataRetention = { onNavigateUp ->
         DataRetentionSettingsScreen(onBack = onNavigateUp)
