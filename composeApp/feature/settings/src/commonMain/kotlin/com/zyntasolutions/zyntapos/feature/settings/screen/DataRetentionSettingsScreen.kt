@@ -1,6 +1,8 @@
 package com.zyntasolutions.zyntapos.feature.settings.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +12,7 @@ import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.HistoryToggleOff
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,25 +22,50 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.zyntasolutions.zyntapos.core.i18n.StringResource
 import com.zyntasolutions.zyntapos.designsystem.components.LocalStrings
 import com.zyntasolutions.zyntapos.designsystem.layouts.ZyntaPageScaffold
 import com.zyntasolutions.zyntapos.designsystem.tokens.ZyntaSpacing
+import com.zyntasolutions.zyntapos.domain.model.DataRetentionPolicy
+import com.zyntasolutions.zyntapos.feature.settings.DataRetentionIntent
+import com.zyntasolutions.zyntapos.feature.settings.DataRetentionState
 
 /**
- * Data Retention read-only shell (Phase 3 Sprint 23).
+ * Data Retention settings screen (Sprint 23 task 23.9 — persistence slice 3/3).
  *
- * Displays current retention windows for audit log, sync queue, and report
- * data. The "Run Purge Now" affordance is present but disabled — wiring to
- * `PurgeExpiredDataUseCase` is Sprint 24 follow-up work.
+ * Renders three rows backed by [DataRetentionState]:
+ *   1. Audit log retention — int dropdown {30, 90, 180, 365} days
+ *   2. Sync queue retention — int dropdown {7, 14, 30} days
+ *   3. Report data retention — int dropdown {6, 12, 24} months
+ *
+ * Each tap dispatches a `DataRetentionIntent.Apply` carrying the next
+ * snapshot. The "Run Purge Now" action is rendered disabled — wiring it
+ * to a real `PurgeExpiredDataUseCase` is the next step (the use case
+ * does not exist yet).
+ *
+ * @param state    Current loaded policy from
+ *                 [com.zyntasolutions.zyntapos.feature.settings.DataRetentionViewModel].
+ * @param onIntent Pipe back to `viewModel.dispatch`.
+ * @param onBack   Back navigation handler.
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun DataRetentionSettingsScreen(onBack: () -> Unit) {
+fun DataRetentionSettingsScreen(
+    state: DataRetentionState,
+    onIntent: (DataRetentionIntent) -> Unit,
+    onBack: () -> Unit,
+) {
     val s = LocalStrings.current
+    var openDialog by remember { mutableStateOf<DialogKind?>(null) }
+
     ZyntaPageScaffold(
         title = s[StringResource.SETTINGS_DATA_RETENTION],
         onNavigateBack = onBack,
@@ -60,18 +88,24 @@ fun DataRetentionSettingsScreen(onBack: () -> Unit) {
                 ) {
                     RetentionRow(
                         label = s[StringResource.SETTINGS_AUDIT_RETENTION],
-                        value = "90 days",
+                        value = "${state.policy.auditLogRetentionDays} days",
                         icon = Icons.Default.HistoryToggleOff,
+                        enabled = !state.isLoading,
+                        onClick = { openDialog = DialogKind.AUDIT_LOG },
                     )
                     RetentionRow(
                         label = s[StringResource.SETTINGS_SYNC_RETENTION],
-                        value = "14 days",
+                        value = "${state.policy.syncQueueRetentionDays} days",
                         icon = Icons.Default.Sync,
+                        enabled = !state.isLoading,
+                        onClick = { openDialog = DialogKind.SYNC_QUEUE },
                     )
                     RetentionRow(
                         label = s[StringResource.SETTINGS_REPORT_RETENTION],
-                        value = "12 months",
+                        value = "${state.policy.reportRetentionMonths} months",
                         icon = Icons.Default.Assessment,
+                        enabled = !state.isLoading,
+                        onClick = { openDialog = DialogKind.REPORTS },
                     )
                 }
             }
@@ -89,20 +123,67 @@ fun DataRetentionSettingsScreen(onBack: () -> Unit) {
                     Text(s[StringResource.SETTINGS_PURGE_NOW])
                 }
             }
-            item {
-                Text(
-                    text = s[StringResource.COMMON_READ_ONLY],
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = ZyntaSpacing.xs),
-                )
+            state.error?.let { msg ->
+                item {
+                    Text(
+                        text = msg,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }
+
+    when (openDialog) {
+        DialogKind.AUDIT_LOG -> RetentionChoiceDialog(
+            title = s[StringResource.SETTINGS_AUDIT_RETENTION],
+            options = DataRetentionPolicy.ALLOWED_AUDIT_LOG_DAYS,
+            current = state.policy.auditLogRetentionDays,
+            unitSuffix = " days",
+            onSelect = { value ->
+                onIntent(DataRetentionIntent.Apply(state.policy.copy(auditLogRetentionDays = value)))
+                openDialog = null
+            },
+            onDismiss = { openDialog = null },
+        )
+        DialogKind.SYNC_QUEUE -> RetentionChoiceDialog(
+            title = s[StringResource.SETTINGS_SYNC_RETENTION],
+            options = DataRetentionPolicy.ALLOWED_SYNC_QUEUE_DAYS,
+            current = state.policy.syncQueueRetentionDays,
+            unitSuffix = " days",
+            onSelect = { value ->
+                onIntent(DataRetentionIntent.Apply(state.policy.copy(syncQueueRetentionDays = value)))
+                openDialog = null
+            },
+            onDismiss = { openDialog = null },
+        )
+        DialogKind.REPORTS -> RetentionChoiceDialog(
+            title = s[StringResource.SETTINGS_REPORT_RETENTION],
+            options = DataRetentionPolicy.ALLOWED_REPORT_MONTHS,
+            current = state.policy.reportRetentionMonths,
+            unitSuffix = " months",
+            onSelect = { value ->
+                onIntent(DataRetentionIntent.Apply(state.policy.copy(reportRetentionMonths = value)))
+                openDialog = null
+            },
+            onDismiss = { openDialog = null },
+        )
+        null -> Unit
+    }
 }
 
+private enum class DialogKind { AUDIT_LOG, SYNC_QUEUE, REPORTS }
+
 @Composable
-private fun RetentionRow(label: String, value: String, icon: ImageVector) {
+@OptIn(ExperimentalMaterial3Api::class)
+private fun RetentionRow(
+    label: String,
+    value: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
     ListItem(
         headlineContent = { Text(label, style = MaterialTheme.typography.bodyLarge) },
         trailingContent = {
@@ -118,6 +199,49 @@ private fun RetentionRow(label: String, value: String, icon: ImageVector) {
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .let { if (enabled) it.clickable(onClick = onClick) else it },
+    )
+}
+
+@Composable
+private fun RetentionChoiceDialog(
+    title: String,
+    options: List<Int>,
+    current: Int,
+    unitSuffix: String,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val s = LocalStrings.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column {
+                options.forEach { value ->
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                "$value$unitSuffix",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (value == current)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                            )
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(value) },
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(s[StringResource.COMMON_CANCEL]) }
+        },
     )
 }
