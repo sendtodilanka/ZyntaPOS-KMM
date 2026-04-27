@@ -5,10 +5,15 @@ import com.zyntasolutions.zyntapos.domain.model.AuditPolicy
 import com.zyntasolutions.zyntapos.domain.repository.SettingsRepository
 import com.zyntasolutions.zyntapos.domain.usecase.audit.GetAuditPolicyUseCase
 import com.zyntasolutions.zyntapos.domain.usecase.audit.SetAuditPolicyEnabledUseCase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -17,6 +22,11 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AuditPolicyViewModelTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+
+    @BeforeTest fun setUp() = Dispatchers.setMain(testDispatcher)
+    @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     /**
      * In-memory test double. Mirrors `shared/domain/.../FakeSettingsRepository`
